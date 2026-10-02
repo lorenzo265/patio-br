@@ -1,7 +1,7 @@
 # SDD — patio-br (nome provisório)
 
 **Documento de desenho do software (SDD) do MVP do piloto**
-Versão 0.1 · 2026-10-02 · Situação: rascunho para revisão
+Versão 0.2 · 2026-10-02 · Situação: aprovado como base; itens em aberto na seção 12
 
 ---
 
@@ -423,7 +423,7 @@ Pontuação inicial (os pesos e o limite são ajustados com os dados do mês 2 �
 | Treino | PyTorch, Label Studio, exportação ONNX → OpenVINO |
 | Qualidade | ruff, mypy, pytest; checagem de licenças e vulnerabilidades das dependências |
 
-Toda dependência precisa de licença permissiva (MIT, BSD, Apache, PostgreSQL). A CI checa.
+Toda dependência precisa de licença permissiva (MIT, BSD, Apache, PostgreSQL, ISC, PSF). MPL-2.0 só é aceita para biblioteca usada sem modificação (ex.: `certifi`). GPL, LGPL e AGPL ficam de fora. A CI checa.
 
 ### 6.2 Telas do MVP
 
@@ -658,7 +658,7 @@ folga.
 | ABERTO-08 | Guia de posicionamento das câmeras por tipo de portaria | no kit de bancada e no site parceiro (meses 1–2) |
 | ABERTO-09 | Tolerância de janela (padrão 4h após o fim da janela, usada também para "não veio") e momento do alerta de estadia (padrão: 4h depois da chegada) | com o cliente do piloto |
 | ABERTO-10 | Modelo de dados detalhado do modo B | no início da Fase 2 |
-| ABERTO-11 | Implementação da fila de tarefas no PostgreSQL (biblioteca ou tabela própria) | no mês 1, ao montar o worker |
+| ABERTO-11 | Implementação da fila de tarefas no PostgreSQL (biblioteca ou tabela própria) | no mês 2, quando o worker entrar com o casamento |
 | ABERTO-12 | Licença dos pesos de terceiros usados em avaliação (ex.: fast-plate-ocr) | antes de usá-los, mesmo internamente |
 
 ---
@@ -693,3 +693,4 @@ folga.
 | Versão | Data | Mudança |
 |---|---|---|
 | 0.1 | 2026-10-02 | primeira versão, a partir das 8 seções aprovadas na sessão de desenho |
+| 0.2 | 2026-10-02 | plano do mês 1 criado (`docs/planos/2026-10-plano-mes-1.md`); `[ABERTO-11]` passa para o mês 2; regra de licença inclui ISC/PSF e MPL-2.0 só sem modificação |
