@@ -1,9 +1,10 @@
 # CI do projeto (T03 do plano do mês 1; SDD seções 6.1 e 7.3).
 # Quatro verificações independentes, em paralelo:
-#   1. verificar: estilo, formato, tipos e testes (o mesmo `uv run tarefas check` de quem desenvolve)
+#   1. verificar: estilo, formato, tipos e testes (o mesmo `uv run tarefas check` de quem desenvolve),
+#      com o PostgreSQL de teste dos testes da nuvem
 #   2. licencas: toda dependência precisa de licença permissiva (regra do SDD 6.1)
 #   3. vulnerabilidades: nenhuma dependência com falha de segurança conhecida
-#   4. ambiente: `tarefas up` sobe o ambiente local e os bancos respondem (T04)
+#   4. ambiente: `tarefas up` constrói a API e sobe o ambiente local; migrações e /saude (T04, T07)
 name: ci
 
 on:
@@ -30,6 +31,18 @@ jobs:
     name: estilo, tipos e testes
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    services:
+      # O mesmo banco de teste do `tarefas up` (infra/docker-compose.yml): porta 5433.
+      postgres-teste:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: patio
+          POSTGRES_PASSWORD: patio-local
+          POSTGRES_DB: patio_teste
+        ports: ["5433:5432"]
+        options: >-
+          --health-cmd "pg_isready -U patio -d patio_teste"
+          --health-interval 2s --health-timeout 3s --health-retries 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
@@ -87,6 +100,7 @@ jobs:
     timeout-minutes: 10
     env:
       COMPOSE: docker compose -f infra/docker-compose.yml --project-directory .
+      PATIO_URL_BANCO: postgresql+pg8000://patio:patio-local@localhost:5432/patio
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
@@ -102,5 +116,9 @@ jobs:
         run: |
           $COMPOSE exec -T postgres psql -U patio -d patio -c "select 1"
           $COMPOSE exec -T postgres-teste psql -U patio -d patio_teste -c "select 1"
+      - name: tarefas migrar
+        run: uv run tarefas migrar
+      - name: A API responde em /saude
+        run: test "$(curl --fail-with-body -sS http://localhost:8000/saude)" = '{"ok":true}'
       - name: tarefas down
         run: uv run tarefas down
