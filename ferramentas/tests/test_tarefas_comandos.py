@@ -8,11 +8,15 @@ import pytest
 
 from tarefas.comandos import (
     Etapa,
+    ProgramaNaoEncontradoError,
     RaizNaoEncontradaError,
     encontrar_raiz,
     etapas_do_check,
+    etapas_do_down,
     etapas_do_test,
+    etapas_do_up,
     executar_etapas,
+    executar_processo,
     principal,
 )
 
@@ -144,3 +148,43 @@ def test_ignora_pyproject_que_nao_e_do_workspace(tmp_path: Path) -> None:
 def test_falha_com_erro_claro_fora_do_repositorio(tmp_path: Path) -> None:
     with pytest.raises(RaizNaoEncontradaError):
         encontrar_raiz(tmp_path)
+
+
+def test_up_sobe_os_servicos_e_espera_ficarem_saudaveis() -> None:
+    (etapa,) = etapas_do_up()
+
+    assert etapa.argumentos[-3:] == ("up", "-d", "--wait")
+
+
+def test_up_e_down_usam_o_compose_do_projeto_com_o_env_da_raiz() -> None:
+    prefixo = ("docker", "compose", "-f", "infra/docker-compose.yml", "--project-directory", ".")
+
+    assert [e.argumentos[:6] for e in (*etapas_do_up(), *etapas_do_down())] == [prefixo, prefixo]
+
+
+def test_down_mantem_os_dados_do_banco() -> None:
+    (etapa,) = etapas_do_down()
+
+    assert etapa.argumentos[-1] == "down"
+
+
+class ExecutorSemPrograma:
+    """Simula um programa que não está instalado (ex.: Docker Desktop ausente)."""
+
+    def __call__(self, argumentos: Sequence[str], raiz: Path) -> int:
+        raise ProgramaNaoEncontradoError(argumentos[0])
+
+
+def test_principal_avisa_quando_falta_um_programa(tmp_path: Path) -> None:
+    (tmp_path / "pyproject.toml").write_text("[tool.uv.workspace]\n", encoding="utf-8")
+    saida = io.StringIO()
+
+    codigo = principal(["up"], partida=tmp_path, executor=ExecutorSemPrograma(), saida=saida)
+
+    assert (codigo, "'docker' não foi encontrado" in saida.getvalue()) == (127, True)
+
+
+@pytest.mark.integracao
+def test_executar_processo_sem_o_programa_levanta_erro_claro(tmp_path: Path) -> None:
+    with pytest.raises(ProgramaNaoEncontradoError):
+        executar_processo(["programa-que-nao-existe-patio"], tmp_path)

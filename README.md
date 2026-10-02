@@ -27,8 +27,18 @@ uv run tarefas check         # estilo, formato, tipos e testes (o mesmo que a CI
 uv run tarefas test -k placa # só os testes; o que vier depois de `test` vai para o pytest
 ```
 
+O banco local (PostgreSQL 16) roda no Docker: precisa do
+[Docker Desktop](https://www.docker.com/products/docker-desktop/) aberto. Para mudar senha ou
+portas, copie `.env.exemplo` para `.env` (o Git ignora o `.env`).
+
+```bash
+uv run tarefas up            # sobe o banco de desenvolvimento (5432) e o de testes (5433)
+uv run tarefas down          # derruba; os dados do banco de desenvolvimento ficam guardados
+```
+
 A CI (`.github/workflows/ci.yml`) roda em cada PR e na `main`: o mesmo `tarefas check`, a
-checagem de licenças das dependências e a de falhas de segurança conhecidas.
+checagem de licenças das dependências, a de falhas de segurança conhecidas e o `tarefas up`
+com os dois bancos respondendo.
 
 O repositório é um workspace `uv` com cinco pacotes: `contratos/`, `borda/`, `nuvem/`,
 `ferramentas/` e `ml/` (ver `docs/SDD.md`, seção 6.3).
