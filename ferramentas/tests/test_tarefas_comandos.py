@@ -13,6 +13,7 @@ from tarefas.comandos import (
     encontrar_raiz,
     etapas_do_check,
     etapas_do_down,
+    etapas_do_migrar,
     etapas_do_test,
     etapas_do_up,
     executar_etapas,
@@ -150,10 +151,11 @@ def test_falha_com_erro_claro_fora_do_repositorio(tmp_path: Path) -> None:
         encontrar_raiz(tmp_path)
 
 
-def test_up_sobe_os_servicos_e_espera_ficarem_saudaveis() -> None:
+def test_up_reconstroi_a_api_sobe_os_servicos_e_espera_ficarem_saudaveis() -> None:
+    # --build: a API sobe sempre com o código atual (o cache evita refazer o que não mudou).
     (etapa,) = etapas_do_up()
 
-    assert etapa.argumentos[-3:] == ("up", "-d", "--wait")
+    assert etapa.argumentos[6:] == ("up", "--build", "-d", "--wait")
 
 
 def test_up_e_down_usam_o_compose_do_projeto_com_o_env_da_raiz() -> None:
@@ -166,6 +168,21 @@ def test_down_mantem_os_dados_do_banco() -> None:
     (etapa,) = etapas_do_down()
 
     assert etapa.argumentos[-1] == "down"
+
+
+def test_migrar_aplica_as_migracoes_da_nuvem_ate_a_ultima() -> None:
+    (etapa,) = etapas_do_migrar()
+
+    assert etapa.argumentos[2:] == ("alembic", "-c", "nuvem/alembic.ini", "upgrade", "head")
+
+
+def test_principal_conhece_o_comando_migrar(tmp_path: Path) -> None:
+    (tmp_path / "pyproject.toml").write_text("[tool.uv.workspace]\n", encoding="utf-8")
+    executor = ExecutorFalso()
+
+    principal(["migrar"], partida=tmp_path, executor=executor, saida=io.StringIO())
+
+    assert _modulos(executor) == ["alembic"]
 
 
 class ExecutorSemPrograma:
