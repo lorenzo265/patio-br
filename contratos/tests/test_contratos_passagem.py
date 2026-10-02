@@ -25,7 +25,6 @@ EXEMPLO_DO_SDD: dict[str, Any] = {
             "confianca": 0.98,
             "camera_id": "cam-frente-1",
             "quadros": 7,
-            "inferida": False,
         },
         {
             "placa": "XYZ9876",
@@ -33,7 +32,6 @@ EXEMPLO_DO_SDD: dict[str, Any] = {
             "confianca": 0.91,
             "camera_id": "cam-tras-1",
             "quadros": 5,
-            "inferida": False,
         },
     ],
     "fotos": [
@@ -226,6 +224,12 @@ def test_aceita_uma_placa_vista_em_um_so_quadro() -> None:
 
 def test_recusa_placa_vista_em_zero_quadros() -> None:
     assert _onde_falha(_com_placa(quadros=0)) == [("placas", 0, "quadros")]
+
+
+def test_placa_lida_nao_diz_se_foi_inferida() -> None:
+    # A caixa só manda o que viu. Completar a placa do reboque do meio pelo agendamento é
+    # trabalho do casamento, na nuvem, e fica registrado na visita (SDD 4.3).
+    assert _onde_falha(_com_placa(inferida=False)) == [("placas", 0, "inferida")]
 
 
 def test_recusa_placa_lida_sem_camera() -> None:

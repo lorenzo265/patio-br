@@ -30,7 +30,11 @@ _CONFIGURACAO = ConfigDict(
 
 
 class PlacaLida(BaseModel):
-    """Uma placa lida por uma câmera durante a passagem."""
+    """Uma placa lida por uma câmera durante a passagem.
+
+    Só o que a câmera viu. A placa que a câmera não vê (o reboque do meio de um bitrem) é
+    completada pela nuvem no casamento com o agendamento e registrada na visita (SDD 4.3).
+    """
 
     model_config = _CONFIGURACAO
 
@@ -44,8 +48,6 @@ class PlacaLida(BaseModel):
     """Câmera que leu a placa."""
     quadros: Annotated[int, Field(ge=1)]
     """Em quantos quadros do vídeo a placa foi lida (a votação junta esses quadros)."""
-    inferida: bool
-    """Placa completada a partir do agendamento, e não vista pela câmera (SDD 4.3)."""
 
 
 class Foto(BaseModel):

@@ -37,7 +37,7 @@
     },
     "PlacaLida": {
       "additionalProperties": false,
-      "description": "Uma placa lida por uma câmera durante a passagem.",
+      "description": "Uma placa lida por uma câmera durante a passagem.\n\nSó o que a câmera viu. A placa que a câmera não vê (o reboque do meio de um bitrem) é\ncompletada pela nuvem no casamento com o agendamento e registrada na visita (SDD 4.3).",
       "properties": {
         "placa": {
           "description": "Placa canônica: ABC1234 (antiga) ou ABC1D23 (Mercosul).",
@@ -73,11 +73,6 @@
           "minimum": 1,
           "title": "Quadros",
           "type": "integer"
-        },
-        "inferida": {
-          "description": "Placa completada a partir do agendamento, e não vista pela câmera (SDD 4.3).",
-          "title": "Inferida",
-          "type": "boolean"
         }
       },
       "required": [
@@ -85,8 +80,7 @@
         "papel",
         "confianca",
         "camera_id",
-        "quadros",
-        "inferida"
+        "quadros"
       ],
       "title": "PlacaLida",
       "type": "object"
