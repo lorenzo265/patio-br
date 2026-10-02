@@ -1,0 +1,12 @@
+# Só o código entra na imagem: nada de segredos, dados reais, ambiente local ou caches.
+.env
+dados/
+modelos/
+.git/
+.venv/
+**/__pycache__/
+**/*.py[cod]
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+**/tests/
