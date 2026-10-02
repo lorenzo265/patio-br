@@ -32,4 +32,4 @@ O repositório é um workspace `uv` com cinco pacotes: `contratos/`, `borda/`, `
 
 ## Situação
 
-SDD v0.2 aprovado como base. Mês 1 (fundação) em andamento, conforme o plano. Ainda não há código.
+SDD v0.2 aprovado como base. Mês 1 (fundação) em andamento, conforme o plano; cada tarefa entra por um PR.
