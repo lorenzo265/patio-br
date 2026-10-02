@@ -1,7 +1,7 @@
 # SDD — patio-br (nome provisório)
 
 **Documento de desenho do software (SDD) do MVP do piloto**
-Versão 0.3 · 2026-10-02 · Situação: aprovado como base; itens em aberto na seção 12
+Versão 0.4 · 2026-10-02 · Situação: aprovado como base; itens em aberto na seção 12
 
 ---
 
@@ -418,7 +418,7 @@ Pontuação inicial (os pesos e o limite são ajustados com os dados do mês 2 �
 | Camada | Escolha |
 |---|---|
 | Linguagem | **Python 3.12** em tudo (borda, nuvem, treino) |
-| Backend | FastAPI, SQLAlchemy 2, Alembic (migrações), Pydantic 2 |
+| Backend | FastAPI, SQLAlchemy 2 com o driver pg8000, Alembic (migrações), Pydantic 2 |
 | Banco | PostgreSQL 16; fila de tarefas no próprio PostgreSQL (`[ABERTO-11]`) |
 | Painel | páginas no servidor (Jinja) + **HTMX**; atualização ao vivo por SSE; instalável como **PWA** |
 | Gráficos | biblioteca JavaScript pequena, só onde houver gráfico |
@@ -645,6 +645,7 @@ folga.
 | D-15 | Sem reconhecimento facial; rostos borrados | LGPD (biometria é dado sensível) | identificar motorista pelo rosto |
 | D-16 | Fila de tarefas no PostgreSQL | uma peça a menos (sem Redis) | Redis + Celery |
 | D-17 | A passagem traz só o que a caixa viu; a placa inferida fica na visita | quem infere é o casamento com o agendamento, na nuvem; uma placa inferida não tem câmera nem quadros | campo `inferida` em cada placa lida da passagem |
+| D-18 | Driver do PostgreSQL: pg8000 (BSD-3) | psycopg 2 e 3 são LGPL, que a regra de licença (seção 6.1) não aceita; pg8000 é síncrono como o resto da nuvem, Python puro (igual em Windows e Linux) e é o driver síncrono de PostgreSQL do conector oficial do Cloud SQL, do Google | psycopg 3 (LGPL-3.0); asyncpg (Apache-2.0, mas obrigaria a nuvem inteira a ser assíncrona) |
 
 ---
 
@@ -699,3 +700,4 @@ folga.
 | 0.1 | 2026-10-02 | primeira versão, a partir das 8 seções aprovadas na sessão de desenho |
 | 0.2 | 2026-10-02 | plano do mês 1 criado (`docs/planos/2026-10-plano-mes-1.md`); `[ABERTO-11]` passa para o mês 2; regra de licença inclui ISC/PSF e MPL-2.0 só sem modificação |
 | 0.3 | 2026-10-02 | campo `inferida` sai da Passagem v1, antes de qualquer caixa usá-la; a placa inferida fica na visita (D-17; seções 3.2, 4.3 e 5.1) |
+| 0.4 | 2026-10-02 | driver do PostgreSQL: pg8000 no lugar do psycopg, por licença (D-18; seção 6.1) |
