@@ -11,6 +11,7 @@ Sistema de pátio para sites logísticos de médio e alto volume no Brasil:
 
 | Documento | O que tem |
 |---|---|
+| [`CLAUDE.md`](CLAUDE.md) | as regras que não se negociam e como uma mudança entra (vale para pessoas e para sessões com IA) |
 | [`docs/SDD.md`](docs/SDD.md) | o desenho do MVP do piloto: escopo, arquitetura, leitor de placas, dados, aplicativo, infraestrutura, LGPD, testes, cronograma, decisões e itens em aberto |
 | [`docs/planos/2026-10-plano-mes-1.md`](docs/planos/2026-10-plano-mes-1.md) | o plano de implementação do mês 1 (fundação), tarefa por tarefa |
 | [`docs/validacao/relatorio-validacao-v3.md`](docs/validacao/relatorio-validacao-v3.md) | a validação de mercado que originou o projeto e o teste com comprador que o piloto precisa passar |
