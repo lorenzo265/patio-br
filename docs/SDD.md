@@ -1,7 +1,7 @@
 # SDD — patio-br (nome provisório)
 
 **Documento de desenho do software (SDD) do MVP do piloto**
-Versão 0.2 · 2026-10-02 · Situação: aprovado como base; itens em aberto na seção 12
+Versão 0.3 · 2026-10-02 · Situação: aprovado como base; itens em aberto na seção 12
 
 ---
 
@@ -186,8 +186,8 @@ dois lados. Mudou o formato → muda a versão do contrato.
   "inicio": "2026-11-03T14:02:11.120-03:00",
   "fim": "2026-11-03T14:02:19.480-03:00",
   "placas": [
-    {"placa": "ABC1D23", "papel": "cavalo",  "confianca": 0.98, "camera_id": "cam-frente-1", "quadros": 7, "inferida": false},
-    {"placa": "XYZ9876", "papel": "reboque", "confianca": 0.91, "camera_id": "cam-tras-1",   "quadros": 5, "inferida": false}
+    {"placa": "ABC1D23", "papel": "cavalo",  "confianca": 0.98, "camera_id": "cam-frente-1", "quadros": 7},
+    {"placa": "XYZ9876", "papel": "reboque", "confianca": 0.91, "camera_id": "cam-tras-1",   "quadros": 5}
   ],
   "fotos": [
     {"tipo": "placa",    "camera_id": "cam-frente-1", "ref": "fotos/2026/11/03/6f1c...-1.jpg"},
@@ -203,6 +203,8 @@ dois lados. Mudou o formato → muda a versão do contrato.
 - As fotos sobem direto para o armazenamento com um endereço temporário fornecido pela API; a
   passagem só referencia.
 - Rostos nas fotos de contexto são borrados na caixa, antes de enviar.
+- A passagem traz **só o que a caixa viu**. A placa que nenhuma câmera viu (o reboque do meio
+  de um bitrem) é completada pela nuvem e fica na visita (seção 4.3).
 
 ### 3.3 Módulos da nuvem no MVP
 
@@ -277,8 +279,9 @@ inverso. A correção é registrada na passagem (confiança menor).
 - Pela regra do CONTRAN, reboques só têm placa traseira. A câmera da frente lê o cavalo; a de
   trás lê o último reboque.
 - No bitrem, a placa do reboque do meio quase nunca aparece. Se cavalo e último reboque batem
-  com um agendamento do dia, o sistema completa o meio a partir dele e marca a placa como
-  `inferida: true`.
+  com um agendamento do dia, a nuvem, no casamento, completa o meio a partir dele e registra na
+  composição da visita que essa placa foi **inferida**, e não lida. A passagem não muda: a caixa
+  não conhece os agendamentos e só envia o que viu.
 
 ### 4.4 Onde roda
 
@@ -342,7 +345,7 @@ O banco público brasileiro (RodoSol-ALPR) só permite uso acadêmico. Por isso:
 | `Agendamento` | site, janela início/fim, tipo (carga/descarga), placas esperadas (cavalo, reboques), motorista (nome, celular), autorização de WhatsApp, toneladas, chave NF-e (opcional), `origem`, `codigo_externo`, situação |
 | `Veiculo` | placa, tipo (cavalo, reboque, caminhão simples); campo de posição no pátio reservado para o modo B |
 | `Passagem` | formato da seção 3.2 |
-| `Visita` | site, agendamento (opcional), composição confirmada, estado, horários de cada etapa, doca |
+| `Visita` | site, agendamento (opcional), composição confirmada (cada placa marcada como lida ou inferida), estado, horários de cada etapa, doca |
 | `Evento` | visita, tipo, horário, autor (sistema ou usuário), dados, foto — **só se acrescenta** |
 | `Excecao` | passagem, motivo, candidatos, situação, resolução, quem resolveu |
 | `Mensagem` | visita, canal, modelo, situação (enviada, entregue, lida, falhou), custo |
@@ -641,6 +644,7 @@ folga.
 | D-14 | Atualizador próprio na caixa | Watchtower não é mantido | Watchtower |
 | D-15 | Sem reconhecimento facial; rostos borrados | LGPD (biometria é dado sensível) | identificar motorista pelo rosto |
 | D-16 | Fila de tarefas no PostgreSQL | uma peça a menos (sem Redis) | Redis + Celery |
+| D-17 | A passagem traz só o que a caixa viu; a placa inferida fica na visita | quem infere é o casamento com o agendamento, na nuvem; uma placa inferida não tem câmera nem quadros | campo `inferida` em cada placa lida da passagem |
 
 ---
 
@@ -694,3 +698,4 @@ folga.
 |---|---|---|
 | 0.1 | 2026-10-02 | primeira versão, a partir das 8 seções aprovadas na sessão de desenho |
 | 0.2 | 2026-10-02 | plano do mês 1 criado (`docs/planos/2026-10-plano-mes-1.md`); `[ABERTO-11]` passa para o mês 2; regra de licença inclui ISC/PSF e MPL-2.0 só sem modificação |
+| 0.3 | 2026-10-02 | campo `inferida` sai da Passagem v1, antes de qualquer caixa usá-la; a placa inferida fica na visita (D-17; seções 3.2, 4.3 e 5.1) |
