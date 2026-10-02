@@ -152,7 +152,8 @@ reconhecimento facial, dados reais fora do Git); teste primeiro nas regras; coma
 **Regras (teste primeiro):**
 - `Placa`: aceita `ABC1234` e `ABC1D23`; recusa o resto; sempre em maiúsculas, sem hífen.
 - `PlacaLida`: placa, papel (`cavalo` | `reboque` | `desconhecido`), confiança entre 0 e 1,
-  câmera, quadros ≥ 1, `inferida`.
+  câmera, quadros ≥ 1. ~~`inferida`~~ → saiu do contrato: quem infere é a nuvem, e a placa
+  inferida fica na visita (SDD D-17).
 - `Passagem`: todos os campos do SDD 3.2; `sentido` é `entrada` ou `saida`; `fim` ≥ `inicio`;
   horários com fuso; `versao_contrato = 1`.
 - O arquivo `passagem.v1.json` (JSON Schema) é gerado a partir do modelo; **um teste falha se o
