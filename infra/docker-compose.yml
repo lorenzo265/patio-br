@@ -1,0 +1,40 @@
+# Ambiente local do projeto (T04 do plano do mês 1; SDD 7.1).
+# Use pelos comandos do projeto, que leem o .env da raiz:
+#   uv run tarefas up     sobe e espera os serviços ficarem prontos
+#   uv run tarefas down   derruba, mantendo os dados do banco de desenvolvimento
+# A API entra aqui na T07, junto com o esqueleto da nuvem.
+name: patio-br
+
+x-postgres: &postgres
+  image: postgres:16-alpine
+  environment: &postgres-ambiente
+    POSTGRES_USER: patio
+    # Senha só do ambiente local; nunca a use em homologação ou produção.
+    POSTGRES_PASSWORD: ${POSTGRES_SENHA:-patio-local}
+  healthcheck:
+    test: ["CMD-SHELL", "pg_isready -U patio -d $${POSTGRES_DB}"]
+    interval: 2s
+    timeout: 3s
+    retries: 30
+
+services:
+  postgres:
+    <<: *postgres
+    environment:
+      <<: *postgres-ambiente
+      POSTGRES_DB: patio
+    # Só aceita conexões desta máquina.
+    ports: ["127.0.0.1:${POSTGRES_PORTA:-5432}:5432"]
+    volumes: [postgres-dados:/var/lib/postgresql/data]
+
+  # Banco dos testes automáticos: em memória, começa vazio a cada `up`.
+  postgres-teste:
+    <<: *postgres
+    environment:
+      <<: *postgres-ambiente
+      POSTGRES_DB: patio_teste
+    ports: ["127.0.0.1:${POSTGRES_TESTE_PORTA:-5433}:5432"]
+    tmpfs: [/var/lib/postgresql/data]
+
+volumes:
+  postgres-dados:

@@ -4,8 +4,8 @@ Cada comando é uma sequência de etapas (programas externos) que roda na raiz d
 e para na primeira falha. As ferramentas são chamadas como ``python -m <ferramenta>`` com o
 mesmo Python do ambiente, o que funciona igual em Windows, Linux e Mac.
 
-Novos comandos entram junto com a tarefa que cria o que eles executam (``up``/``down`` na
-T04, ``migrar`` na T07, ``semente`` na T08, ``demo`` na T19).
+Novos comandos entram junto com a tarefa que cria o que eles executam (``migrar`` na T07,
+``semente`` na T08, ``demo`` na T19).
 """
 
 from __future__ import annotations
@@ -21,12 +21,26 @@ from typing import TextIO
 MARCA_DO_WORKSPACE = "[tool.uv.workspace]"
 """Trecho que só aparece no pyproject.toml da raiz do repositório."""
 
+ARQUIVO_COMPOSE = "infra/docker-compose.yml"
+"""Serviços do ambiente local, relativos à raiz do repositório."""
+
+CODIGO_PROGRAMA_NAO_ENCONTRADO = 127
+"""Mesmo código que o shell devolve quando o programa não existe."""
+
 Executor = Callable[[Sequence[str], Path], int]
 """Roda um programa (argumentos) numa pasta e devolve o código de saída."""
 
 
 class RaizNaoEncontradaError(Exception):
     """Nenhuma pasta acima do ponto de partida é a raiz do repositório."""
+
+
+class ProgramaNaoEncontradoError(Exception):
+    """O programa de uma etapa não está instalado (ex.: o docker)."""
+
+    def __init__(self, programa: str) -> None:
+        super().__init__(programa)
+        self.programa = programa
 
 
 @dataclass(frozen=True)
@@ -49,6 +63,21 @@ def etapas_do_check() -> list[Etapa]:
         Etapa("mypy", _ferramenta("mypy")),
         Etapa("pytest", _ferramenta("pytest")),
     ]
+
+
+def _compose(*argumentos: str) -> tuple[str, ...]:
+    # --project-directory .: o .env usado é o da raiz do repositório, não o de infra/.
+    return ("docker", "compose", "-f", ARQUIVO_COMPOSE, "--project-directory", ".", *argumentos)
+
+
+def etapas_do_up() -> list[Etapa]:
+    """Devolve a etapa que sobe os serviços locais e espera ficarem saudáveis."""
+    return [Etapa("docker compose up", _compose("up", "-d", "--wait"))]
+
+
+def etapas_do_down() -> list[Etapa]:
+    """Devolve a etapa que derruba os serviços locais, mantendo os dados do banco."""
+    return [Etapa("docker compose down", _compose("down"))]
 
 
 def etapas_do_test(extras: Sequence[str]) -> list[Etapa]:
@@ -86,8 +115,23 @@ def executar_etapas(etapas: Sequence[Etapa], raiz: Path, executor: Executor, sai
 
 
 def executar_processo(argumentos: Sequence[str], raiz: Path) -> int:
-    """Executor real: roda o programa em ``raiz`` mostrando a saída dele no terminal."""
-    return subprocess.run(argumentos, cwd=raiz, check=False).returncode
+    """Executor real: roda o programa em ``raiz`` mostrando a saída dele no terminal.
+
+    Raises:
+        ProgramaNaoEncontradoError: se o programa não estiver instalado.
+    """
+    try:
+        return subprocess.run(argumentos, cwd=raiz, check=False).returncode
+    except FileNotFoundError as erro:
+        raise ProgramaNaoEncontradoError(argumentos[0]) from erro
+
+
+_SEM_ARGUMENTOS: dict[str, Callable[[], list[Etapa]]] = {
+    "check": etapas_do_check,
+    "up": etapas_do_up,
+    "down": etapas_do_down,
+}
+"""Comandos que não aceitam argumentos extras e as etapas de cada um."""
 
 
 def _interpretador() -> argparse.ArgumentParser:
@@ -95,6 +139,8 @@ def _interpretador() -> argparse.ArgumentParser:
     comandos = interpretador.add_subparsers(dest="comando", required=True)
     comandos.add_parser("check", help="estilo, formato, tipos e testes")
     comandos.add_parser("test", help="só os testes; o que vier depois vai para o pytest")
+    comandos.add_parser("up", help="sobe o ambiente local (PostgreSQL) e espera ficar pronto")
+    comandos.add_parser("down", help="derruba o ambiente local, mantendo os dados")
     return interpretador
 
 
@@ -119,15 +165,23 @@ def principal(
     interpretador = _interpretador()
     # parse_known_args: opções do pytest como `-k placa` não são do `tarefas`; ficam em extras.
     argumentos, extras = interpretador.parse_known_args(argv)
-    if argumentos.comando == "check":
+    if argumentos.comando == "test":
+        etapas = etapas_do_test(extras)
+    else:
         if extras:
             interpretador.error(f"argumentos não reconhecidos: {' '.join(extras)}")
-        etapas = etapas_do_check()
-    else:
-        etapas = etapas_do_test(extras)
+        etapas = _SEM_ARGUMENTOS[argumentos.comando]()
     try:
         raiz = encontrar_raiz(partida or Path.cwd())
     except RaizNaoEncontradaError as erro:
         print(f"erro: {erro}", file=saida)
         return 1
-    return executar_etapas(etapas, raiz, executor, saida)
+    try:
+        return executar_etapas(etapas, raiz, executor, saida)
+    except ProgramaNaoEncontradoError as erro:
+        print(
+            f"erro: o programa '{erro.programa}' não foi encontrado; instale-o e tente de novo "
+            "(o docker vem com o Docker Desktop, que precisa estar aberto)",
+            file=saida,
+        )
+        return CODIGO_PROGRAMA_NAO_ENCONTRADO
