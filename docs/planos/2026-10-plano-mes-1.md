@@ -71,14 +71,17 @@ sistema operacional.
 
 **Comandos:**
 
-| Comando | O que faz |
-|---|---|
-| `check` | ruff (estilo), ruff format --check, mypy (tipos), pytest |
-| `test` | só os testes |
-| `up` / `down` | sobe e derruba o Docker Compose local |
-| `migrar` | aplica as migrações do banco |
-| `semente` | cria empresa, site, portaria, faixas, câmeras e uma caixa de demonstração |
-| `demo` | `up` + `migrar` + `semente` + roda o simulador com o vídeo de amostra (T19) |
+| Comando | O que faz | Entra na |
+|---|---|---|
+| `check` | ruff (estilo), ruff format --check, mypy (tipos), pytest | T02 |
+| `test` | só os testes; o que vier depois vai para o pytest (ex.: `-k placa`) | T02 |
+| `up` / `down` | sobe e derruba o Docker Compose local | T04 |
+| `migrar` | aplica as migrações do banco | T07 |
+| `semente` | cria empresa, site, portaria, faixas, câmeras e uma caixa de demonstração | T08 |
+| `demo` | `up` + `migrar` + `semente` + roda o simulador com o vídeo de amostra | T19 |
+
+Cada comando entra junto com a tarefa que cria o que ele executa: assim nenhum comando existe
+sem ter o que rodar.
 
 **Verificar:** `uv run tarefas check` roda e passa (mesmo com pouco código).
 

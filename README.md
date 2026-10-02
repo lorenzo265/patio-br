@@ -22,8 +22,9 @@ Precisa de **Python 3.12** e do [`uv`](https://docs.astral.sh/uv/). Funciona igu
 Linux e Mac.
 
 ```bash
-uv sync          # cria o ambiente e instala todos os pacotes do projeto
-uv run pytest    # roda os testes
+uv sync                      # cria o ambiente e instala todos os pacotes do projeto
+uv run tarefas check         # estilo, formato, tipos e testes (o mesmo que a CI vai rodar)
+uv run tarefas test -k placa # só os testes; o que vier depois de `test` vai para o pytest
 ```
 
 O repositório é um workspace `uv` com cinco pacotes: `contratos/`, `borda/`, `nuvem/`,
@@ -31,4 +32,4 @@ O repositório é um workspace `uv` com cinco pacotes: `contratos/`, `borda/`, `
 
 ## Situação
 
-SDD v0.2 aprovado como base. Mês 1 (fundação) em andamento, conforme o plano. Ainda não há código.
+SDD v0.2 aprovado como base. Mês 1 (fundação) em andamento, conforme o plano; cada tarefa entra por um PR.

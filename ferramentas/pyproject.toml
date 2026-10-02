@@ -5,6 +5,9 @@ description = "Ferramentas do projeto: comandos do dia a dia e simulador."
 requires-python = ">=3.12,<3.13"
 dependencies = []
 
+[project.scripts]
+tarefas = "tarefas.comandos:principal"
+
 [build-system]
 requires = ["hatchling>=1.25"]
 build-backend = "hatchling.build"
