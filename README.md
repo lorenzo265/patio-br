@@ -27,6 +27,9 @@ uv run tarefas check         # estilo, formato, tipos e testes (o mesmo que a CI
 uv run tarefas test -k placa # só os testes; o que vier depois de `test` vai para o pytest
 ```
 
+A CI (`.github/workflows/ci.yml`) roda em cada PR e na `main`: o mesmo `tarefas check`, a
+checagem de licenças das dependências e a de falhas de segurança conhecidas.
+
 O repositório é um workspace `uv` com cinco pacotes: `contratos/`, `borda/`, `nuvem/`,
 `ferramentas/` e `ml/` (ver `docs/SDD.md`, seção 6.3).
 

@@ -95,7 +95,7 @@ sem ter o que rodar.
 
 **Passos da CI:**
 1. Instala `uv` e Python 3.12.
-2. Sobe um PostgreSQL 16 como serviço (para os testes da nuvem).
+2. ~~Sobe um PostgreSQL 16 como serviço~~ → entra na **T07**, junto com os primeiros testes que usam banco.
 3. `uv sync --frozen`.
 4. `uv run tarefas check`.
 5. **Licenças:** `pip-licenses` com lista de licenças permitidas (MIT, BSD, Apache-2.0,
@@ -167,6 +167,7 @@ reconhecimento facial, dados reais fora do Git); teste primeiro nas regras; coma
 - `nuvem/migracoes/`: Alembic configurado.
 - Rota `GET /saude`.
 - `nuvem/tests/conftest.py`: banco de teste limpo a cada teste.
+- `.github/workflows/ci.yml`: PostgreSQL 16 como serviço no job de testes (adiado da T03).
 
 **Verificar:** `uv run tarefas migrar` roda; o teste de `/saude` passa.
 
