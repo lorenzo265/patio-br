@@ -110,16 +110,22 @@ branch descartável e ver a CI falhar.
 
 #### T04. Ambiente local com Docker
 
-**Objetivo:** `uv run tarefas up` sobe banco e API.
+**Objetivo:** `uv run tarefas up` sobe o banco ~~e a API~~ (a API entra na **T07**: antes dela
+não há aplicação para pôr no contêiner).
 
 **Arquivos:**
-- `infra/docker-compose.yml`: serviços `postgres` (16, com volume), `api` (build de `nuvem/`),
-  `postgres-teste` (porta separada, para os testes locais).
-- `nuvem/Dockerfile`.
+- `infra/docker-compose.yml`: serviços `postgres` (16, com volume) e `postgres-teste` (porta
+  separada, em memória, começa vazio a cada `up`), ambos só em `127.0.0.1`.
+  ~~`api` (build de `nuvem/`)~~ → **T07**.
+- ~~`nuvem/Dockerfile`~~ → **T07**.
 - `.env.exemplo`: variáveis com valores de exemplo (nunca segredos reais).
+- `tarefas up` / `tarefas down`; sem o Docker instalado, o comando diz o que falta.
+- CI: um job sobe o ambiente com `tarefas up`, consulta os dois bancos e derruba com
+  `tarefas down`.
 
-**Verificar:** `uv run tarefas up` e depois `GET http://localhost:8000/saude` responde `{"ok": true}`
-(o endpoint vem na T07).
+**Verificar:** `uv run tarefas up` termina com os dois bancos saudáveis; `select 1` responde em
+`patio` e em `patio_teste`; depois de `tarefas down` e `up`, o que estava em `patio` continua
+lá. ~~`GET /saude`~~ → **T07**.
 
 **Commit:** `infra: ambiente local com docker compose`
 
@@ -168,8 +174,10 @@ reconhecimento facial, dados reais fora do Git); teste primeiro nas regras; coma
 - Rota `GET /saude`.
 - `nuvem/tests/conftest.py`: banco de teste limpo a cada teste.
 - `.github/workflows/ci.yml`: PostgreSQL 16 como serviço no job de testes (adiado da T03).
+- `nuvem/Dockerfile` e o serviço `api` em `infra/docker-compose.yml` (adiados da T04).
 
-**Verificar:** `uv run tarefas migrar` roda; o teste de `/saude` passa.
+**Verificar:** `uv run tarefas migrar` roda; o teste de `/saude` passa; com `uv run tarefas up`,
+`GET http://localhost:8000/saude` responde `{"ok": true}`.
 
 **Commit:** `feat(nuvem): esqueleto fastapi, banco e migrações`
 
