@@ -1,0 +1,56 @@
+[project]
+name = "patio-br"
+version = "0.1.0"
+description = "Sistema de pátio para sites logísticos: workspace com os pacotes do projeto."
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+# A raiz só agrega os pacotes do workspace: `uv sync` instala todos num ambiente só.
+dependencies = [
+    "patio-contratos",
+    "patio-borda",
+    "patio-nuvem",
+    "patio-ferramentas",
+    "patio-ml",
+]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.11",
+    "pytest>=8.3",
+    "ruff>=0.6",
+]
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = ["contratos", "borda", "nuvem", "ferramentas", "ml"]
+
+[tool.uv.sources]
+patio-contratos = { workspace = true }
+patio-borda = { workspace = true }
+patio-nuvem = { workspace = true }
+patio-ferramentas = { workspace = true }
+patio-ml = { workspace = true }
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+src = ["contratos/src", "borda/src", "nuvem/src", "ferramentas/src", "ml/src"]
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "N", "B", "UP", "SIM", "RUF"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+files = ["contratos/src", "borda/src", "nuvem/src", "ferramentas/src", "ml/src"]
+
+[tool.pytest.ini_options]
+testpaths = ["contratos/tests", "borda/tests", "nuvem/tests", "ferramentas/tests", "ml/tests"]
+# Modo de importação padrão do pytest: as pastas da raiz têm o mesmo nome dos pacotes
+# (borda/, nuvem/...), e o modo importlib as importaria no lugar do pacote instalado.
+# Consequência: nome de arquivo de teste único no repositório, prefixado pelo pacote
+# (ex.: borda/tests/test_borda_composicao.py).
+addopts = ["-ra", "--strict-markers"]
+markers = ["integracao: usa banco, rede ou disco (mais lento que um teste de unidade)"]

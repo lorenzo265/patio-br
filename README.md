@@ -16,6 +16,19 @@ Sistema de pátio para sites logísticos de médio e alto volume no Brasil:
 | [`docs/validacao/relatorio-validacao-v3.md`](docs/validacao/relatorio-validacao-v3.md) | a validação de mercado que originou o projeto e o teste com comprador que o piloto precisa passar |
 | [`docs/validacao/fatos-tecnicos-stack.md`](docs/validacao/fatos-tecnicos-stack.md) | licenças, preços e benchmarks usados nas escolhas técnicas (verificados em 2026-09-29) |
 
+## Ambiente de desenvolvimento
+
+Precisa de **Python 3.12** e do [`uv`](https://docs.astral.sh/uv/). Funciona igual em Windows,
+Linux e Mac.
+
+```bash
+uv sync          # cria o ambiente e instala todos os pacotes do projeto
+uv run pytest    # roda os testes
+```
+
+O repositório é um workspace `uv` com cinco pacotes: `contratos/`, `borda/`, `nuvem/`,
+`ferramentas/` e `ml/` (ver `docs/SDD.md`, seção 6.3).
+
 ## Situação
 
 SDD v0.2 aprovado como base. Mês 1 (fundação) em andamento, conforme o plano. Ainda não há código.
