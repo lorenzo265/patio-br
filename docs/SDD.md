@@ -1,7 +1,7 @@
 # SDD — patio-br (nome provisório)
 
 **Documento de desenho do software (SDD) do MVP do piloto**
-Versão 0.5 · 2026-10-03 · Situação: aprovado como base; itens em aberto na seção 12
+Versão 0.13 · 2026-10-03 · Situação: aprovado como base; itens em aberto na seção 12
 
 ---
 
@@ -199,9 +199,28 @@ dois lados. Mudou o formato → muda a versão do contrato.
 
 - `id` é gerado na caixa. A nuvem ignora um `id` já recebido, então a caixa pode reenviar
   sem duplicar.
+- **Recebimento** (`POST /api/borda/passagens`, com a chave da caixa):
+  - passagem nova → **201**; o mesmo `id` de novo, da mesma caixa → **200**, sem criar outra;
+  - `caixa_id` ou `site_id` que não são os da chave → **403**;
+  - `id` que já é de outra caixa → **409**;
+  - faixa ou câmera que não são do site, ou sentido diferente do da faixa → **422**, dizendo
+    qual campo.
+- `caixa_id`, `site_id`, `faixa_id` e `camera_id` são os identificadores da nuvem, em texto
+  (ex.: `"12"`), que a caixa recebe na ativação e na configuração (D-21). Os nomes do exemplo
+  acima são só ilustração.
 - Os horários são da caixa (sincronizada por NTP) e são a prova da chegada.
 - As fotos sobem direto para o armazenamento com um endereço temporário fornecido pela API; a
-  passagem só referencia.
+  passagem só referencia (D-22):
+  - a caixa pede o endereço para cada `ref` (`POST /api/borda/fotos/endereco`) e envia a foto
+    com `PUT` nesse endereço, que vale 15 minutos e não precisa da chave (como no S3);
+  - o `ref` é escolhido pela caixa (letras, números, `.`, `_`, `-` e `/`; nenhuma parte termina
+    em `.` nem é nome reservado do Windows, como `CON` ou `NUL`), e a foto fica guardada dentro
+    da pasta da própria caixa: uma caixa nunca alcança a foto de outra;
+  - só JPEG, até 2 MB;
+  - a foto não se edita: reenviar a mesma foto responde 200; uma foto diferente no mesmo `ref`,
+    ou um `ref` que esbarra na pasta de outro (`a` e `a/b`), responde 409;
+  - a nuvem não confere, ao receber a passagem, se as fotos já chegaram: a tela mostra a foto
+    quando ela existir.
 - Rostos nas fotos de contexto são borrados na caixa, antes de enviar.
 - A passagem traz **só o que a caixa viu**. A placa que nenhuma câmera viu (o reboque do meio
   de um bitrem) é completada pela nuvem e fica na visita (seção 4.3).
@@ -258,9 +277,9 @@ usados só em avaliação interna, nunca no produto.
 
 | Passo | O que faz | Ferramenta (licença) |
 |---|---|---|
-| 1. Captura | puxa o vídeo (RTSP) e só processa quando há veículo na faixa | FFmpeg/PyAV + go2rtc (MIT) |
+| 1. Captura | puxa o vídeo (RTSP) e só processa quando há veículo na faixa | FFmpeg/PyAV + go2rtc (MIT); FFmpeg é LGPL e a roda do PyAV traz partes GPL: `[ABERTO-13]` |
 | 2. Detecção | acha o veículo e a placa no quadro | D-FINE-N ou YOLOX-Tiny (Apache-2.0) — `[ABERTO-03]` |
-| 3. Rastreamento | segue o mesmo veículo entre quadros | ByteTrack + supervision (MIT) |
+| 3. Rastreamento | segue o mesmo veículo entre quadros | rastreador nosso por sobreposição, no estilo do ByteTrack (D-25); o supervision exige o PyAV: `[ABERTO-13]` |
 | 4. Leitura (OCR) | lê os caracteres da placa | modelo leve no estilo do fast-plate-ocr (código MIT), com pesos nossos |
 | 5. Votação | junta as leituras de vários quadros e fica com a mais confiável | código nosso |
 | 6. Formato | valida e corrige pela posição dos caracteres | código nosso |
@@ -274,6 +293,24 @@ usados só em avaliação interna, nunca no produto.
 Correções por posição: onde só cabe letra, `0→O`, `1→I`, `8→B`, `5→S`; onde só cabe número, o
 inverso. A correção é registrada na passagem (confiança menor).
 
+- **Formato:** só os separadores (espaço, `-`, `.`, `·`) são retirados. Texto que não fica com 7
+  caracteres, ou com um caractere que não cabe na posição e não tem correção, é descartado: o
+  leitor nunca inventa nem apaga caractere. Cada caractere corrigido multiplica a confiança por
+  0,9. A 5ª posição aceita letra e número (antiga e Mercosul) e nunca é corrigida.
+- **Rastreamento** (D-25): cada câmera tem um rastreador. O detector acha os veículos no quadro;
+  cada veículo segue a caixa do quadro anterior que mais se sobrepõe a ele (primeiro as
+  detecções de confiança alta, depois as de baixa, como no ByteTrack). Quando o veículo some por
+  alguns quadros, as leituras dele passam pela votação e viram uma leitura do veículo, com o
+  recorte da placa mais confiável para a foto. Veículo sem placa legível também gera leitura
+  (sem placa), e a passagem sai sem placas: a nuvem trata como exceção (seção 3.2).
+- **Captura:** os quadros chegam por uma fonte, a uma taxa configurável (padrão 5 por segundo).
+  Câmera (RTSP) e arquivo de vídeo esperam o `[ABERTO-13]`; até lá, a fonte é uma pasta de
+  imagens (os quadros de um vídeo, tirados fora da caixa), o que basta para a demonstração.
+- **Votação:** fica a placa lida em mais quadros; no empate, a de maior confiança média. A
+  confiança final é a média das confianças dos quadros vencedores vezes a fração dos quadros
+  que concordam (ex.: 4 de 5 quadros a 0,95 → 0,95 × 0,8 = 0,76). `quadros` na passagem é o
+  número de quadros vencedores.
+
 ### 4.3 Composições e o que a câmera não vê
 
 - Pela regra do CONTRAN, reboques só têm placa traseira. A câmera da frente lê o cavalo; a de
@@ -282,6 +319,18 @@ inverso. A correção é registrada na passagem (confiança menor).
   com um agendamento do dia, a nuvem, no casamento, completa o meio a partir dele e registra na
   composição da visita que essa placa foi **inferida**, e não lida. A passagem não muda: a caixa
   não conhece os agendamentos e só envia o que viu.
+- **Composição na caixa**, por faixa, com uma janela de tempo (padrão 30 s):
+  - a leitura da câmera da frente é o **cavalo**, e espera a de trás até o fim da janela;
+  - a leitura de trás, com placa **diferente** da frente, é o **reboque** da composição mais
+    recente da faixa, que se fecha ali. As mais antigas que ainda esperavam saem sozinhas;
+  - a leitura de trás **igual** à da frente é a placa traseira do mesmo veículo, sem reboque: a
+    composição se fecha só com o cavalo;
+  - a leitura de trás **sem** nenhuma da frente na janela sai com papel **desconhecido**: sem a
+    frente, não dá para saber se é um reboque ou o próprio cavalo (D-23);
+  - a leitura da frente que chega ao fim da janela sem a de trás sai sozinha, como cavalo;
+  - leitura sem placa legível entra nas mesmas regras, mas não vira placa: a frente ilegível com
+    a traseira lida deixa a traseira com papel desconhecido; sem placa nenhuma, a passagem sai
+    vazia.
 
 ### 4.4 Onde roda
 
@@ -341,7 +390,8 @@ O banco público brasileiro (RodoSol-ALPR) só permite uso acadêmico. Por isso:
 | `Site` | empresa, nome, endereço, fuso, horário de operação |
 | `Portaria` / `Faixa` / `Camera` | site; faixa tem sentido (entrada/saída); câmera tem posição (frente/trás/contexto), endereço RTSP, senha cifrada |
 | `Doca` | site, nome, situação |
-| `Usuario` | nome, e-mail, papel, sites com acesso, PIN (porteiro), verificação em duas etapas (gestor/admin) |
+| `Usuario` | empresa, nome, e-mail, papel (porteiro, pátio ou gestor), sites com acesso, senha, PIN (porteiro), ativo, verificação em duas etapas (gestor) |
+| `Administrador` | nome, e-mail, senha, ativo, verificação em duas etapas; é a administração (nós), fora de qualquer empresa (D-19) |
 | `Agendamento` | site, janela início/fim, tipo (carga/descarga), placas esperadas (cavalo, reboques), motorista (nome, celular), autorização de WhatsApp, toneladas, chave NF-e (opcional), `origem`, `codigo_externo`, situação |
 | `Veiculo` | placa, tipo (cavalo, reboque, caminhão simples); campo de posição no pátio reservado para o modo B |
 | `Passagem` | formato da seção 3.2 |
@@ -351,7 +401,8 @@ O banco público brasileiro (RodoSol-ALPR) só permite uso acadêmico. Por isso:
 | `Mensagem` | visita, canal, modelo, situação (enviada, entregue, lida, falhou), custo |
 | `ParametrosSite` | custo mensal de um ponto de portaria, postos antes/depois, valor da estadia (R$/t·h), franquia (h), tolerância de janela, horas para alerta, custo hora-doca (opcional) |
 | `Extrato` | site, mês, números calculados, versão da regra de cálculo |
-| `CaixaBorda` | site, versão instalada, último contato, saúde, chave de acesso |
+| `CaixaBorda` | site, versão instalada, último contato, saúde, chave de acesso (só o resumo), ativada em, revogada em |
+| `CodigoAtivacao` | site, resumo do código, criado por (administração), vence em, usado em |
 | `Rotulo` | recorte, placa correta, origem (correção ou rotulagem), revisado |
 
 Toda tabela de dados do cliente tem `empresa_id`. Toda consulta filtra por empresa.
@@ -430,6 +481,11 @@ Pontuação inicial (os pesos e o limite são ajustados com os dados do mês 2 �
 
 Toda dependência precisa de licença permissiva (MIT, BSD, Apache, PostgreSQL, ISC, PSF). MPL-2.0 só é aceita para biblioteca usada sem modificação (ex.: `certifi`). GPL, LGPL e AGPL ficam de fora. A CI checa.
 
+Arquivos de terceiros que o painel serve (o HTMX, licença Zero-Clause BSD) ficam no repositório,
+em `nuvem/src/nuvem/web/estatico/`, com a versão no nome, a licença e o hash conferido, e não
+num CDN: o tablet da portaria não depende de outro servidor. A CI não vê esses arquivos; a
+licença deles é conferida à mão, como a dos modelos.
+
 ### 6.2 Telas do MVP
 
 | Tela | Quem | Conteúdo |
@@ -501,8 +557,13 @@ Serve para desenvolver sem câmera, para os testes de ponta a ponta e para simul
   roteador 4G/5G de reserva. Site-tipo com 2 faixas de entrada e 2 de saída = **6 câmeras**:
   frente + traseira em cada entrada (4) e traseira em cada saída (2).
 - **Software:** Ubuntu Server 24.04, Docker, contêineres `go2rtc` e `agente`.
-- **Ativação:** código de uso único. A caixa se registra e baixa a configuração (câmeras,
-  faixas, sentido) da nuvem.
+- **Ativação:** a administração gera, para um site, um código de uso único (12 letras e
+  números, em três grupos de 4) que vale 24 horas. A caixa troca o código por uma **chave
+  própria**; a nuvem guarda só o resumo da chave. Toda chamada da caixa leva
+  `Authorization: Bearer <chave>`; chave revogada recebe 401.
+- **Configuração:** com a chave, a caixa baixa da nuvem as faixas (com sentido) e as câmeras
+  (posição, endereço, login e senha) do site dela. A senha da câmera sai decifrada só nessa
+  resposta, só para a caixa do próprio site, porque a caixa precisa dela para ler o vídeo.
 - **Saúde:** a cada minuto envia CPU, temperatura, disco, câmeras no ar, quadros por segundo e
   passagens pendentes → tela "Frota de borda" e alertas.
 - **Atualização:** a caixa pergunta à nuvem qual versão rodar, baixa e reinicia; se o teste de
@@ -511,6 +572,15 @@ Serve para desenvolver sem câmera, para os testes de ponta a ponta e para simul
 - **Rede:** a caixa **só faz conexões de saída**. Nenhuma porta aberta na rede do cliente.
   Câmeras num switch separado.
 - **Disco local:** fila de passagens (SQLite) e cache de recortes por até 30 dias para treino.
+- **Fila de envio** (SQLite, no disco da caixa):
+  - toda passagem é gravada primeiro na fila, com as fotos, e só depois enviada;
+  - envia na ordem em que as passagens aconteceram: primeiro as fotos, depois a passagem;
+  - erro de rede, 5xx, 401, 408 ou 429: tenta de novo, esperando 1 s, 2 s, 4 s... até 5 min
+    entre as tentativas, sem passar à frente;
+  - 201 ou 200: a passagem sai da fila;
+  - recusa definitiva (403, 409 ou 422): a passagem sai da fila e fica guardada à parte na
+    caixa, com o motivo, para não travar as seguintes (D-24). Foto recusada de vez (409, 413 ou
+    415) fica de fora, e a passagem segue sem ela.
 
 ### 7.5 WhatsApp e SMS
 
@@ -552,9 +622,32 @@ Serve para desenvolver sem câmera, para os testes de ponta a ponta e para simul
 
 ### 8.2 Segurança
 
-- Login individual; verificação em duas etapas para gestor e admin; troca de porteiro por PIN
-  no tablet.
-- Permissões por papel e por site; filtro obrigatório por empresa em toda consulta.
+- Login individual por e-mail e senha; verificação em duas etapas para gestor e administração
+  (mês 4); troca de porteiro por PIN no tablet.
+- Senha e PIN são guardados só como **resumo argon2**, nunca o texto. A senha tem de 10 a 128
+  caracteres; o PIN, 6 números.
+- **Sessão no servidor** (D-20): ao entrar, o navegador recebe um cookie com um código aleatório
+  (`HttpOnly`, `SameSite=Lax` e, fora do ambiente local, `Secure`); o banco guarda só o resumo
+  do código. A sessão vale 12 horas (um turno); sair a apaga na hora.
+- **Limite de tentativas:** no máximo 5 erros de senha por e-mail a cada 15 minutos. No 5º, o
+  e-mail fica bloqueado, mesmo com a senha certa, até o erro mais antigo completar 15 minutos.
+  E-mail que não existe conta igual, para não revelar quem existe. O PIN de cada porteiro tem o
+  mesmo limite. As tentativas de um mesmo e-mail (ou PIN) passam **uma de cada vez**, por uma
+  trava no banco: pedidos ao mesmo tempo não escapam da contagem.
+- O resumo argon2 gasta 64 MiB de memória: cada processo da API faz **no máximo 4 ao mesmo
+  tempo**, e os outros esperam a vez. Assim, uma enxurrada de logins com e-mails diferentes
+  deixa a API lenta, mas não esgota a memória.
+- O formulário de login **recusa envio vindo de outro site** (cabeçalho `Sec-Fetch-Site` do
+  navegador): outro site não consegue fazer o tablet entrar na conta de outra pessoa.
+- Os dados de demonstração (`tarefas semente`) têm senha pública: só são gravados no ambiente
+  local (`PATIO_AMBIENTE=local`).
+- **Troca de porteiro:** no tablet já aberto num site, o porteiro do turno escolhe o nome dele e
+  digita o PIN; a sessão passa a ser dele. Só vale para porteiros da mesma empresa e de um site
+  em comum.
+- Permissões por papel e por site; filtro obrigatório por empresa em toda consulta. Sem login, a
+  rota responde 401; com o papel errado, 403. O gestor pode tudo o que o porteiro e o líder de
+  pátio podem nos sites dele. A administração (nós) tem rotas próprias e não usa as do cliente
+  (D-19).
 - Caixa com chave própria, revogável.
 - Link da transportadora com código aleatório, revogável, com limite de envios.
 - HTTPS em tudo; banco e fotos cifrados; senhas de câmera cifradas.
@@ -648,6 +741,13 @@ folga.
 | D-16 | Fila de tarefas no PostgreSQL | uma peça a menos (sem Redis) | Redis + Celery |
 | D-17 | A passagem traz só o que a caixa viu; a placa inferida fica na visita | quem infere é o casamento com o agendamento, na nuvem; uma placa inferida não tem câmera nem quadros | campo `inferida` em cada placa lida da passagem |
 | D-18 | Driver do PostgreSQL: pg8000 (BSD-3) | psycopg 2 e 3 são LGPL, que a regra de licença (seção 6.1) não aceita; pg8000 é síncrono como o resto da nuvem, Python puro (igual em Windows e Linux) e é o driver síncrono de PostgreSQL do conector oficial do Cloud SQL, do Google | psycopg 3 (LGPL-3.0); asyncpg (Apache-2.0, mas obrigaria a nuvem inteira a ser assíncrona) |
+| D-19 | A administração (nós) fica numa tabela própria, `administrador`, fora das empresas; o login dela gera um acesso de outro tipo, que nunca vira o `Acesso` de um cliente | toda tabela de cliente tem empresa e toda leitura de cliente filtra por ela (seção 5.5); com tipos separados, uma rota de cliente não atende a administração por engano, e vice-versa | papel `admin` na tabela `usuario`, com empresa vazia (abre exceção na regra da empresa); uma "empresa da plataforma" com permissão de ver as outras (um furo na separação) |
+| D-20 | Sessão de login guardada no banco; o cookie leva só um código aleatório | sair e desligar um usuário valem na hora; o banco guarda só o resumo do código; não precisa de outra chave secreta | cookie assinado com os dados do usuário, ou token JWT (não dá para revogar antes de vencer) |
+| D-21 | Na passagem e na configuração da caixa, os identificadores (caixa, site, faixa, câmera) são os ids da nuvem em texto | a caixa os recebe prontos na ativação e na configuração; a nuvem confere cada um contra o cadastro sem tabela de tradução | um código próprio para cada coisa (ex.: `entrada-1`), que precisaria ser único, editável e traduzido em toda passagem |
+| D-22 | Fotos enviadas pela caixa a um endereço temporário; no armazenamento local, o endereço leva um código cifrado (Fernet, com a chave da cifra) que diz a caixa, o `ref` e quando vence | a mesma forma do endereço assinado do S3 (mês 4): a caixa só aprende "peça o endereço e envie"; não precisa de outro segredo | foto dentro da passagem (passagem pesada, reenvio caro); envio pela API com a chave da caixa (no S3 seria outro caminho) |
+| D-23 | A placa lida só pela câmera de trás, sem a da frente, vai com papel `desconhecido` | sem a frente, a placa traseira pode ser de um reboque ou do próprio cavalo sem reboque; a caixa só diz o que viu, e o casamento (mês 2) testa a placa em qualquer papel | papel `reboque` sempre que a leitura vem da traseira (erra no cavalo sem reboque com a frente ilegível e na saída, que só tem câmera traseira) |
+| D-24 | Passagem que a nuvem recusa de vez (403, 409, 422) sai da fila e fica guardada à parte na caixa | reenviar não muda a resposta, e a fila em ordem ficaria travada para sempre atrás dela; guardada à parte, nada se perde e o suporte vê o motivo | só tirar da fila com 201 ou 200 (trava a portaria inteira por uma passagem errada); apagar a recusada (perde a prova) |
+| D-25 | Rastreador nosso, por sobreposição de caixas (no estilo do ByteTrack, sem o filtro de Kalman) | o supervision, que traz o ByteTrack, exige o PyAV, cuja roda traz partes GPL (`[ABERTO-13]`); na portaria o caminhão anda devagar e, a 5 quadros por segundo, a caixa de um quadro cobre a do seguinte | ByteTrack do supervision (preso ao `[ABERTO-13]`); filtro de Kalman (sem ganho a esta velocidade) |
 
 ---
 
@@ -666,7 +766,8 @@ folga.
 | ABERTO-09 | Tolerância de janela (padrão 4h após o fim da janela, usada também para "não veio") e momento do alerta de estadia (padrão: 4h depois da chegada) | com o cliente do piloto |
 | ABERTO-10 | Modelo de dados detalhado do modo B | no início da Fase 2 |
 | ABERTO-11 | Implementação da fila de tarefas no PostgreSQL (biblioteca ou tabela própria) | no mês 2, quando o worker entrar com o casamento |
-| ABERTO-12 | Licença dos pesos de terceiros usados em avaliação (ex.: fast-plate-ocr) | antes de usá-los, mesmo internamente |
+| ABERTO-12 | Licença dos pesos de terceiros usados em avaliação (ex.: fast-plate-ocr) | antes de usá-los, mesmo internamente. Levantado na T13 (`docs/validacao/fatos-tecnicos-stack.md`, 2026-10-03): D-FINE, YOLOX e fast-plate-ocr sem licença declarada dos pesos (só avaliação interna); PaddleOCR e RapidOCR com Apache-2.0 declarada. Falta confirmar para fechar |
+| ABERTO-13 | Bibliotecas nativas GPL e LGPL dentro das rodas: o PyAV do PyPI traz x264 e x265 (GPL); o supervision exige o PyAV; o OpenCV traz o FFmpeg (LGPL) e o RapidOCR exige o OpenCV; até a NumPy traz a libquadmath (LGPL). Proposta: aceitar LGPL nativa usada sem modificação e carregada dinamicamente (como o MPL-2.0), GPL só com a exceção de runtime do GCC, e o FFmpeg só montado sem partes GPL | com o Lorenzo, antes de a caixa ler vídeo (T15, T16 e T18) |
 
 ---
 
@@ -692,6 +793,8 @@ folga.
 | **SSE** | forma de o servidor empurrar novidades para a tela sem recarregar |
 | **RTSP** | protocolo pelo qual a câmera IP envia o vídeo |
 | **OCR** | leitura dos caracteres numa imagem |
+| **Resumo (hash)** | transformação de mão única: dá para conferir se uma senha ou código bate, mas não para recuperá-lo. Senhas e PINs usam o argon2, feito para ser lento de adivinhar |
+| **Cookie** | pequeno dado que o site guarda no navegador e que volta a cada pedido; aqui, só o código da sessão de login |
 
 ---
 
@@ -704,3 +807,11 @@ folga.
 | 0.3 | 2026-10-02 | campo `inferida` sai da Passagem v1, antes de qualquer caixa usá-la; a placa inferida fica na visita (D-17; seções 3.2, 4.3 e 5.1) |
 | 0.4 | 2026-10-02 | driver do PostgreSQL: pg8000 no lugar do psycopg, por licença (D-18; seção 6.1) |
 | 0.5 | 2026-10-03 | separação de clientes garantida também no banco, por chave estrangeira composta (seção 5.5) |
+| 0.6 | 2026-10-03 | login e papéis (T09): administração em tabela própria (D-19), sessão no banco (D-20), senha e PIN com argon2, limite de tentativas e troca de porteiro por PIN (seções 5.1 e 8.2) |
+| 0.7 | 2026-10-03 | ativação da caixa (T10): código de uso único por site, chave própria com `Bearer`, configuração baixada pela caixa; ids da nuvem em texto na passagem (D-21; seções 3.2, 5.1 e 7.4) |
+| 0.8 | 2026-10-03 | recebimento de passagens e fotos (T11): respostas 201/200/403/409/422 e envio de fotos por endereço temporário (D-22; seção 3.2) |
+| 0.9 | 2026-10-03 | tela crua da portaria (T12): arquivos de terceiros do painel (HTMX) no repositório, com licença e hash (seção 6.1) |
+| 0.10 | 2026-10-03 | regras puras do leitor (T14): formato, votação e composição na caixa; leitura só da traseira com papel desconhecido (D-23; seções 4.2 e 4.3) |
+| 0.11 | 2026-10-03 | fila de envio da caixa (T17): ordem, espera crescente e recusa definitiva guardada à parte (D-24; seção 7.4) |
+| 0.12 | 2026-10-03 | licenças dos pesos do leitor v0 (T13): situação do `[ABERTO-12]`; novo `[ABERTO-13]`, bibliotecas nativas GPL e LGPL dentro das rodas (seções 4.2 e 12) |
+| 0.13 | 2026-10-03 | captura e rastreamento (T16): rastreador nosso (D-25), captura por fonte de quadros, leitura sem placa legível (seções 4.2 e 4.3) |
