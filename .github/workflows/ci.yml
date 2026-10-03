@@ -103,6 +103,7 @@ jobs:
       PATIO_URL_BANCO: postgresql+pg8000://patio:patio-local@localhost:15432/patio
       # A chave só do ambiente local (a mesma do .env.exemplo); nunca a de produção.
       PATIO_CHAVE_CIFRA: _0_jqx-SW46BKdQoB9mZcMouVAft1Qjf8Pf2niPbThI=
+      PATIO_AMBIENTE: local
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
@@ -126,5 +127,10 @@ jobs:
           uv run tarefas semente
       - name: A API responde em /saude
         run: test "$(curl --fail-with-body -sS http://localhost:18000/saude)" = '{"ok":true}'
+      - name: O login da demonstração abre a sessão (303 para o início)
+        run: >-
+          test "$(curl -sS -o /dev/null -w '%{http_code}'
+          -d 'email=gestor@empresa-a.example' -d 'senha=demonstracao-local'
+          http://localhost:18000/entrar)" = 303
       - name: tarefas down
         run: uv run tarefas down

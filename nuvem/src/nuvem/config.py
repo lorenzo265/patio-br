@@ -5,12 +5,16 @@ atual (o mesmo que o docker compose lê; as variáveis dele, sem o prefixo, são
 Valor obrigatório ausente impede a nuvem de iniciar: melhor parar na hora do que rodar errado.
 """
 
+from typing import Literal
+
 from pydantic import SecretStr, ValidationError, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from nuvem.cifra import Cifra
 
 PREFIXO = "PATIO_"
+
+Ambiente = Literal["local", "homologacao", "producao"]
 
 
 class Configuracao(BaseSettings):
@@ -30,6 +34,18 @@ class Configuracao(BaseSettings):
 
     Gere com ``Fernet.generate_key()``. Trocar a chave torna ilegível o que já foi cifrado.
     """
+
+    ambiente: Ambiente = "producao"
+    """Onde a nuvem roda: ``local``, ``homologacao`` ou ``producao``.
+
+    Só no ``local`` o cookie da sessão vai sem ``Secure`` (o ambiente local é http://localhost).
+    O padrão é ``producao``: esquecer a variável nunca deixa a produção menos segura.
+    """
+
+    @property
+    def cookie_seguro(self) -> bool:
+        """Se o cookie da sessão só pode andar por HTTPS (``Secure``)."""
+        return self.ambiente != "local"
 
     @field_validator("chave_cifra")
     @classmethod

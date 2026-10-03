@@ -6,6 +6,7 @@ quem copia o banco sem a chave não lê os segredos.
 """
 
 from cryptography.fernet import Fernet, InvalidToken
+from fastapi import Request
 from pydantic import SecretStr
 
 
@@ -43,3 +44,9 @@ class Cifra:
             return self._fernet.decrypt(cifrado.encode()).decode()
         except InvalidToken as erro:
             raise SegredoIlegivelError("o segredo não abre com a chave configurada") from erro
+
+
+def obter_cifra(request: Request) -> Cifra:
+    """Dependência do FastAPI: a cifra da aplicação, com a chave da configuração."""
+    cifra: Cifra = request.app.state.cifra
+    return cifra

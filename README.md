@@ -47,6 +47,13 @@ uv run tarefas down          # derruba; os dados do banco de desenvolvimento fic
 Os testes da nuvem usam o banco de testes: rode `tarefas up` antes do `check`. Com o ambiente
 no ar, `http://localhost:18000/saude` responde `{"ok": true}` quando a API alcança o banco.
 
+Depois do `migrar` e da `semente`, entre no painel em `http://localhost:18000/entrar` com
+`gestor@empresa-a.example` e a senha `demonstracao-local` (a mesma para todas as pessoas da
+demonstração; os e-mails estão em `nuvem/src/nuvem/semente.py`). A administração (nós) entra
+com `admin@patio-br.example`.
+
+Quando um PR acrescenta variável ao `.env.exemplo`, copie-o de novo para `.env`.
+
 A CI (`.github/workflows/ci.yml`) roda em cada PR e na `main`: o mesmo `tarefas check` (com o
 banco de testes), a checagem de licenças das dependências, a de falhas de segurança conhecidas
 e o `tarefas up` com a API construída, as migrações aplicadas e o `/saude` respondendo.

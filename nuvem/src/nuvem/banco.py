@@ -1,9 +1,17 @@
 """Conexão com o PostgreSQL (SQLAlchemy 2, driver pg8000) e a base dos modelos da nuvem."""
 
 from collections.abc import Iterator
+from typing import get_args
 
 from fastapi import Request
-from sqlalchemy import Engine, MetaData, create_engine
+from sqlalchemy import (
+    Engine,
+    Enum,
+    ForeignKeyConstraint,
+    MetaData,
+    UniqueConstraint,
+    create_engine,
+)
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
@@ -21,6 +29,28 @@ class Base(DeclarativeBase):
     """Base de todas as tabelas da nuvem; as migrações (Alembic) partem deste metadata."""
 
     metadata = MetaData(naming_convention=CONVENCAO_DE_NOMES)
+
+
+def texto_de_lista(valores: object, nome: str) -> Enum:
+    """Coluna de texto que só aceita os valores de um ``Literal`` (ex.: ``Sentido``).
+
+    Guardada como texto com um CHECK (e não como tipo ENUM do PostgreSQL): mais fácil de migrar.
+    """
+    return Enum(*get_args(valores), name=nome, native_enum=False, create_constraint=True)
+
+
+def do_pai_na_mesma_empresa(pai: str) -> ForeignKeyConstraint:
+    """Chave estrangeira composta (pai, empresa) de uma tabela filha de cliente (SDD 5.5).
+
+    A tabela filha precisa das colunas ``<pai>_id`` e ``empresa_id``; o banco recusa um filho
+    de uma empresa num pai de outra.
+    """
+    return ForeignKeyConstraint([f"{pai}_id", "empresa_id"], [f"{pai}.id", f"{pai}.empresa_id"])
+
+
+def pode_ser_pai() -> UniqueConstraint:
+    """A dupla (id, empresa) única, que a chave estrangeira composta dos filhos exige no pai."""
+    return UniqueConstraint("id", "empresa_id")
 
 
 SQLSTATE_CHAVE_ESTRANGEIRA = "23503"

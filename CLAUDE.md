@@ -44,6 +44,12 @@ economia em R$. Uma caixa de borda (mini PC) lê as placas; a nuvem decide.
    empresa. Na prática: toda leitura de dado do cliente recebe o `Acesso` de quem pede
    (`nuvem.cadastro.acesso`); toda tabela de cliente tem `empresa_id`, e cada filha aponta para
    o pai pela dupla (pai, empresa); o que é de outra empresa responde "não encontrado".
+   Nas rotas: `obter_acesso` (qualquer usuário do cliente) ou `exigir_papel(...)`; sem login,
+   401; papel errado, 403. A administração (nós) é outra tabela e outro tipo, `AcessoAdmin`
+   (`obter_acesso_admin`), e não usa as rotas do cliente (SDD D-19). A caixa de borda se
+   identifica pela chave (`nuvem.frota.acesso.obter_caixa`) e só lê e grava no site dela.
+6. **Senha, PIN e código de sessão só como resumo** (`nuvem.senhas`, argon2; SDD 8.2). Nunca o
+   texto, nem em registro de erro.
 
 ## Como trabalhar
 
@@ -63,6 +69,9 @@ uv run tarefas down          # derruba, mantendo os dados
 Os testes da nuvem usam o banco de testes do `tarefas up`, zerado e migrado do zero a cada
 rodada; cada teste roda numa transação desfeita no fim (fixture `sessao`). A fixture `cenario`
 grava os dados de demonstração (`nuvem.semente`): duas empresas, para testar a separação.
+Nos testes de rota, a fixture `entrar` entra pela tela de login, como uma pessoa, e cada
+requisição usa a própria sessão do banco: o que a rota grava sem `commit` se perde, como em
+produção.
 Modelo novo ou alterado pede migração nova (`alembic revision --autogenerate`, ver
 `nuvem/alembic.ini`); um teste falha se faltar. Com o pg8000, violação de chave estrangeira ou
 de CHECK chega como `ProgrammingError`, não `IntegrityError`: use `nuvem.banco.sqlstate`.
