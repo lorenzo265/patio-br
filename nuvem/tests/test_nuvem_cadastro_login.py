@@ -3,9 +3,11 @@
 from datetime import UTC, datetime, timedelta
 
 import pytest
-from sqlalchemy import text
+from sqlalchemy import Connection, create_engine, text
+from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import Session
 
+from nuvem.banco import sqlstate
 from nuvem.cadastro import login, servico
 from nuvem.erros import NaoEncontradoError
 from nuvem.semente import PIN_DA_DEMONSTRACAO, SENHA_DA_DEMONSTRACAO, Demonstracao
@@ -15,6 +17,7 @@ pytestmark = pytest.mark.integracao
 
 AGORA = datetime(2026, 10, 5, 8, 0, tzinfo=UTC)
 SENHA_ERRADA = "nao-e-esta-a-senha"
+EMAIL_INVENTADO = "ninguem@empresa-a.example"
 
 
 def _entrar(
@@ -225,6 +228,47 @@ def test_tentativas_guardam_so_o_resumo_do_email(
     gravados = sessao.execute(text("select alvo_resumo from tentativa_login")).scalars().all()
     assert len(gravados) == 1
     assert "empresa-a" not in gravados[0]
+
+
+def _tentar_na(conexao: Connection, senhas: Senhas, email: str = EMAIL_INVENTADO) -> None:
+    # Uma tentativa com a senha errada, sem commit: ela ainda não terminou.
+    login.entrar(Session(bind=conexao), senhas, email=email, senha=SENHA_ERRADA, agora=AGORA)
+
+
+def test_tentativas_do_mesmo_email_passam_uma_de_cada_vez(
+    url_banco_teste: str, senhas: Senhas
+) -> None:
+    # Sem isso, pedidos ao mesmo tempo contam os erros antes de qualquer um gravar o seu, e
+    # todos passam do limite. Duas conexões fazem o papel de dois pedidos ao mesmo tempo.
+    motor = create_engine(url_banco_teste)
+    with motor.connect() as primeira, motor.connect() as segunda:
+        primeira.begin()
+        with pytest.raises(login.LoginRecusadoError):
+            _tentar_na(primeira, senhas)
+        segunda.begin()
+        segunda.execute(text("set local lock_timeout = '200ms'"))
+
+        with pytest.raises(DBAPIError) as erro:
+            _tentar_na(segunda, senhas)
+
+        assert sqlstate(erro.value) == "55P03"  # a segunda esperou a vez dela
+    motor.dispose()
+
+
+def test_tentativas_de_emails_diferentes_nao_esperam_uma_pela_outra(
+    url_banco_teste: str, senhas: Senhas
+) -> None:
+    motor = create_engine(url_banco_teste)
+    with motor.connect() as primeira, motor.connect() as segunda:
+        primeira.begin()
+        with pytest.raises(login.LoginRecusadoError):
+            _tentar_na(primeira, senhas)
+        segunda.begin()
+        segunda.execute(text("set local lock_timeout = '200ms'"))
+
+        with pytest.raises(login.LoginRecusadoError):
+            _tentar_na(segunda, senhas, f"outro-{EMAIL_INVENTADO}")
+    motor.dispose()
 
 
 # --- Troca de porteiro por PIN -------------------------------------------------------------
