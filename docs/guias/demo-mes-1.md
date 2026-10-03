@@ -104,7 +104,7 @@ O leitor v0 usa pesos de terceiros: **só para avaliação interna** (SDD 4.1; l
 | O que aparece | O que fazer |
 |---|---|
 | `o programa 'docker' não foi encontrado` | abra o Docker Desktop e rode de novo |
-| porta 15432, 15433 ou 18000 em uso | troque as portas no `.env` (`POSTGRES_PORTA`, `POSTGRES_TESTE_PORTA`, `API_PORTA`) e use a nova no endereço da tela |
+| porta 15432, 15433 ou 18000 em uso | troque a porta no `.env`: a 15432 em `POSTGRES_PORTA` **e** em `PATIO_URL_BANCO`; a 15433 em `POSTGRES_TESTE_PORTA` **e** em `PATIO_URL_BANCO_TESTE`; a 18000 em `API_PORTA` (o simulador também a lê dali). Depois, rode de novo e use a porta nova no endereço da tela |
 | `nenhuma caixa ativada` no simulador | rode com `--demonstracao` (só no ambiente local) ou com `--codigo` |
 | `a nuvem não recebeu N passagens` | a API está fora do ar: `uv run tarefas up`; as passagens ficaram na fila e vão na próxima vez |
 | a tela pede para entrar de novo | a sessão vale 12 horas; entre de novo |
