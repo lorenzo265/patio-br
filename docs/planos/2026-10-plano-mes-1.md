@@ -266,10 +266,13 @@ também `cadastro/login.py` (as regras do login), `nuvem/senhas.py` (argon2) e o
 **Regras (teste primeiro):**
 - `POST /api/borda/passagens` valida com o pacote `contratos`. Passagem nova → 201. Mesmo `id`
   de novo → 200 sem criar outra (**reenvio seguro**). Passagem de outro site que não o da caixa
-  → 403.
+  → 403. A mais (SDD 3.2): `id` que já é de outra caixa → 409; faixa ou câmera de fora do site,
+  ou sentido diferente do da faixa → 422, com o campo.
 - Fotos: a API devolve um endereço de envio para cada `ref` (`POST /api/borda/fotos/endereco`).
   O envio vai para a interface `Armazenamento`, com duas implementações: `ArmazenamentoLocal`
-  (pasta no disco, usada agora) e `ArmazenamentoS3` (mês 4, mesma interface).
+  (pasta no disco, usada agora) e `ArmazenamentoS3` (mês 4, mesma interface). No local, o
+  endereço leva um código cifrado que vale 15 minutos e a foto vai com `PUT`, sem a chave
+  (SDD D-22); só JPEG, até 2 MB; a pasta vem da variável nova `PATIO_PASTA_FOTOS`.
 
 **Verificar:** testes passam, incluindo o de envio repetido.
 
