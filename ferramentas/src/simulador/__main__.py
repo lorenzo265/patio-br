@@ -108,7 +108,7 @@ def principal(
     argumentos = _interpretador().parse_args(argv)
     raiz = raiz or Path.cwd()
     agora = agora or datetime.now(UTC)
-    cliente = cliente or httpx.Client(timeout=30)
+    cliente = cliente or cliente_para(argumentos.nuvem)
     try:
         if argumentos.video:
             raise SimuladorError(
@@ -149,6 +149,15 @@ def principal(
         )
         return 1
     return 0
+
+
+def cliente_para(nuvem: str) -> httpx.Client:
+    """O cliente HTTP para falar com a nuvem.
+
+    Com a nuvem local, sem o proxy do sistema: o httpx o usaria também para o ``localhost``
+    (no Windows, o proxy do registro), e numa rede de empresa a demonstração falharia.
+    """
+    return httpx.Client(timeout=30, trust_env=urlsplit(nuvem).hostname not in HOSTS_LOCAIS)
 
 
 def _interpretador() -> argparse.ArgumentParser:
@@ -196,18 +205,37 @@ def _caixa(argumentos: argparse.Namespace, cliente: httpx.Client, raiz: Path) ->
                 "--demonstracao só vale no ambiente local (a senha da semente é pública)",
                 codigo=2,
             )
+        guardada = _caixa_guardada(raiz, nuvem)
+        if guardada is not None and _chave_vale(cliente, guardada):
+            # A mesma caixa: o que ficou na fila de uma rodada anterior é dela (noutra caixa, a
+            # nuvem o recusaria).
+            return guardada
         return _ativar(cliente, nuvem, _codigo_da_demonstracao(cliente, nuvem), raiz)
     if argumentos.codigo:
         return _ativar(cliente, nuvem, argumentos.codigo, raiz)
-    arquivo = raiz / ARQUIVO_DA_CAIXA
-    if arquivo.is_file():
-        guardada = CaixaAtivada(**json.loads(arquivo.read_text(encoding="utf-8")))
-        if guardada.nuvem == nuvem:
-            return guardada
+    guardada = _caixa_guardada(raiz, nuvem)
+    if guardada is not None:
+        return guardada
     raise SimuladorError(
         f"nenhuma caixa ativada para {nuvem}: use --codigo (gerado pela administração) "
         "ou, no ambiente local, --demonstracao"
     )
+
+
+def _caixa_guardada(raiz: Path, nuvem: str) -> CaixaAtivada | None:
+    arquivo = raiz / ARQUIVO_DA_CAIXA
+    if not arquivo.is_file():
+        return None
+    guardada = CaixaAtivada(**json.loads(arquivo.read_text(encoding="utf-8")))
+    return guardada if guardada.nuvem == nuvem else None
+
+
+def _chave_vale(cliente: httpx.Client, caixa: CaixaAtivada) -> bool:
+    resposta = cliente.get(
+        f"{caixa.nuvem}/api/borda/configuracao",
+        headers={"Authorization": f"Bearer {caixa.chave}"},
+    )
+    return resposta.status_code == httpx.codes.OK
 
 
 def _codigo_da_demonstracao(cliente: httpx.Client, nuvem: str) -> str:

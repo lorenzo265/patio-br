@@ -2,7 +2,9 @@
 
 import io
 import json
+import threading
 from datetime import UTC, datetime
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 from typing import Any
 
@@ -13,7 +15,7 @@ from PIL import Image
 
 from borda.leitor.interface import LeituraBruta, Quadro, Regiao
 from borda.rastreio import Deteccao
-from simulador.__main__ import ARQUIVO_DA_CAIXA, principal
+from simulador.__main__ import ARQUIVO_DA_CAIXA, cliente_para, principal
 
 pytestmark = pytest.mark.integracao  # fila e chave ficam em arquivos
 
@@ -74,6 +76,7 @@ class NuvemFalsa:
         self.fotos: dict[str, bytes] = {}
         self.codigos_usados: list[str] = []
         self.chaves_usadas: set[str] = set()
+        self.chaves_revogadas: set[str] = set()
         self.entrou_como: str | None = None
 
     def __call__(self, pedido: httpx.Request) -> httpx.Response:
@@ -90,8 +93,13 @@ class NuvemFalsa:
             return httpx.Response(201, json={"codigo": "AAAA-BBBB-CCCC", "expira_em": "x"})
         if caminho == "/api/borda/ativar":
             self.codigos_usados.append(json.loads(pedido.content)["codigo"])
-            return httpx.Response(201, json={"caixa_id": "7", "site_id": "1", "chave": "chave-7"})
+            caixa = str(6 + len(self.codigos_usados))  # a primeira é a 7, depois 8...
+            return httpx.Response(
+                201, json={"caixa_id": caixa, "site_id": "1", "chave": f"chave-{caixa}"}
+            )
         if caminho == "/api/borda/configuracao":
+            if autorizacao.removeprefix("Bearer ") in self.chaves_revogadas:
+                return httpx.Response(401, json={"detail": "caixa não identificada"})
             return httpx.Response(200, json=CONFIGURACAO)
         if caminho == "/api/borda/fotos/endereco":
             ref = json.loads(pedido.content)["ref"]
@@ -162,6 +170,66 @@ def test_chave_fica_guardada_e_e_usada_de_novo(nuvem: NuvemFalsa, tmp_path: Path
     assert nuvem.codigos_usados == ["AAAA-BBBB-CCCC"]  # ativou uma vez só
     guardada = json.loads((tmp_path / ARQUIVO_DA_CAIXA).read_text(encoding="utf-8"))
     assert (guardada["nuvem"], guardada["chave"]) == (NUVEM, "chave-7")
+
+
+def test_demonstracao_de_novo_usa_a_mesma_caixa(nuvem: NuvemFalsa, tmp_path: Path) -> None:
+    # O que ficou na fila de uma rodada anterior é da caixa dela: noutra caixa, a nuvem o
+    # recusaria (403).
+    _rodar(nuvem, tmp_path, "--demonstracao", "--passagens", "amostra")
+
+    codigo, _ = _rodar(nuvem, tmp_path, "--demonstracao", "--passagens", "amostra")
+
+    assert codigo == 0
+    assert nuvem.codigos_usados == ["AAAA-BBBB-CCCC"]
+    assert nuvem.chaves_usadas == {"chave-7"}
+
+
+def test_demonstracao_ativa_outra_caixa_se_a_chave_nao_vale_mais(
+    nuvem: NuvemFalsa, tmp_path: Path
+) -> None:
+    # Ex.: o banco de desenvolvimento foi zerado, ou a caixa foi revogada.
+    _rodar(nuvem, tmp_path, "--demonstracao", "--passagens", "amostra")
+    nuvem.chaves_revogadas.add("chave-7")
+
+    codigo, _ = _rodar(nuvem, tmp_path, "--demonstracao", "--passagens", "amostra")
+
+    assert codigo == 0
+    assert len(nuvem.codigos_usados) == 2
+    assert nuvem.chaves_usadas == {"chave-7", "chave-8"}
+
+
+class _Responde200(BaseHTTPRequestHandler):
+    def do_GET(self) -> None:
+        self.send_response(200)
+        self.end_headers()
+
+    def log_message(self, *argumentos: Any) -> None:
+        pass
+
+
+@pytest.mark.integracao  # abre uma porta local
+def test_nuvem_local_nao_passa_pelo_proxy_do_sistema(monkeypatch: pytest.MonkeyPatch) -> None:
+    # O httpx usaria o proxy do sistema (no Windows, o do registro) também para o localhost, e
+    # numa rede de empresa a demonstração falharia. Este proxy não existe: usado, a conexão cai.
+    for nome in ("HTTP_PROXY", "http_proxy"):
+        monkeypatch.setenv(nome, "http://127.0.0.1:9")
+    for nome in ("NO_PROXY", "no_proxy"):
+        monkeypatch.delenv(nome, raising=False)
+    servidor = HTTPServer(("127.0.0.1", 0), _Responde200)
+    threading.Thread(target=servidor.serve_forever, daemon=True).start()
+    try:
+        with cliente_para(f"http://127.0.0.1:{servidor.server_port}") as cliente:
+            resposta = cliente.get(f"http://127.0.0.1:{servidor.server_port}/saude")
+    finally:
+        servidor.shutdown()
+        servidor.server_close()
+
+    assert resposta.status_code == 200
+
+
+def test_nuvem_de_verdade_usa_o_proxy_do_sistema() -> None:
+    # Numa rede que só sai pelo proxy, a nuvem de homologação ou produção precisa dele.
+    assert cliente_para("https://patio.exemplo.com.br").trust_env
 
 
 def test_codigo_de_ativacao_dado_na_linha_de_comando(nuvem: NuvemFalsa, tmp_path: Path) -> None:
