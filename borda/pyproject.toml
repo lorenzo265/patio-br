@@ -3,7 +3,10 @@ name = "patio-borda"
 version = "0.1.0"
 description = "Agente da caixa de borda: captura, leitor de placas, composição e envio."
 requires-python = ">=3.12,<3.13"
-dependencies = ["patio-contratos"]
+dependencies = [
+    "numpy>=2.5.3",
+    "patio-contratos",
+]
 
 [build-system]
 requires = ["hatchling>=1.25"]
