@@ -101,6 +101,8 @@ jobs:
     env:
       COMPOSE: docker compose -f infra/docker-compose.yml --project-directory .
       PATIO_URL_BANCO: postgresql+pg8000://patio:patio-local@localhost:5432/patio
+      # A chave só do ambiente local (a mesma do .env.exemplo); nunca a de produção.
+      PATIO_CHAVE_CIFRA: _0_jqx-SW46BKdQoB9mZcMouVAft1Qjf8Pf2niPbThI=
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
@@ -118,6 +120,10 @@ jobs:
           $COMPOSE exec -T postgres-teste psql -U patio -d patio_teste -c "select 1"
       - name: tarefas migrar
         run: uv run tarefas migrar
+      - name: tarefas semente (duas vezes; a segunda não muda nada)
+        run: |
+          uv run tarefas semente
+          uv run tarefas semente
       - name: A API responde em /saude
         run: test "$(curl --fail-with-body -sS http://localhost:8000/saude)" = '{"ok":true}'
       - name: tarefas down
