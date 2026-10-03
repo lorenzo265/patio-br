@@ -21,7 +21,7 @@ class Configuracao(BaseSettings):
     url_banco: SecretStr
     """Endereço do PostgreSQL, com o driver pg8000 (SDD D-18).
 
-    Ex.: ``postgresql+pg8000://usuario:senha@localhost:5432/patio``. Guardado como segredo para
+    Ex.: ``postgresql+pg8000://usuario:senha@localhost:15432/patio``. Guardado como segredo para
     a senha não aparecer em registros nem ao imprimir a configuração.
     """
 

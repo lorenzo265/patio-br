@@ -1,4 +1,4 @@
-"""O banco de teste da nuvem: o `postgres-teste` do `uv run tarefas up` (porta 5433).
+"""O banco de teste da nuvem: o `postgres-teste` do `uv run tarefas up` (porta 15433).
 
 No início da rodada, o banco é zerado e migrado do zero (assim toda rodada testa também as
 migrações). Cada teste roda dentro de uma transação que é desfeita no fim, mesmo que o código
@@ -31,7 +31,7 @@ class ConfiguracaoDosTestes(BaseSettings):
 
     model_config = SettingsConfigDict(env_prefix="PATIO_", env_file=".env", extra="ignore")
 
-    url_banco_teste: str = "postgresql+pg8000://patio:patio-local@localhost:5433/patio_teste"
+    url_banco_teste: str = "postgresql+pg8000://patio:patio-local@localhost:15433/patio_teste"
 
 
 @pytest.fixture(scope="session")

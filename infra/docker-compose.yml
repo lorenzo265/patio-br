@@ -4,6 +4,8 @@
 #   uv run tarefas down   derruba, mantendo os dados do banco de desenvolvimento
 # Os caminhos relativos (o build da API) partem da raiz do repositório: os comandos do projeto
 # rodam o compose com --project-directory na raiz.
+# Portas na máquina: 15432 (banco), 15433 (banco de testes) e 18000 (API), longe das 5432 e 8000
+# que outros projetos costumam ocupar. Cada máquina pode trocar no .env.
 name: patio-br
 
 x-postgres: &postgres
@@ -13,7 +15,9 @@ x-postgres: &postgres
     # Senha só do ambiente local; nunca a use em homologação ou produção.
     POSTGRES_PASSWORD: ${POSTGRES_SENHA:-patio-local}
   healthcheck:
-    test: ["CMD-SHELL", "pg_isready -U patio -d $${POSTGRES_DB}"]
+    # -h 127.0.0.1: testa pela rede, o caminho que a API usa. Pelo socket local o banco diz
+    # "pronto" já no servidor provisório da primeira inicialização, que não aceita rede.
+    test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U patio -d $${POSTGRES_DB}"]
     interval: 2s
     timeout: 3s
     retries: 30
@@ -25,7 +29,7 @@ services:
       <<: *postgres-ambiente
       POSTGRES_DB: patio
     # Só aceita conexões desta máquina.
-    ports: ["127.0.0.1:${POSTGRES_PORTA:-5432}:5432"]
+    ports: ["127.0.0.1:${POSTGRES_PORTA:-15432}:5432"]
     volumes: [postgres-dados:/var/lib/postgresql/data]
 
   # Banco dos testes automáticos: em memória, começa vazio a cada `up`.
@@ -34,7 +38,7 @@ services:
     environment:
       <<: *postgres-ambiente
       POSTGRES_DB: patio_teste
-    ports: ["127.0.0.1:${POSTGRES_TESTE_PORTA:-5433}:5432"]
+    ports: ["127.0.0.1:${POSTGRES_TESTE_PORTA:-15433}:5432"]
     tmpfs: [/var/lib/postgresql/data]
 
   # API da nuvem (nuvem/Dockerfile). As migrações não rodam sozinhas: `uv run tarefas migrar`.
@@ -46,13 +50,15 @@ services:
       PATIO_URL_BANCO: postgresql+pg8000://patio:${POSTGRES_SENHA:-patio-local}@postgres:5432/patio
       # Padrão: a chave só do ambiente local, a mesma do .env.exemplo.
       PATIO_CHAVE_CIFRA: ${PATIO_CHAVE_CIFRA:-_0_jqx-SW46BKdQoB9mZcMouVAft1Qjf8Pf2niPbThI=}
-    ports: ["127.0.0.1:${API_PORTA:-8000}:8000"]
+    ports: ["127.0.0.1:${API_PORTA:-18000}:8000"]
     depends_on:
       postgres:
         condition: service_healthy
     healthcheck:
-      # /saude só responde 200 quando a API alcança o banco.
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/saude')"]
+      # /saude só responde 200 quando a API alcança o banco. Usa http.client, que não passa por
+      # proxy: o Docker Desktop põe HTTP_PROXY nos contêineres quando há proxy configurado, e
+      # o urllib mandaria esta chamada a 127.0.0.1 para o proxy, marcando a API como doente.
+      test: ["CMD", "python", "-c", "import http.client as h; c = h.HTTPConnection('127.0.0.1', 8000, timeout=3); c.request('GET', '/saude'); exit(c.getresponse().status != 200)"]
       interval: 2s
       timeout: 3s
       retries: 30
