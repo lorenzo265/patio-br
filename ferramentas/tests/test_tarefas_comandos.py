@@ -14,6 +14,7 @@ from tarefas.comandos import (
     etapas_do_check,
     etapas_do_down,
     etapas_do_migrar,
+    etapas_do_semente,
     etapas_do_test,
     etapas_do_up,
     executar_etapas,
@@ -174,6 +175,12 @@ def test_migrar_aplica_as_migracoes_da_nuvem_ate_a_ultima() -> None:
     (etapa,) = etapas_do_migrar()
 
     assert etapa.argumentos[2:] == ("alembic", "-c", "nuvem/alembic.ini", "upgrade", "head")
+
+
+def test_semente_grava_os_dados_de_demonstracao_da_nuvem() -> None:
+    (etapa,) = etapas_do_semente()
+
+    assert etapa.argumentos[2:] == ("nuvem.semente",)
 
 
 def test_principal_conhece_o_comando_migrar(tmp_path: Path) -> None:
