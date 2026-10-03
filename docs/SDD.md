@@ -1,7 +1,7 @@
 # SDD — patio-br (nome provisório)
 
 **Documento de desenho do software (SDD) do MVP do piloto**
-Versão 0.9 · 2026-10-03 · Situação: aprovado como base; itens em aberto na seção 12
+Versão 0.10 · 2026-10-03 · Situação: aprovado como base; itens em aberto na seção 12
 
 ---
 
@@ -292,6 +292,15 @@ usados só em avaliação interna, nunca no produto.
 Correções por posição: onde só cabe letra, `0→O`, `1→I`, `8→B`, `5→S`; onde só cabe número, o
 inverso. A correção é registrada na passagem (confiança menor).
 
+- **Formato:** só os separadores (espaço, `-`, `.`, `·`) são retirados. Texto que não fica com 7
+  caracteres, ou com um caractere que não cabe na posição e não tem correção, é descartado: o
+  leitor nunca inventa nem apaga caractere. Cada caractere corrigido multiplica a confiança por
+  0,9. A 5ª posição aceita letra e número (antiga e Mercosul) e nunca é corrigida.
+- **Votação:** fica a placa lida em mais quadros; no empate, a de maior confiança média. A
+  confiança final é a média das confianças dos quadros vencedores vezes a fração dos quadros
+  que concordam (ex.: 4 de 5 quadros a 0,95 → 0,95 × 0,8 = 0,76). `quadros` na passagem é o
+  número de quadros vencedores.
+
 ### 4.3 Composições e o que a câmera não vê
 
 - Pela regra do CONTRAN, reboques só têm placa traseira. A câmera da frente lê o cavalo; a de
@@ -300,6 +309,15 @@ inverso. A correção é registrada na passagem (confiança menor).
   com um agendamento do dia, a nuvem, no casamento, completa o meio a partir dele e registra na
   composição da visita que essa placa foi **inferida**, e não lida. A passagem não muda: a caixa
   não conhece os agendamentos e só envia o que viu.
+- **Composição na caixa**, por faixa, com uma janela de tempo (padrão 30 s):
+  - a leitura da câmera da frente é o **cavalo**, e espera a de trás até o fim da janela;
+  - a leitura de trás, com placa **diferente** da frente, é o **reboque** da composição mais
+    recente da faixa, que se fecha ali. As mais antigas que ainda esperavam saem sozinhas;
+  - a leitura de trás **igual** à da frente é a placa traseira do mesmo veículo, sem reboque: a
+    composição se fecha só com o cavalo;
+  - a leitura de trás **sem** nenhuma da frente na janela sai com papel **desconhecido**: sem a
+    frente, não dá para saber se é um reboque ou o próprio cavalo (D-23);
+  - a leitura da frente que chega ao fim da janela sem a de trás sai sozinha, como cavalo.
 
 ### 4.4 Onde roda
 
@@ -697,6 +715,7 @@ folga.
 | D-20 | Sessão de login guardada no banco; o cookie leva só um código aleatório | sair e desligar um usuário valem na hora; o banco guarda só o resumo do código; não precisa de outra chave secreta | cookie assinado com os dados do usuário, ou token JWT (não dá para revogar antes de vencer) |
 | D-21 | Na passagem e na configuração da caixa, os identificadores (caixa, site, faixa, câmera) são os ids da nuvem em texto | a caixa os recebe prontos na ativação e na configuração; a nuvem confere cada um contra o cadastro sem tabela de tradução | um código próprio para cada coisa (ex.: `entrada-1`), que precisaria ser único, editável e traduzido em toda passagem |
 | D-22 | Fotos enviadas pela caixa a um endereço temporário; no armazenamento local, o endereço leva um código cifrado (Fernet, com a chave da cifra) que diz a caixa, o `ref` e quando vence | a mesma forma do endereço assinado do S3 (mês 4): a caixa só aprende "peça o endereço e envie"; não precisa de outro segredo | foto dentro da passagem (passagem pesada, reenvio caro); envio pela API com a chave da caixa (no S3 seria outro caminho) |
+| D-23 | A placa lida só pela câmera de trás, sem a da frente, vai com papel `desconhecido` | sem a frente, a placa traseira pode ser de um reboque ou do próprio cavalo sem reboque; a caixa só diz o que viu, e o casamento (mês 2) testa a placa em qualquer papel | papel `reboque` sempre que a leitura vem da traseira (erra no cavalo sem reboque com a frente ilegível e na saída, que só tem câmera traseira) |
 
 ---
 
@@ -759,3 +778,4 @@ folga.
 | 0.7 | 2026-10-03 | ativação da caixa (T10): código de uso único por site, chave própria com `Bearer`, configuração baixada pela caixa; ids da nuvem em texto na passagem (D-21; seções 3.2, 5.1 e 7.4) |
 | 0.8 | 2026-10-03 | recebimento de passagens e fotos (T11): respostas 201/200/403/409/422 e envio de fotos por endereço temporário (D-22; seção 3.2) |
 | 0.9 | 2026-10-03 | tela crua da portaria (T12): arquivos de terceiros do painel (HTMX) no repositório, com licença e hash (seção 6.1) |
+| 0.10 | 2026-10-03 | regras puras do leitor (T14): formato, votação e composição na caixa; leitura só da traseira com papel desconhecido (D-23; seções 4.2 e 4.3) |
