@@ -1,7 +1,7 @@
 # SDD — patio-br (nome provisório)
 
 **Documento de desenho do software (SDD) do MVP do piloto**
-Versão 0.10 · 2026-10-03 · Situação: aprovado como base; itens em aberto na seção 12
+Versão 0.11 · 2026-10-03 · Situação: aprovado como base; itens em aberto na seção 12
 
 ---
 
@@ -559,6 +559,15 @@ Serve para desenvolver sem câmera, para os testes de ponta a ponta e para simul
 - **Rede:** a caixa **só faz conexões de saída**. Nenhuma porta aberta na rede do cliente.
   Câmeras num switch separado.
 - **Disco local:** fila de passagens (SQLite) e cache de recortes por até 30 dias para treino.
+- **Fila de envio** (SQLite, no disco da caixa):
+  - toda passagem é gravada primeiro na fila, com as fotos, e só depois enviada;
+  - envia na ordem em que as passagens aconteceram: primeiro as fotos, depois a passagem;
+  - erro de rede, 5xx, 401, 408 ou 429: tenta de novo, esperando 1 s, 2 s, 4 s... até 5 min
+    entre as tentativas, sem passar à frente;
+  - 201 ou 200: a passagem sai da fila;
+  - recusa definitiva (403, 409 ou 422): a passagem sai da fila e fica guardada à parte na
+    caixa, com o motivo, para não travar as seguintes (D-24). Foto recusada de vez (409, 413 ou
+    415) fica de fora, e a passagem segue sem ela.
 
 ### 7.5 WhatsApp e SMS
 
@@ -716,6 +725,7 @@ folga.
 | D-21 | Na passagem e na configuração da caixa, os identificadores (caixa, site, faixa, câmera) são os ids da nuvem em texto | a caixa os recebe prontos na ativação e na configuração; a nuvem confere cada um contra o cadastro sem tabela de tradução | um código próprio para cada coisa (ex.: `entrada-1`), que precisaria ser único, editável e traduzido em toda passagem |
 | D-22 | Fotos enviadas pela caixa a um endereço temporário; no armazenamento local, o endereço leva um código cifrado (Fernet, com a chave da cifra) que diz a caixa, o `ref` e quando vence | a mesma forma do endereço assinado do S3 (mês 4): a caixa só aprende "peça o endereço e envie"; não precisa de outro segredo | foto dentro da passagem (passagem pesada, reenvio caro); envio pela API com a chave da caixa (no S3 seria outro caminho) |
 | D-23 | A placa lida só pela câmera de trás, sem a da frente, vai com papel `desconhecido` | sem a frente, a placa traseira pode ser de um reboque ou do próprio cavalo sem reboque; a caixa só diz o que viu, e o casamento (mês 2) testa a placa em qualquer papel | papel `reboque` sempre que a leitura vem da traseira (erra no cavalo sem reboque com a frente ilegível e na saída, que só tem câmera traseira) |
+| D-24 | Passagem que a nuvem recusa de vez (403, 409, 422) sai da fila e fica guardada à parte na caixa | reenviar não muda a resposta, e a fila em ordem ficaria travada para sempre atrás dela; guardada à parte, nada se perde e o suporte vê o motivo | só tirar da fila com 201 ou 200 (trava a portaria inteira por uma passagem errada); apagar a recusada (perde a prova) |
 
 ---
 
@@ -779,3 +789,4 @@ folga.
 | 0.8 | 2026-10-03 | recebimento de passagens e fotos (T11): respostas 201/200/403/409/422 e envio de fotos por endereço temporário (D-22; seção 3.2) |
 | 0.9 | 2026-10-03 | tela crua da portaria (T12): arquivos de terceiros do painel (HTMX) no repositório, com licença e hash (seção 6.1) |
 | 0.10 | 2026-10-03 | regras puras do leitor (T14): formato, votação e composição na caixa; leitura só da traseira com papel desconhecido (D-23; seções 4.2 e 4.3) |
+| 0.11 | 2026-10-03 | fila de envio da caixa (T17): ordem, espera crescente e recusa definitiva guardada à parte (D-24; seção 7.4) |
