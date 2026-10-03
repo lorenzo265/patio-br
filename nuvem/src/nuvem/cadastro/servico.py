@@ -1,10 +1,12 @@
 """Regras do cadastro.
 
-Duas portas de entrada:
+Três portas de entrada:
 
 - **Leitura pelo cliente:** toda função recebe o ``Acesso`` de quem pede e só enxerga a empresa
   e os sites dele (SDD 5.5). O que é de outro "não existe" (``NaoEncontradoError``), sem dizer
   que existe.
+- **Leitura pela borda:** a caixa de borda, já identificada pela chave, lê a estrutura do
+  próprio site; a função recebe a empresa e o site da caixa e filtra pelos dois.
 - **Administração (nós):** criar a estrutura de um cliente e as pessoas que usam o painel.
   Cada filho herda a empresa do pai recebido, então não há como passar a empresa errada.
 
@@ -13,6 +15,7 @@ As funções gravam com ``flush`` (o registro ganha id); o ``commit`` é de quem
 
 import re
 from collections.abc import Sequence
+from dataclasses import dataclass
 from urllib.parse import urlsplit
 
 from sqlalchemy import Select, and_, select
@@ -90,7 +93,87 @@ def listar_cameras(sessao: Session, acesso: Acesso, site_id: int) -> list[Camera
     return list(sessao.scalars(consulta))
 
 
+# --- Leitura pela borda --------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class CameraDaBorda:
+    """O que a caixa precisa para ler o vídeo de uma câmera, com a senha decifrada."""
+
+    id: int
+    nome: str
+    posicao: Posicao
+    endereco: str
+    login: str
+    senha: str
+
+
+@dataclass(frozen=True)
+class FaixaDaBorda:
+    """Uma faixa do site, com as câmeras dela."""
+
+    id: int
+    nome: str
+    sentido: Sentido
+    cameras: tuple[CameraDaBorda, ...]
+
+
+def faixas_para_a_borda(
+    sessao: Session, cifra: Cifra, *, empresa_id: int, site_id: int
+) -> list[FaixaDaBorda]:
+    """As faixas e câmeras de um site, para a caixa de borda dele (SDD 7.4).
+
+    Quem chama já conferiu a chave da caixa; ``empresa_id`` e ``site_id`` são os dela.
+    """
+    faixas = sessao.scalars(
+        select(Faixa)
+        .join(
+            Portaria,
+            and_(Portaria.id == Faixa.portaria_id, Portaria.empresa_id == Faixa.empresa_id),
+        )
+        .where(Faixa.empresa_id == empresa_id, Portaria.site_id == site_id)
+        .order_by(Faixa.id)
+    ).all()
+    cameras = sessao.scalars(
+        select(Camera)
+        .where(Camera.empresa_id == empresa_id, Camera.faixa_id.in_([f.id for f in faixas]))
+        .order_by(Camera.id)
+    ).all()
+    return [
+        FaixaDaBorda(
+            id=faixa.id,
+            nome=faixa.nome,
+            sentido=faixa.sentido,
+            cameras=tuple(
+                CameraDaBorda(
+                    id=camera.id,
+                    nome=camera.nome,
+                    posicao=camera.posicao,
+                    endereco=camera.endereco,
+                    login=camera.login,
+                    senha=cifra.decifrar(camera.senha_cifrada),
+                )
+                for camera in cameras
+                if camera.faixa_id == faixa.id
+            ),
+        )
+        for faixa in faixas
+    ]
+
+
 # --- Administração (nós) -------------------------------------------------------------------
+
+
+def obter_site_para_administracao(sessao: Session, site_id: int) -> Site:
+    """Um site de qualquer empresa. Só para a administração (as rotas dela conferem).
+
+    Raises:
+        NaoEncontradoError: se o site não existir.
+    """
+    site = sessao.get(Site, site_id)
+    if site is None:
+        raise NaoEncontradoError(f"site {site_id}")
+    return site
 
 
 def _gravar[M: Base](sessao: Session, registro: M) -> M:

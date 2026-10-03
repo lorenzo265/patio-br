@@ -8,7 +8,6 @@ o erro (para o limite de tentativas), então quem chama faz ``commit`` mesmo qua
 ``LoginRecusadoError``.
 """
 
-import hashlib
 import secrets
 from datetime import datetime, timedelta
 
@@ -17,7 +16,7 @@ from sqlalchemy.orm import Session
 
 from nuvem.cadastro.modelos import Administrador, SessaoLogin, TentativaLogin, Usuario, UsuarioSite
 from nuvem.erros import NaoEncontradoError
-from nuvem.senhas import Senhas
+from nuvem.senhas import Senhas, resumo_rapido
 
 VALIDADE_DA_SESSAO = timedelta(hours=12)
 """Um turno de portaria; depois disso, entra de novo."""
@@ -63,7 +62,7 @@ def entrar(sessao: Session, senhas: Senhas, *, email: str, senha: str, agora: da
         LoginRecusadoError: se a conta não existir, estiver desativada, não tiver senha ou a
             senha não conferir. O erro fica gravado para o limite de tentativas.
     """
-    alvo = _resumo(f"email:{normalizar_email(email)}")
+    alvo = resumo_rapido(f"email:{normalizar_email(email)}")
     _recusar_se_bloqueado(sessao, alvo, agora)
     conta = conta_por_email(sessao, email)
     if conta is None or not conta.ativo or conta.senha_resumo is None:
@@ -81,7 +80,7 @@ def entrar(sessao: Session, senhas: Senhas, *, email: str, senha: str, agora: da
 
 def sair(sessao: Session, codigo: str) -> None:
     """Fecha a sessão do código (se ela existir)."""
-    sessao.execute(delete(SessaoLogin).where(SessaoLogin.codigo_resumo == _resumo(codigo)))
+    sessao.execute(delete(SessaoLogin).where(SessaoLogin.codigo_resumo == resumo_rapido(codigo)))
     sessao.flush()
 
 
@@ -92,7 +91,7 @@ def conta_da_sessao(sessao: Session, codigo: str, agora: datetime) -> Conta | No
     """
     aberta = sessao.scalar(
         select(SessaoLogin).where(
-            SessaoLogin.codigo_resumo == _resumo(codigo), SessaoLogin.expira_em > agora
+            SessaoLogin.codigo_resumo == resumo_rapido(codigo), SessaoLogin.expira_em > agora
         )
     )
     if aberta is None:
@@ -134,7 +133,7 @@ def trocar_porteiro(
     porteiro = sessao.scalar(consulta)
     if porteiro is None:
         raise NaoEncontradoError(f"porteiro {porteiro_id}")
-    alvo = _resumo(f"pin:{porteiro.id}")
+    alvo = resumo_rapido(f"pin:{porteiro.id}")
     _recusar_se_bloqueado(sessao, alvo, agora)
     if porteiro.pin_resumo is None or not senhas.confere(porteiro.pin_resumo, pin):
         _registrar_erro(sessao, alvo, agora)
@@ -170,7 +169,7 @@ def _consulta_dos_porteiros_da_troca(sessao: Session, usuario_id: int) -> Select
 def _abrir_sessao(sessao: Session, conta: Conta, agora: datetime) -> str:
     codigo = secrets.token_urlsafe(32)
     aberta = SessaoLogin(
-        codigo_resumo=_resumo(codigo), criada_em=agora, expira_em=agora + VALIDADE_DA_SESSAO
+        codigo_resumo=resumo_rapido(codigo), criada_em=agora, expira_em=agora + VALIDADE_DA_SESSAO
     )
     if isinstance(conta, Usuario):
         aberta.usuario_id = conta.id
@@ -210,7 +209,3 @@ def _registrar_erro(sessao: Session, alvo: str, agora: datetime) -> None:
 def _esquecer_erros(sessao: Session, alvo: str) -> None:
     sessao.execute(delete(TentativaLogin).where(TentativaLogin.alvo_resumo == alvo))
     sessao.flush()
-
-
-def _resumo(texto: str) -> str:
-    return hashlib.sha256(texto.encode()).hexdigest()

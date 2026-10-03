@@ -23,7 +23,7 @@ from sqlalchemy.orm import Session
 
 from nuvem.banco import obter_sessao
 from nuvem.cadastro.acesso import Acesso, acesso_do_usuario
-from nuvem.cifra import Cifra
+from nuvem.cifra import Cifra, obter_cifra
 from nuvem.config import Configuracao
 from nuvem.principal import criar_app
 from nuvem.semente import SENHA_DA_DEMONSTRACAO, Demonstracao, semear
@@ -124,7 +124,7 @@ def acesso_b(sessao: Session, cenario: Demonstracao) -> Acesso:
 
 
 @pytest.fixture
-def app(url_banco_teste: str, conexao: Connection, senhas: Senhas) -> FastAPI:
+def app(url_banco_teste: str, conexao: Connection, senhas: Senhas, cifra: Cifra) -> FastAPI:
     """A aplicação no ambiente local, dentro da transação do teste (desfeita no fim).
 
     Cada requisição ganha a própria sessão, como em produção: o que a rota grava sem
@@ -140,6 +140,8 @@ def app(url_banco_teste: str, conexao: Connection, senhas: Senhas) -> FastAPI:
             yield sessao
 
     app.dependency_overrides[obter_sessao] = sessao_da_requisicao
+    # A mesma cifra da semente do teste: as senhas das câmeras abrem.
+    app.dependency_overrides[obter_cifra] = lambda: cifra
     return app
 
 

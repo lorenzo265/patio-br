@@ -8,22 +8,12 @@ A administração (nós) fica fora das empresas, numa tabela própria (SDD D-19)
 """
 
 from datetime import datetime
-from typing import Literal, get_args
+from typing import Literal
 
-from sqlalchemy import (
-    CheckConstraint,
-    DateTime,
-    Enum,
-    ForeignKey,
-    ForeignKeyConstraint,
-    PrimaryKeyConstraint,
-    String,
-    UniqueConstraint,
-    true,
-)
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, PrimaryKeyConstraint, String, true
 from sqlalchemy.orm import Mapped, mapped_column
 
-from nuvem.banco import Base
+from nuvem.banco import Base, do_pai_na_mesma_empresa, pode_ser_pai, texto_de_lista
 
 Sentido = Literal["entrada", "saida"]
 Posicao = Literal["frente", "tras", "contexto"]
@@ -34,20 +24,6 @@ FUSO_PADRAO = "America/Sao_Paulo"
 
 FORMATO_CNPJ = "^[0-9A-Z]{12}[0-9]{2}$"
 """14 caracteres: 12 letras ou números (CNPJ alfanumérico, desde julho de 2026) e 2 dígitos."""
-
-
-def _texto_de(valores: object, nome: str) -> Enum:
-    # Guardado como texto com CHECK (e não como tipo ENUM do PostgreSQL): mais fácil de migrar.
-    return Enum(*get_args(valores), name=nome, native_enum=False, create_constraint=True)
-
-
-def _do_pai_na_mesma_empresa(pai: str) -> ForeignKeyConstraint:
-    return ForeignKeyConstraint([f"{pai}_id", "empresa_id"], [f"{pai}.id", f"{pai}.empresa_id"])
-
-
-def _pode_ser_pai() -> UniqueConstraint:
-    # A chave estrangeira composta dos filhos precisa de (id, empresa_id) único no pai.
-    return UniqueConstraint("id", "empresa_id")
 
 
 class Empresa(Base):
@@ -65,7 +41,7 @@ class Site(Base):
     """Um local do cliente com portaria e pátio (ex.: um centro de distribuição)."""
 
     __tablename__ = "site"
-    __table_args__ = (_pode_ser_pai(),)
+    __table_args__ = (pode_ser_pai(),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
     empresa_id: Mapped[int] = mapped_column(ForeignKey("empresa.id"), index=True)
@@ -77,7 +53,7 @@ class Portaria(Base):
     """Uma portaria do site; tem uma ou mais faixas."""
 
     __tablename__ = "portaria"
-    __table_args__ = (_pode_ser_pai(), _do_pai_na_mesma_empresa("site"))
+    __table_args__ = (pode_ser_pai(), do_pai_na_mesma_empresa("site"))
 
     id: Mapped[int] = mapped_column(primary_key=True)
     empresa_id: Mapped[int]
@@ -89,26 +65,26 @@ class Faixa(Base):
     """Uma faixa da portaria, de entrada ou de saída."""
 
     __tablename__ = "faixa"
-    __table_args__ = (_pode_ser_pai(), _do_pai_na_mesma_empresa("portaria"))
+    __table_args__ = (pode_ser_pai(), do_pai_na_mesma_empresa("portaria"))
 
     id: Mapped[int] = mapped_column(primary_key=True)
     empresa_id: Mapped[int]
     portaria_id: Mapped[int]
     nome: Mapped[str]
-    sentido: Mapped[Sentido] = mapped_column(_texto_de(Sentido, "sentido"))
+    sentido: Mapped[Sentido] = mapped_column(texto_de_lista(Sentido, "sentido"))
 
 
 class Camera(Base):
     """Uma câmera IP da faixa. A senha fica cifrada (ver ``nuvem.cifra``)."""
 
     __tablename__ = "camera"
-    __table_args__ = (_do_pai_na_mesma_empresa("faixa"),)
+    __table_args__ = (do_pai_na_mesma_empresa("faixa"),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
     empresa_id: Mapped[int]
     faixa_id: Mapped[int]
     nome: Mapped[str]
-    posicao: Mapped[Posicao] = mapped_column(_texto_de(Posicao, "posicao"))
+    posicao: Mapped[Posicao] = mapped_column(texto_de_lista(Posicao, "posicao"))
     endereco: Mapped[str]
     """Endereço RTSP, sem usuário nem senha."""
     login: Mapped[str]
@@ -119,7 +95,7 @@ class Doca(Base):
     """Uma doca de carga e descarga do site."""
 
     __tablename__ = "doca"
-    __table_args__ = (_do_pai_na_mesma_empresa("site"),)
+    __table_args__ = (do_pai_na_mesma_empresa("site"),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
     empresa_id: Mapped[int]
@@ -131,13 +107,13 @@ class Usuario(Base):
     """Uma pessoa do cliente que usa o painel."""
 
     __tablename__ = "usuario"
-    __table_args__ = (_pode_ser_pai(),)
+    __table_args__ = (pode_ser_pai(),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
     empresa_id: Mapped[int] = mapped_column(ForeignKey("empresa.id"), index=True)
     nome: Mapped[str]
     email: Mapped[str] = mapped_column(unique=True)
-    papel: Mapped[Papel] = mapped_column(_texto_de(Papel, "papel"))
+    papel: Mapped[Papel] = mapped_column(texto_de_lista(Papel, "papel"))
     senha_resumo: Mapped[str | None]
     """Resumo argon2 da senha; vazio = ainda sem senha, e quem não tem senha não entra."""
     pin_resumo: Mapped[str | None]
@@ -152,8 +128,8 @@ class UsuarioSite(Base):
     __tablename__ = "usuario_site"
     __table_args__ = (
         PrimaryKeyConstraint("usuario_id", "site_id"),
-        _do_pai_na_mesma_empresa("usuario"),
-        _do_pai_na_mesma_empresa("site"),
+        do_pai_na_mesma_empresa("usuario"),
+        do_pai_na_mesma_empresa("site"),
     )
 
     usuario_id: Mapped[int]
@@ -182,7 +158,7 @@ class SessaoLogin(Base):
 
     __tablename__ = "sessao_login"
     __table_args__ = (
-        _do_pai_na_mesma_empresa("usuario"),
+        do_pai_na_mesma_empresa("usuario"),
         CheckConstraint(
             "(usuario_id IS NOT NULL AND empresa_id IS NOT NULL AND administrador_id IS NULL)"
             " OR (usuario_id IS NULL AND empresa_id IS NULL AND administrador_id IS NOT NULL)",

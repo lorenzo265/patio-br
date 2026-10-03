@@ -6,6 +6,7 @@ copiado. O resumo leva junto o sal e o custo usado, então mudar o custo não in
 antigos: eles são refeitos quando a pessoa entra.
 """
 
+import hashlib
 from functools import cached_property
 
 from argon2 import PasswordHasher
@@ -51,6 +52,17 @@ class Senhas:
     @cached_property
     def _resumo_qualquer(self) -> str:
         return self.resumir("resumo-que-nenhuma-senha-confere")
+
+
+def resumo_rapido(texto: str) -> str:
+    """Resumo SHA-256 (64 caracteres), para códigos aleatórios e longos que a nuvem só confere.
+
+    Serve ao código da sessão, à chave da caixa e ao código de ativação: sorteados pela nuvem,
+    já são impossíveis de adivinhar, e o resumo só impede que uma cópia do banco os entregue.
+    Senha e PIN, que pessoas escolhem, usam ``Senhas`` (argon2), que é lento de propósito.
+    Também resume o alvo das tentativas de login, só para a tabela não guardar o e-mail.
+    """
+    return hashlib.sha256(texto.encode()).hexdigest()
 
 
 def obter_senhas(request: Request) -> Senhas:
