@@ -46,7 +46,8 @@ economia em R$. Uma caixa de borda (mini PC) lê as placas; a nuvem decide.
    o pai pela dupla (pai, empresa); o que é de outra empresa responde "não encontrado".
    Nas rotas: `obter_acesso` (qualquer usuário do cliente) ou `exigir_papel(...)`; sem login,
    401; papel errado, 403. A administração (nós) é outra tabela e outro tipo, `AcessoAdmin`
-   (`obter_acesso_admin`), e não usa as rotas do cliente (SDD D-19).
+   (`obter_acesso_admin`), e não usa as rotas do cliente (SDD D-19). A caixa de borda se
+   identifica pela chave (`nuvem.frota.acesso.obter_caixa`) e só lê e grava no site dela.
 6. **Senha, PIN e código de sessão só como resumo** (`nuvem.senhas`, argon2; SDD 8.2). Nunca o
    texto, nem em registro de erro.
 
