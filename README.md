@@ -54,6 +54,13 @@ demonstração; os e-mails estão em `nuvem/src/nuvem/semente.py`). A administra
 com `admin@patio-br.example`. Com o porteiro (`porteiro@empresa-a.example`), a tela
 `http://localhost:18000/portaria` mostra as passagens que chegam, atualizada a cada 2 segundos.
 
+Para ver passagens chegando sem câmera, o simulador faz o papel da caixa de borda (ativa com a
+administração da semente e manda três passagens inventadas):
+
+```bash
+uv run simulador --demonstracao --passagens amostra
+```
+
 Quando um PR acrescenta variável ao `.env.exemplo`, copie-o de novo para `.env`.
 
 A CI (`.github/workflows/ci.yml`) roda em cada PR e na `main`: o mesmo `tarefas check` (com o
