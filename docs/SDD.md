@@ -1,7 +1,7 @@
 # SDD — patio-br (nome provisório)
 
 **Documento de desenho do software (SDD) do MVP do piloto**
-Versão 0.13 · 2026-10-03 · Situação: aprovado como base; itens em aberto na seção 12
+Versão 0.14 · 2026-10-03 · Situação: aprovado como base; itens em aberto na seção 12
 
 ---
 
@@ -521,6 +521,15 @@ Ferramenta que reproduz vídeos e passagens gravados e os envia à nuvem como um
 Serve para desenvolver sem câmera, para os testes de ponta a ponta e para simular falhas
 (internet caindo, envio duplicado, câmera parada).
 
+- Usa o mesmo agente da caixa (captura → leitor → rastreamento → composição → fila) e a mesma
+  ativação: código de uso único, chave guardada em `dados/` (fora do Git).
+- **Passagens prontas** (`--passagens arquivo.json`): manda passagens escritas à mão, sem visão
+  computacional; caixa, site, faixa e horários vêm da ativação e da hora atual quando faltam.
+- **Quadros** (`--quadros pasta`): roda o leitor v0 sobre as imagens de uma pasta, como se fossem
+  uma câmera. O arquivo de vídeo (`--video`) espera o `[ABERTO-13]`.
+- **Demonstração** (`--demonstracao`): só no ambiente local, entra como a administração da
+  semente, gera o código e ativa a caixa sozinho.
+
 ---
 
 ## 7. Infraestrutura
@@ -563,6 +572,10 @@ Serve para desenvolver sem câmera, para os testes de ponta a ponta e para simul
 - **Configuração:** com a chave, a caixa baixa da nuvem as faixas (com sentido) e as câmeras
   (posição, endereço, login e senha) do site dela. A senha da câmera sai decifrada só nessa
   resposta, só para a caixa do próprio site, porque a caixa precisa dela para ler o vídeo.
+- **Agente:** um processo junta, para cada câmera, captura → rastreamento com leitura → e, por
+  faixa, a composição; cada composição vira uma passagem com a hora da caixa e um `id` novo, e
+  vai para a fila com a foto de cada placa (o recorte, em JPEG). Por enquanto a caixa só manda
+  fotos de placa; a foto de contexto entra com o borrão de rostos (seção 8.3).
 - **Saúde:** a cada minuto envia CPU, temperatura, disco, câmeras no ar, quadros por segundo e
   passagens pendentes → tela "Frota de borda" e alertas.
 - **Atualização:** a caixa pergunta à nuvem qual versão rodar, baixa e reinicia; se o teste de
@@ -806,3 +819,4 @@ folga.
 | 0.11 | 2026-10-03 | fila de envio da caixa (T17): ordem, espera crescente e recusa definitiva guardada à parte (D-24; seção 7.4) |
 | 0.12 | 2026-10-03 | licenças dos pesos do leitor v0 (T13): situação do `[ABERTO-12]`; novo `[ABERTO-13]`, bibliotecas nativas GPL e LGPL dentro das rodas (seções 4.2 e 12) |
 | 0.13 | 2026-10-03 | captura e rastreamento (T16): rastreador nosso (D-25), captura por fonte de quadros, leitura sem placa legível (seções 4.2 e 4.3) |
+| 0.14 | 2026-10-03 | agente da caixa e simulador (T18): o que o agente junta, só fotos de placa por enquanto, modos do simulador (seções 6.4 e 7.4) |
