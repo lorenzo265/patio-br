@@ -11,10 +11,16 @@ from pathlib import Path
 import pytest
 from alembic import command
 from alembic.config import Config
+from cryptography.fernet import Fernet
+from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy import create_engine, make_url, text
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import Session
+
+from nuvem.cadastro.acesso import Acesso, acesso_do_usuario
+from nuvem.cifra import Cifra
+from nuvem.semente import Demonstracao, semear
 
 ARQUIVO_ALEMBIC = Path(__file__).resolve().parents[1] / "alembic.ini"
 SUFIXO_DO_BANCO_DE_TESTE = "_teste"
@@ -64,3 +70,29 @@ def sessao(url_banco_teste: str) -> Iterator[Session]:
             yield sessao
         transacao.rollback()
     motor.dispose()
+
+
+@pytest.fixture
+def cifra() -> Cifra:
+    """Cifra com uma chave nova a cada teste (nunca a do ambiente)."""
+    return Cifra(SecretStr(Fernet.generate_key().decode()))
+
+
+@pytest.fixture
+def cenario(sessao: Session, cifra: Cifra) -> Demonstracao:
+    """Os dados de demonstração (duas empresas), gravados no banco de teste vazio."""
+    demonstracao = semear(sessao, cifra)
+    assert demonstracao is not None, "o banco de teste deveria começar vazio"
+    return demonstracao
+
+
+@pytest.fixture
+def acesso_a(sessao: Session, cenario: Demonstracao) -> Acesso:
+    """O gestor da empresa A, ligado só ao site_a."""
+    return acesso_do_usuario(sessao, cenario.gestor_a.id)
+
+
+@pytest.fixture
+def acesso_b(sessao: Session, cenario: Demonstracao) -> Acesso:
+    """O gestor da empresa B."""
+    return acesso_do_usuario(sessao, cenario.gestor_b.id)

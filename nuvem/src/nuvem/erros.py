@@ -1,0 +1,12 @@
+"""Erros de regra da nuvem, comuns a todos os módulos."""
+
+
+class NaoEncontradoError(Exception):
+    """O registro não existe ou não pertence a quem pediu: para quem pediu, dá no mesmo.
+
+    A API responde 404 sem dizer qual dos dois, para não revelar dado de outra empresa.
+    """
+
+
+class DadoInvalidoError(ValueError):
+    """Um dado recebido não segue a regra do cadastro (a mensagem diz qual)."""

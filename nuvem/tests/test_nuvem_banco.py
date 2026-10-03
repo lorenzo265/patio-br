@@ -1,8 +1,14 @@
 """O banco de teste: migrado do zero no início e limpo a cada teste."""
 
+from pathlib import Path
+
 import pytest
-from sqlalchemy import text
+from alembic import command
+from alembic.config import Config
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session
+
+ARQUIVO_ALEMBIC = Path(__file__).resolve().parents[1] / "alembic.ini"
 
 
 @pytest.mark.integracao
@@ -21,3 +27,14 @@ def test_banco_de_teste_tem_as_migracoes_aplicadas(sessao: Session) -> None:
     versoes = sessao.execute(text("select count(*) from alembic_version")).scalar_one()
 
     assert versoes == 1
+
+
+@pytest.mark.integracao
+def test_migracoes_cobrem_todos_os_modelos(url_banco_teste: str) -> None:
+    # Modelo mudou sem migração nova? O Alembic acha a diferença e o teste falha.
+    motor = create_engine(url_banco_teste)
+    with motor.connect() as conexao:
+        alembic = Config(ARQUIVO_ALEMBIC)
+        alembic.attributes["connection"] = conexao
+        command.check(alembic)
+    motor.dispose()
