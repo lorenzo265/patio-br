@@ -3,8 +3,13 @@
 Duas empresas inventadas, para ver a separação na prática:
 
 - **Empresa A**: o site "CD Exemplo" (uma portaria com uma faixa de entrada e uma de saída, três
-  câmeras e duas docas), mais o site "CD Exemplo 2", que o gestor A não vê;
-- **Empresa B**: o site "CD Outra Empresa", com uma câmera.
+  câmeras e duas docas), mais o site "CD Exemplo 2", que ninguém da A vê; no CD Exemplo, um
+  gestor, um líder de pátio e dois porteiros (dia e noite);
+- **Empresa B**: o site "CD Outra Empresa", com uma câmera, um gestor e um porteiro;
+- **Administração** (nós): uma pessoa, fora das duas empresas.
+
+Todos entram com a senha ``SENHA_DA_DEMONSTRACAO``; os porteiros têm o PIN
+``PIN_DA_DEMONSTRACAO``. Os e-mails estão abaixo, em ``semear``.
 
 Os mesmos dados servem de cenário aos testes da nuvem. Roda uma vez: se já existem, não faz
 nada. Só para desenvolvimento e demonstração; nunca em produção.
@@ -17,9 +22,20 @@ from sqlalchemy.orm import Session
 
 from nuvem.banco import criar_motor
 from nuvem.cadastro import servico
-from nuvem.cadastro.modelos import Camera, Empresa, Faixa, Portaria, Posicao, Site, Usuario
+from nuvem.cadastro.modelos import (
+    Administrador,
+    Camera,
+    Empresa,
+    Faixa,
+    Papel,
+    Portaria,
+    Posicao,
+    Site,
+    Usuario,
+)
 from nuvem.cifra import Cifra
 from nuvem.config import ConfiguracaoInvalidaError, ler_configuracao
+from nuvem.senhas import Senhas
 
 CNPJ_A = "DEMO0000000A00"
 CNPJ_B = "DEMO0000000B00"
@@ -27,6 +43,12 @@ CNPJ_B = "DEMO0000000B00"
 
 SENHA_DAS_CAMERAS = "camera-local"
 """Senha inventada das câmeras de demonstração (gravada cifrada, como qualquer outra)."""
+
+SENHA_DA_DEMONSTRACAO = "demonstracao-local"
+"""Senha inventada de todas as pessoas da demonstração (gravada só como resumo)."""
+
+PIN_DA_DEMONSTRACAO = "135790"
+"""PIN inventado dos porteiros da demonstração."""
 
 
 @dataclass(frozen=True)
@@ -45,10 +67,15 @@ class Demonstracao:
     camera_a: Camera
     camera_b: Camera
     gestor_a: Usuario
+    patio_a: Usuario
+    porteiro_a: Usuario
+    porteiro_a_noite: Usuario
     gestor_b: Usuario
+    porteiro_b: Usuario
+    administrador: Administrador
 
 
-def semear(sessao: Session, cifra: Cifra) -> Demonstracao | None:
+def semear(sessao: Session, cifra: Cifra, senhas: Senhas) -> Demonstracao | None:
     """Grava os dados de demonstração (sem commit).
 
     Returns:
@@ -68,35 +95,33 @@ def semear(sessao: Session, cifra: Cifra) -> Demonstracao | None:
     _camera(sessao, cifra, saida, "Saída 1 — traseira", "tras", "10.0.0.13")
     for nome in ("Doca 1", "Doca 2"):
         servico.criar_doca(sessao, site_a, nome=nome)
-    gestor_a = servico.criar_usuario(
-        sessao,
-        empresa_a,
-        nome="Gestor A",
-        email="gestor@empresa-a.example",
-        papel="gestor",
-        sites=[site_a],
-    )
-    servico.criar_usuario(
-        sessao,
-        empresa_a,
-        nome="Porteiro A",
-        email="porteiro@empresa-a.example",
-        papel="porteiro",
-        sites=[site_a],
-    )
+
+    def pessoa_a(nome: str, email: str, papel: Papel) -> Usuario:
+        return _pessoa(sessao, senhas, empresa_a, site_a, nome, f"{email}@empresa-a.example", papel)
+
+    gestor_a = pessoa_a("Gestor A", "gestor", "gestor")
+    patio_a = pessoa_a("Pátio A", "patio", "patio")
+    porteiro_a = pessoa_a("Porteiro A", "porteiro", "porteiro")
+    porteiro_a_noite = pessoa_a("Porteiro A (noite)", "porteiro-noite", "porteiro")
 
     empresa_b = servico.criar_empresa(sessao, nome="Empresa B (demonstração)", cnpj=CNPJ_B)
     site_b = servico.criar_site(sessao, empresa_b, nome="CD Outra Empresa")
     portaria_b = servico.criar_portaria(sessao, site_b, nome="Portaria")
     entrada_b = servico.criar_faixa(sessao, portaria_b, nome="Entrada", sentido="entrada")
     camera_b = _camera(sessao, cifra, entrada_b, "Entrada — frente", "frente", "10.1.0.11")
-    gestor_b = servico.criar_usuario(
+    gestor_b = _pessoa(
+        sessao, senhas, empresa_b, site_b, "Gestor B", "gestor@empresa-b.example", "gestor"
+    )
+    porteiro_b = _pessoa(
+        sessao, senhas, empresa_b, site_b, "Porteiro B", "porteiro@empresa-b.example", "porteiro"
+    )
+
+    administrador = servico.criar_administrador(
         sessao,
-        empresa_b,
-        nome="Gestor B",
-        email="gestor@empresa-b.example",
-        papel="gestor",
-        sites=[site_b],
+        senhas,
+        nome="Administração (demonstração)",
+        email="admin@patio-br.example",
+        senha=SENHA_DA_DEMONSTRACAO,
     )
 
     return Demonstracao(
@@ -110,8 +135,38 @@ def semear(sessao: Session, cifra: Cifra) -> Demonstracao | None:
         camera_a=camera_a,
         camera_b=camera_b,
         gestor_a=gestor_a,
+        patio_a=patio_a,
+        porteiro_a=porteiro_a,
+        porteiro_a_noite=porteiro_a_noite,
         gestor_b=gestor_b,
+        porteiro_b=porteiro_b,
+        administrador=administrador,
     )
+
+
+def _pessoa(
+    sessao: Session,
+    senhas: Senhas,
+    empresa: Empresa,
+    site: Site,
+    nome: str,
+    email: str,
+    papel: Papel,
+) -> Usuario:
+    # E-mails no domínio .example, que não existe; todos com a senha da demonstração.
+    usuario = servico.criar_usuario(
+        sessao,
+        senhas,
+        empresa,
+        nome=nome,
+        email=email,
+        papel=papel,
+        sites=[site],
+        senha=SENHA_DA_DEMONSTRACAO,
+    )
+    if papel == "porteiro":
+        servico.definir_pin(sessao, senhas, usuario, PIN_DA_DEMONSTRACAO)
+    return usuario
 
 
 def _camera(
@@ -137,13 +192,16 @@ def principal() -> None:
         raise SystemExit(f"erro: {erro}") from None
     motor = criar_motor(configuracao.url_banco.get_secret_value())
     with Session(motor) as sessao:
-        demonstracao = semear(sessao, Cifra(configuracao.chave_cifra))
+        demonstracao = semear(sessao, Cifra(configuracao.chave_cifra), Senhas())
         sessao.commit()
+        if demonstracao is None:
+            print("os dados de demonstração já existiam; nada mudou")
+        else:
+            # Ainda com a sessão aberta: depois do commit, os registros são relidos do banco.
+            print("dados de demonstração gravados: empresas A e B (ver nuvem/src/nuvem/semente.py)")
+            print(f"entre em /entrar com {demonstracao.gestor_a.email} (ou outro e-mail dali)")
+            print(f"senha de todos: {SENHA_DA_DEMONSTRACAO}; PIN: {PIN_DA_DEMONSTRACAO}")
     motor.dispose()
-    if demonstracao is None:
-        print("os dados de demonstração já existiam; nada mudou")
-    else:
-        print("dados de demonstração gravados: empresas A e B (veja nuvem/src/nuvem/semente.py)")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block titulo %}Trocar porteiro · patio-br{% endblock %}
+{% block conteudo %}
+<h1>Trocar porteiro</h1>
+{% if erro %}<p class="erro" role="alert">{{ erro }}</p>{% endif %}
+{% if porteiros %}
+<form method="post" action="/trocar-porteiro">
+  <label>Quem assume
+    <select name="porteiro_id" required>
+      {% for porteiro in porteiros %}
+      <option value="{{ porteiro.id }}">{{ porteiro.nome }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>PIN
+    <input type="password" name="pin" inputmode="numeric" pattern="[0-9]{6}" maxlength="6"
+           autocomplete="off" required>
+  </label>
+  <button type="submit">Assumir</button>
+</form>
+{% else %}
+<p>Nenhum outro porteiro dos seus sites.</p>
+{% endif %}
+<p><a href="/">Voltar</a></p>
+{% endblock %}

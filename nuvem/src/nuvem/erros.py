@@ -10,3 +10,11 @@ class NaoEncontradoError(Exception):
 
 class DadoInvalidoError(ValueError):
     """Um dado recebido não segue a regra do cadastro (a mensagem diz qual)."""
+
+
+class NaoIdentificadoError(Exception):
+    """Ninguém entrou no sistema (sem sessão, ou sessão vencida): a API responde 401."""
+
+
+class SemPermissaoError(Exception):
+    """Quem pede entrou, mas o papel dele não permite isto: a API responde 403."""

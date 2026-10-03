@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from nuvem.cadastro.modelos import Empresa
 from nuvem.cifra import Cifra
 from nuvem.semente import Demonstracao, semear
+from nuvem.senhas import Senhas
 
 pytestmark = pytest.mark.integracao
 
@@ -16,6 +17,6 @@ def test_semente_cria_duas_empresas(sessao: Session, cenario: Demonstracao) -> N
 
 
 def test_semente_rodada_de_novo_nao_duplica_nada(
-    sessao: Session, cenario: Demonstracao, cifra: Cifra
+    sessao: Session, cenario: Demonstracao, cifra: Cifra, senhas: Senhas
 ) -> None:
-    assert semear(sessao, cifra) is None
+    assert semear(sessao, cifra, senhas) is None
