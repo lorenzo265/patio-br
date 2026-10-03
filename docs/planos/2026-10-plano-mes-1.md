@@ -325,12 +325,17 @@ em avaliação interna, e isso fica escrito. O leitor v1 (mês 2) usa pesos trei
 
 **Regras (teste primeiro):**
 - `interface.py`: `LeitorDePlacas` (entra imagem, sai lista de `(texto, confiança, caixa)`).
+  A "caixa" (o retângulo da placa na imagem) virou `Regiao`, porque "caixa" já é a caixa de
+  borda. Dependência nova na borda: `numpy` (BSD), o tipo do quadro.
 - `formato.py`: valida e corrige por posição (`0↔O`, `1↔I`, `8↔B`, `5↔S`); toda correção
-  reduz a confiança; nunca inventa caractere.
+  reduz a confiança (×0,9 por caractere); nunca inventa caractere (SDD 4.2).
 - `votacao.py`: junta as leituras de vários quadros do mesmo veículo e escolhe a mais
-  frequente, desempatando pela confiança.
+  frequente, desempatando pela confiança. A confiança final é a média dos vencedores vezes a
+  fração dos quadros que concordam (SDD 4.2).
 - `composicao.py`: na mesma faixa, junta a placa lida pela câmera da frente (cavalo) com a lida
   pela câmera de trás (reboque) dentro de uma janela de tempo configurável (padrão 30 s).
+  Regras completas no SDD 4.3. Desvio: o "reboque sem cavalo" sai com papel ~~`reboque`~~
+  `desconhecido`, porque sem a frente a placa traseira pode ser do próprio cavalo (SDD D-23).
 
 **Verificar:** `uv run tarefas test` com casos de borda (placa com troca, empate, reboque sem
 cavalo, cavalo sem reboque).
