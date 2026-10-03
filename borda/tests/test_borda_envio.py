@@ -1,6 +1,8 @@
 """Fila de envio da caixa (SDD 7.4, D-24): nenhuma passagem se perde se a internet cair."""
 
 import json
+import threading
+import time
 from collections.abc import Iterator
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -47,6 +49,9 @@ class NuvemFalsa:
         """Códigos a responder às próximas passagens (depois do roteiro, 201)."""
         self.respostas_da_foto: list[int] = []
         self.falhas_de_rede = 0
+        self.erros_inesperados = 0
+        self.corpos_do_endereco: list[str] = []
+        """Respostas 200 sem o endereço da foto (ex.: a página de um portal de wi-fi)."""
         self.pedidos: list[httpx.Request] = []
         self.passagens: list[str] = []
         self.fotos: dict[str, bytes] = {}
@@ -56,7 +61,12 @@ class NuvemFalsa:
         if self.falhas_de_rede:
             self.falhas_de_rede -= 1
             raise httpx.ConnectError("a internet caiu", request=pedido)
+        if self.erros_inesperados:
+            self.erros_inesperados -= 1
+            raise RuntimeError("um erro que ninguém previu")
         caminho = pedido.url.path
+        if caminho == "/api/borda/fotos/endereco" and self.corpos_do_endereco:
+            return httpx.Response(200, text=self.corpos_do_endereco.pop(0))
         if caminho == "/api/borda/fotos/endereco":
             ref = json.loads(pedido.content)["ref"]
             return httpx.Response(200, json={"ref": ref, "endereco": f"{ENDERECO}/envio/{ref}"})
@@ -263,6 +273,51 @@ def test_foto_recusada_de_vez_fica_de_fora_e_a_passagem_segue(
     remetente.enviar_pendentes()
 
     assert nuvem_falsa.passagens == [str(passagem.id)]
+
+
+@pytest.mark.parametrize(
+    "corpo", ["<html>entre na rede</html>", '{"ref": "p/1.jpg"}'], ids=["página", "sem endereço"]
+)
+def test_resposta_200_sem_o_endereco_da_foto_tenta_de_novo(
+    fila: FilaDeEnvio,
+    nuvem_falsa: NuvemFalsa,
+    remetente: Remetente,
+    esperas: list[float],
+    corpo: str,
+) -> None:
+    # Um portal de wi-fi ou um proxy pode responder 200 com uma página no lugar da nuvem.
+    passagem = _passagem(fotos=("p/1.jpg",))
+    fila.guardar(passagem, {"p/1.jpg": JPEG})
+    nuvem_falsa.corpos_do_endereco = [corpo]
+
+    remetente.enviar_pendentes()
+
+    assert (nuvem_falsa.passagens, esperas) == ([str(passagem.id)], [1])
+    assert nuvem_falsa.fotos == {"p/1.jpg": JPEG}
+
+
+def test_erro_inesperado_nao_para_o_envio(
+    fila: FilaDeEnvio, nuvem_falsa: NuvemFalsa, esperas: list[float]
+) -> None:
+    # Na caixa, o envio roda numa linha à parte: se ela morresse, a fila só cresceria.
+    parar = threading.Event()
+    cliente = httpx.Client(transport=httpx.MockTransport(nuvem_falsa))
+    remetente = Remetente(
+        fila, Nuvem(ENDERECO, CHAVE, cliente=cliente), dormir=esperas.append, parar=parar
+    )
+    passagem = _passagem()
+    fila.guardar(passagem)
+    nuvem_falsa.erros_inesperados = 1
+
+    linha = threading.Thread(target=remetente.rodar)
+    linha.start()
+    prazo = time.monotonic() + 3
+    while not nuvem_falsa.passagens and time.monotonic() < prazo:
+        time.sleep(0.01)
+    parar.set()
+    linha.join(timeout=3)
+
+    assert (nuvem_falsa.passagens, esperas) == ([str(passagem.id)], [1])
 
 
 def test_foto_ja_enviada_nao_vai_de_novo_quando_a_passagem_falha(

@@ -161,6 +161,46 @@ def test_leitura_leva_o_recorte_da_placa_para_a_foto() -> None:
     assert int(recorte[0, 0, 0]) == 200
 
 
+class DetectorFixo:
+    """Acha sempre o mesmo veículo, na mesma região."""
+
+    def __init__(self, regiao: Regiao) -> None:
+        self.regiao = regiao
+
+    def detectar(self, quadro: Quadro) -> list[Deteccao]:
+        return [Deteccao(regiao=self.regiao, confianca=0.9)]
+
+
+class LeitorQueAnota:
+    """Não lê nada; anota a largura de cada recorte que recebe."""
+
+    def __init__(self) -> None:
+        self.larguras: list[int] = []
+
+    def ler(self, quadro: Quadro) -> list[LeituraBruta]:
+        self.larguras.append(quadro.shape[1])
+        return []
+
+
+@pytest.mark.parametrize(
+    ("x", "larguras"), [(-12, []), (-4, [4, 4, 4])], ids=["toda fora", "metade fora"]
+)
+def test_regiao_que_passa_da_borda_so_le_o_que_esta_dentro(x: int, larguras: list[int]) -> None:
+    # Perto da borda, o detector pode dar uma região que começa antes da imagem.
+    leitor = LeitorQueAnota()
+    rastreador = Rastreador(
+        DetectorFixo(Regiao(x=x, y=10, largura=8, altura=20)),
+        leitor,
+        faixa_id="1",
+        camera_id="11",
+        posicao="frente",
+    )
+
+    _rodar(rastreador, _video([], quadros=3))
+
+    assert leitor.larguras == larguras
+
+
 def test_veiculo_ainda_na_imagem_sai_ao_esvaziar() -> None:
     rastreador = _rastreador()
     for quadro in _video([Veiculo(150, 0, 30)], quadros=6):

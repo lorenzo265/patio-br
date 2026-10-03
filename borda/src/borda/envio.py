@@ -216,10 +216,13 @@ class Nuvem:
                 return Resposta(Resultado.RECUSADA, pedido.status_code, pedido.text)
             if pedido.status_code != httpx.codes.OK:
                 return Resposta(Resultado.DE_NOVO, pedido.status_code, pedido.text)
+            endereco = _endereco_de_envio(pedido)
+            if endereco is None:
+                # Ex.: um portal de wi-fi ou um proxy que responde 200 com uma página.
+                motivo = "a resposta não trouxe o endereço de envio"
+                return Resposta(Resultado.DE_NOVO, pedido.status_code, motivo)
             envio = self._cliente.put(
-                pedido.json()["endereco"],
-                content=conteudo,
-                headers={"Content-Type": "image/jpeg"},
+                endereco, content=conteudo, headers={"Content-Type": "image/jpeg"}
             )
         except httpx.HTTPError as erro:
             return Resposta(Resultado.DE_NOVO, motivo=f"sem resposta da nuvem: {erro}")
@@ -236,6 +239,14 @@ class Nuvem:
         except httpx.HTTPError as erro:
             return Resposta(Resultado.DE_NOVO, motivo=f"sem resposta da nuvem: {erro}")
         return _classificar(resposta, recusa=RECUSA_DA_PASSAGEM)
+
+
+def _endereco_de_envio(pedido: httpx.Response) -> str | None:
+    try:
+        endereco = pedido.json()["endereco"]
+    except (ValueError, KeyError, TypeError):
+        return None
+    return endereco if isinstance(endereco, str) else None
 
 
 def _classificar(resposta: httpx.Response, *, recusa: frozenset[int]) -> Resposta:
@@ -283,7 +294,14 @@ class Remetente:
     def rodar(self) -> None:
         """Fica enviando até pedirem para parar (o processo da caixa roda isto numa linha)."""
         while not self._parar.is_set():
-            self.enviar_pendentes()
+            try:
+                self.enviar_pendentes()
+            except Exception:
+                # Um erro que ninguém previu não pode parar o envio de vez (a fila só cresceria):
+                # fica registrado, e o envio tenta de novo, esperando mais a cada vez.
+                _registro.exception("erro inesperado no envio; tentando de novo")
+                self._dormir(self._espera)
+                self._espera = min(self._espera * 2, ESPERA_MAXIMA)
             self._parar.wait(1)
 
     def enviar_uma(self) -> bool:
