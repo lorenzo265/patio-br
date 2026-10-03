@@ -1,7 +1,7 @@
 # SDD — patio-br (nome provisório)
 
 **Documento de desenho do software (SDD) do MVP do piloto**
-Versão 0.8 · 2026-10-03 · Situação: aprovado como base; itens em aberto na seção 12
+Versão 0.9 · 2026-10-03 · Situação: aprovado como base; itens em aberto na seção 12
 
 ---
 
@@ -450,6 +450,11 @@ Pontuação inicial (os pesos e o limite são ajustados com os dados do mês 2 �
 
 Toda dependência precisa de licença permissiva (MIT, BSD, Apache, PostgreSQL, ISC, PSF). MPL-2.0 só é aceita para biblioteca usada sem modificação (ex.: `certifi`). GPL, LGPL e AGPL ficam de fora. A CI checa.
 
+Arquivos de terceiros que o painel serve (o HTMX, licença Zero-Clause BSD) ficam no repositório,
+em `nuvem/src/nuvem/web/estatico/`, com a versão no nome, a licença e o hash conferido, e não
+num CDN: o tablet da portaria não depende de outro servidor. A CI não vê esses arquivos; a
+licença deles é conferida à mão, como a dos modelos.
+
 ### 6.2 Telas do MVP
 
 | Tela | Quem | Conteúdo |
@@ -753,3 +758,4 @@ folga.
 | 0.6 | 2026-10-03 | login e papéis (T09): administração em tabela própria (D-19), sessão no banco (D-20), senha e PIN com argon2, limite de tentativas e troca de porteiro por PIN (seções 5.1 e 8.2) |
 | 0.7 | 2026-10-03 | ativação da caixa (T10): código de uso único por site, chave própria com `Bearer`, configuração baixada pela caixa; ids da nuvem em texto na passagem (D-21; seções 3.2, 5.1 e 7.4) |
 | 0.8 | 2026-10-03 | recebimento de passagens e fotos (T11): respostas 201/200/403/409/422 e envio de fotos por endereço temporário (D-22; seção 3.2) |
+| 0.9 | 2026-10-03 | tela crua da portaria (T12): arquivos de terceiros do painel (HTMX) no repositório, com licença e hash (seção 6.1) |
