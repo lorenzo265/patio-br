@@ -1,7 +1,7 @@
 # SDD — patio-br (nome provisório)
 
 **Documento de desenho do software (SDD) do MVP do piloto**
-Versão 0.5 · 2026-10-03 · Situação: aprovado como base; itens em aberto na seção 12
+Versão 0.6 · 2026-10-03 · Situação: aprovado como base; itens em aberto na seção 12
 
 ---
 
@@ -341,7 +341,8 @@ O banco público brasileiro (RodoSol-ALPR) só permite uso acadêmico. Por isso:
 | `Site` | empresa, nome, endereço, fuso, horário de operação |
 | `Portaria` / `Faixa` / `Camera` | site; faixa tem sentido (entrada/saída); câmera tem posição (frente/trás/contexto), endereço RTSP, senha cifrada |
 | `Doca` | site, nome, situação |
-| `Usuario` | nome, e-mail, papel, sites com acesso, PIN (porteiro), verificação em duas etapas (gestor/admin) |
+| `Usuario` | empresa, nome, e-mail, papel (porteiro, pátio ou gestor), sites com acesso, senha, PIN (porteiro), ativo, verificação em duas etapas (gestor) |
+| `Administrador` | nome, e-mail, senha, ativo, verificação em duas etapas; é a administração (nós), fora de qualquer empresa (D-19) |
 | `Agendamento` | site, janela início/fim, tipo (carga/descarga), placas esperadas (cavalo, reboques), motorista (nome, celular), autorização de WhatsApp, toneladas, chave NF-e (opcional), `origem`, `codigo_externo`, situação |
 | `Veiculo` | placa, tipo (cavalo, reboque, caminhão simples); campo de posição no pátio reservado para o modo B |
 | `Passagem` | formato da seção 3.2 |
@@ -552,9 +553,23 @@ Serve para desenvolver sem câmera, para os testes de ponta a ponta e para simul
 
 ### 8.2 Segurança
 
-- Login individual; verificação em duas etapas para gestor e admin; troca de porteiro por PIN
-  no tablet.
-- Permissões por papel e por site; filtro obrigatório por empresa em toda consulta.
+- Login individual por e-mail e senha; verificação em duas etapas para gestor e administração
+  (mês 4); troca de porteiro por PIN no tablet.
+- Senha e PIN são guardados só como **resumo argon2**, nunca o texto. A senha tem de 10 a 128
+  caracteres; o PIN, 6 números.
+- **Sessão no servidor** (D-20): ao entrar, o navegador recebe um cookie com um código aleatório
+  (`HttpOnly`, `SameSite=Lax` e, fora do ambiente local, `Secure`); o banco guarda só o resumo
+  do código. A sessão vale 12 horas (um turno); sair a apaga na hora.
+- **Limite de tentativas:** 5 erros de senha para o mesmo e-mail em 15 minutos bloqueiam esse
+  e-mail por 15 minutos, mesmo com a senha certa (e-mail que não existe conta igual, para não
+  revelar quem existe). O PIN de cada porteiro tem o mesmo limite.
+- **Troca de porteiro:** no tablet já aberto num site, o porteiro do turno escolhe o nome dele e
+  digita o PIN; a sessão passa a ser dele. Só vale para porteiros da mesma empresa e de um site
+  em comum.
+- Permissões por papel e por site; filtro obrigatório por empresa em toda consulta. Sem login, a
+  rota responde 401; com o papel errado, 403. O gestor pode tudo o que o porteiro e o líder de
+  pátio podem nos sites dele. A administração (nós) tem rotas próprias e não usa as do cliente
+  (D-19).
 - Caixa com chave própria, revogável.
 - Link da transportadora com código aleatório, revogável, com limite de envios.
 - HTTPS em tudo; banco e fotos cifrados; senhas de câmera cifradas.
@@ -648,6 +663,8 @@ folga.
 | D-16 | Fila de tarefas no PostgreSQL | uma peça a menos (sem Redis) | Redis + Celery |
 | D-17 | A passagem traz só o que a caixa viu; a placa inferida fica na visita | quem infere é o casamento com o agendamento, na nuvem; uma placa inferida não tem câmera nem quadros | campo `inferida` em cada placa lida da passagem |
 | D-18 | Driver do PostgreSQL: pg8000 (BSD-3) | psycopg 2 e 3 são LGPL, que a regra de licença (seção 6.1) não aceita; pg8000 é síncrono como o resto da nuvem, Python puro (igual em Windows e Linux) e é o driver síncrono de PostgreSQL do conector oficial do Cloud SQL, do Google | psycopg 3 (LGPL-3.0); asyncpg (Apache-2.0, mas obrigaria a nuvem inteira a ser assíncrona) |
+| D-19 | A administração (nós) fica numa tabela própria, `administrador`, fora das empresas; o login dela gera um acesso de outro tipo, que nunca vira o `Acesso` de um cliente | toda tabela de cliente tem empresa e toda leitura de cliente filtra por ela (seção 5.5); com tipos separados, uma rota de cliente não atende a administração por engano, e vice-versa | papel `admin` na tabela `usuario`, com empresa vazia (abre exceção na regra da empresa); uma "empresa da plataforma" com permissão de ver as outras (um furo na separação) |
+| D-20 | Sessão de login guardada no banco; o cookie leva só um código aleatório | sair e desligar um usuário valem na hora; o banco guarda só o resumo do código; não precisa de outra chave secreta | cookie assinado com os dados do usuário, ou token JWT (não dá para revogar antes de vencer) |
 
 ---
 
@@ -692,6 +709,8 @@ folga.
 | **SSE** | forma de o servidor empurrar novidades para a tela sem recarregar |
 | **RTSP** | protocolo pelo qual a câmera IP envia o vídeo |
 | **OCR** | leitura dos caracteres numa imagem |
+| **Resumo (hash)** | transformação de mão única: dá para conferir se uma senha ou código bate, mas não para recuperá-lo. Senhas e PINs usam o argon2, feito para ser lento de adivinhar |
+| **Cookie** | pequeno dado que o site guarda no navegador e que volta a cada pedido; aqui, só o código da sessão de login |
 
 ---
 
@@ -704,3 +723,4 @@ folga.
 | 0.3 | 2026-10-02 | campo `inferida` sai da Passagem v1, antes de qualquer caixa usá-la; a placa inferida fica na visita (D-17; seções 3.2, 4.3 e 5.1) |
 | 0.4 | 2026-10-02 | driver do PostgreSQL: pg8000 no lugar do psycopg, por licença (D-18; seção 6.1) |
 | 0.5 | 2026-10-03 | separação de clientes garantida também no banco, por chave estrangeira composta (seção 5.5) |
+| 0.6 | 2026-10-03 | login e papéis (T09): administração em tabela própria (D-19), sessão no banco (D-20), senha e PIN com argon2, limite de tentativas e troca de porteiro por PIN (seções 5.1 e 8.2) |
