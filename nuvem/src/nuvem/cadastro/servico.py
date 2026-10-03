@@ -5,12 +5,13 @@ Duas portas de entrada:
 - **Leitura pelo cliente:** toda função recebe o ``Acesso`` de quem pede e só enxerga a empresa
   e os sites dele (SDD 5.5). O que é de outro "não existe" (``NaoEncontradoError``), sem dizer
   que existe.
-- **Administração (nós):** criar a estrutura de um cliente. Cada filho herda a empresa do pai
-  recebido, então não há como passar a empresa errada.
+- **Administração (nós):** criar a estrutura de um cliente e as pessoas que usam o painel.
+  Cada filho herda a empresa do pai recebido, então não há como passar a empresa errada.
 
 As funções gravam com ``flush`` (o registro ganha id); o ``commit`` é de quem chama.
 """
 
+import re
 from collections.abc import Sequence
 from urllib.parse import urlsplit
 
@@ -19,8 +20,10 @@ from sqlalchemy.orm import Session
 
 from nuvem.banco import Base
 from nuvem.cadastro.acesso import Acesso
+from nuvem.cadastro.login import conta_por_email, normalizar_email
 from nuvem.cadastro.modelos import (
     FUSO_PADRAO,
+    Administrador,
     Camera,
     Doca,
     Empresa,
@@ -35,6 +38,13 @@ from nuvem.cadastro.modelos import (
 )
 from nuvem.cifra import Cifra
 from nuvem.erros import DadoInvalidoError, NaoEncontradoError
+from nuvem.senhas import Senhas
+
+TAMANHO_DA_SENHA = range(10, 129)
+"""De 10 a 128 caracteres: longa o bastante, sem deixar o resumo virar um peso para o servidor."""
+
+FORMATO_DO_PIN = re.compile(r"[0-9]{6}")
+"""Exatamente 6 números de 0 a 9."""
 
 # --- Leitura pelo cliente ------------------------------------------------------------------
 
@@ -152,22 +162,86 @@ def criar_doca(sessao: Session, site: Site, *, nome: str) -> Doca:
 
 def criar_usuario(
     sessao: Session,
+    senhas: Senhas,
     empresa: Empresa,
     *,
     nome: str,
     email: str,
     papel: Papel,
     sites: Sequence[Site],
+    senha: str | None = None,
 ) -> Usuario:
     """Cadastra um usuário do cliente e liga-o aos sites que ele vai ver.
 
+    Sem ``senha``, o usuário existe mas ainda não entra.
+
     Raises:
-        sqlalchemy.exc.IntegrityError: se um dos sites for de outra empresa (o banco recusa).
+        DadoInvalidoError: se o e-mail já for de outra pessoa, ou a senha estiver fora da regra.
+        sqlalchemy.exc.DBAPIError: se um dos sites for de outra empresa (o banco recusa).
     """
-    usuario = _gravar(
-        sessao, Usuario(empresa_id=empresa.id, nome=nome, email=email.strip().lower(), papel=papel)
-    )
+    email = _email_livre(sessao, email)
+    usuario = _gravar(sessao, Usuario(empresa_id=empresa.id, nome=nome, email=email, papel=papel))
     for site in sites:
         sessao.add(UsuarioSite(usuario_id=usuario.id, site_id=site.id, empresa_id=empresa.id))
+    if senha is not None:
+        definir_senha(sessao, senhas, usuario, senha)
     sessao.flush()
     return usuario
+
+
+def criar_administrador(
+    sessao: Session, senhas: Senhas, *, nome: str, email: str, senha: str
+) -> Administrador:
+    """Cadastra alguém da administração da plataforma (nós; SDD D-19).
+
+    Raises:
+        DadoInvalidoError: se o e-mail já for de outra pessoa, ou a senha estiver fora da regra.
+    """
+    email = _email_livre(sessao, email)
+    _conferir_senha(senha)
+    administrador = Administrador(nome=nome, email=email, senha_resumo=senhas.resumir(senha))
+    return _gravar(sessao, administrador)
+
+
+def definir_senha(
+    sessao: Session, senhas: Senhas, conta: Usuario | Administrador, senha: str
+) -> None:
+    """Troca a senha de um usuário ou administrador (guarda só o resumo).
+
+    Raises:
+        DadoInvalidoError: se a senha não tiver de 10 a 128 caracteres.
+    """
+    _conferir_senha(senha)
+    conta.senha_resumo = senhas.resumir(senha)
+    sessao.flush()
+
+
+def definir_pin(sessao: Session, senhas: Senhas, usuario: Usuario, pin: str) -> None:
+    """Define o PIN de um porteiro, usado na troca de porteiro no tablet (guarda só o resumo).
+
+    Raises:
+        DadoInvalidoError: se o usuário não for porteiro, ou o PIN não tiver 6 números.
+    """
+    if usuario.papel != "porteiro":
+        raise DadoInvalidoError("só o porteiro tem PIN")
+    if not FORMATO_DO_PIN.fullmatch(pin):
+        raise DadoInvalidoError("o PIN tem exatamente 6 números")
+    usuario.pin_resumo = senhas.resumir(pin)
+    sessao.flush()
+
+
+def listar_empresas(sessao: Session) -> list[Empresa]:
+    """Todas as empresas, por nome. Só para a administração (as rotas dela conferem)."""
+    return list(sessao.scalars(select(Empresa).order_by(Empresa.nome)))
+
+
+def _email_livre(sessao: Session, email: str) -> str:
+    email = normalizar_email(email)
+    if conta_por_email(sessao, email) is not None:
+        raise DadoInvalidoError(f"o e-mail {email} já é de outra pessoa")
+    return email
+
+
+def _conferir_senha(senha: str) -> None:
+    if len(senha) not in TAMANHO_DA_SENHA:
+        raise DadoInvalidoError("a senha precisa ter de 10 a 128 caracteres")

@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titulo %}patio-br{% endblock %}</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 0 auto; max-width: 40rem; padding: 1rem; }
+    label { display: block; margin-top: 0.75rem; }
+    input, select, button { font-size: 1rem; padding: 0.5rem; margin-top: 0.25rem; }
+    input, select { width: 100%; box-sizing: border-box; }
+    button { margin-top: 1rem; }
+    .erro { color: #a00000; font-weight: bold; }
+  </style>
+</head>
+<body>
+  {% block conteudo %}{% endblock %}
+</body>
+</html>
