@@ -19,6 +19,7 @@ dev = [
     "mypy>=1.11",
     "pytest>=8.3",
     "ruff>=0.6",
+    "types-pyyaml>=6.0.12.20260906",
 ]
 
 [tool.uv]
@@ -46,6 +47,11 @@ select = ["E", "W", "F", "I", "N", "B", "UP", "SIM", "RUF"]
 python_version = "3.12"
 strict = true
 files = ["contratos/src", "borda/src", "nuvem/src", "ferramentas/src", "ml/src"]
+
+[[tool.mypy.overrides]]
+# O ONNX Runtime não publica tipos; o uso dele fica todo em borda/leitor/v0.py.
+module = ["onnxruntime", "onnxruntime.*"]
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["contratos/tests", "borda/tests", "nuvem/tests", "ferramentas/tests", "ml/tests"]

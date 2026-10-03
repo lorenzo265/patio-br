@@ -3,7 +3,10 @@ name = "patio-ml"
 version = "0.1.0"
 description = "Treino, avaliação e exportação dos modelos do leitor de placas."
 requires-python = ">=3.12,<3.13"
-dependencies = []
+dependencies = [
+    "httpx>=0.28.1",
+    "pyyaml>=6.0.3",
+]
 
 [build-system]
 requires = ["hatchling>=1.25"]
