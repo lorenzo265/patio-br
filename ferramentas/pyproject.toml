@@ -3,14 +3,19 @@ name = "patio-ferramentas"
 version = "0.1.0"
 description = "Ferramentas do projeto: comandos do dia a dia e simulador."
 requires-python = ">=3.12,<3.13"
-dependencies = []
+# O `tarefas` só usa a biblioteca padrão; o simulador usa o agente da borda.
+dependencies = ["patio-borda", "httpx>=0.28.1"]
 
 [project.scripts]
 tarefas = "tarefas.comandos:principal"
+simulador = "simulador.__main__:principal"
 
 [build-system]
 requires = ["hatchling>=1.25"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/tarefas"]
+packages = ["src/tarefas", "src/simulador"]
+
+[tool.uv.sources]
+patio-borda = { workspace = true }

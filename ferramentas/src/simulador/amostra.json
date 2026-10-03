@@ -1,0 +1,16 @@
+[
+  {
+    "placas": [
+      {"placa": "ABC1D23", "papel": "cavalo", "confianca": 0.97, "quadros": 6},
+      {"placa": "XYZ9876", "papel": "reboque", "confianca": 0.91, "quadros": 4}
+    ]
+  },
+  {
+    "placas": [
+      {"placa": "BRA2E19", "papel": "cavalo", "confianca": 0.88, "quadros": 5}
+    ]
+  },
+  {
+    "placas": []
+  }
+]
