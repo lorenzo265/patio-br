@@ -25,6 +25,8 @@ roteador = APIRouter(prefix="/portaria", include_in_schema=False)
 SessaoDaRequisicao = Annotated[Session, Depends(obter_sessao)]
 AcessoDaPortaria = Annotated[Acesso, Depends(exigir_papel("porteiro", "gestor"))]
 
+SENTIDO_NA_TELA = {"entrada": "entrada", "saida": "saída"}
+
 CACHE_DA_FOTO = "private, max-age=86400, immutable"
 """A foto de uma passagem nunca muda (SDD 5.5): o navegador pode guardá-la."""
 
@@ -77,7 +79,7 @@ def _linha(passagem: PassagemRecebida, fuso: ZoneInfo, faixas: dict[int, str]) -
         "data": inicio.strftime("%d/%m"),
         "hora": inicio.strftime("%H:%M:%S"),
         "faixa": faixas.get(passagem.faixa_id, f"faixa {passagem.faixa_id}"),
-        "sentido": passagem.sentido,
+        "sentido": SENTIDO_NA_TELA[passagem.sentido],
         "placas": [
             {
                 "placa": placa["placa"],
