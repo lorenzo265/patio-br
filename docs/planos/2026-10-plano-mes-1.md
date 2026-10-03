@@ -463,6 +463,14 @@ portaria. Feito em 2026-10-03 com `--demonstracao --passagens amostra`.
 
 **Verificar:** o marco da seção 1, executado do zero numa máquina limpa seguindo só o guia.
 
+**Situação (2026-10-03):**
+- passo 1 (gravar os vídeos com autorização) é do Lorenzo, e falta;
+- passo 2: `uv run tarefas demo` sobe tudo, migra, semeia e roda o simulador com a **amostra de
+  passagens inventadas** (fotos de placa desenhadas). Com vídeo, depois do `[ABERTO-13]`; até
+  lá, o simulador lê os quadros de uma pasta (`--quadros`);
+- passo 3: `docs/guias/demo-mes-1.md` escrito, com a captura da tela;
+- o marco com vídeo gravado depende do passo 1 e do `[ABERTO-13]`.
+
 **Commit:** `docs: guia da demonstração do mês 1`
 
 #### T20. Kit de bancada e primeira medição de desempenho
