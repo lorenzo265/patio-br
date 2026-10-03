@@ -69,6 +69,19 @@ def amostrar(
             yield quadro
 
 
+class FonteAmostrada:
+    """Uma fonte com a taxa limitada por ``amostrar`` (ex.: uma pasta de 30 quadros/s a 5)."""
+
+    def __init__(self, fonte: FonteDeQuadros, por_segundo: float = QUADROS_POR_SEGUNDO) -> None:
+        """Guarda a fonte e a taxa."""
+        self._fonte = fonte
+        self._por_segundo = por_segundo
+
+    def quadros(self) -> Iterator[QuadroNoTempo]:
+        """Os quadros da fonte, no máximo ``por_segundo`` por segundo."""
+        return amostrar(self._fonte.quadros(), self._por_segundo)
+
+
 class FonteDeMemoria:
     """Quadros já prontos, em memória."""
 
