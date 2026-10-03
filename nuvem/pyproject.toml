@@ -5,12 +5,16 @@ description = "Aplicação da nuvem: API, painel e módulos do produto."
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "alembic>=1.20.0",
+    "argon2-cffi>=25.1.0",
     "cryptography>=50.0.2",
     "fastapi>=0.142.2",
+    "jinja2>=3.1.6",
     "patio-contratos",
     "pg8000>=1.31.5",
     "pydantic-settings>=2.15.0",
+    "python-multipart>=0.0.32",
     "sqlalchemy>=2.1.2",
+    "tzdata>=2026.4",
     "uvicorn>=0.54.0",
 ]
 

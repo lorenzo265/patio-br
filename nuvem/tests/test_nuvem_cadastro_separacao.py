@@ -10,6 +10,7 @@ from nuvem.cadastro.acesso import Acesso
 from nuvem.cadastro.modelos import Portaria, UsuarioSite
 from nuvem.erros import NaoEncontradoError
 from nuvem.semente import Demonstracao
+from nuvem.senhas import Senhas
 
 pytestmark = pytest.mark.integracao
 
@@ -83,10 +84,13 @@ def test_banco_recusa_ligar_usuario_a_site_de_outra_empresa(
     assert sqlstate(erro.value) == SQLSTATE_CHAVE_ESTRANGEIRA
 
 
-def test_criar_usuario_recusa_site_de_outra_empresa(sessao: Session, cenario: Demonstracao) -> None:
+def test_criar_usuario_recusa_site_de_outra_empresa(
+    sessao: Session, cenario: Demonstracao, senhas: Senhas
+) -> None:
     with pytest.raises(DBAPIError) as erro:
         servico.criar_usuario(
             sessao,
+            senhas,
             cenario.empresa_a,
             nome="Porteiro",
             email="porteiro@a.example",
