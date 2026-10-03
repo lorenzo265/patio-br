@@ -36,15 +36,16 @@ uv sync                      # cria o ambiente e instala todos os pacotes do pro
 No dia a dia:
 
 ```bash
-uv run tarefas up            # sobe os bancos (5432 e 5433, o de testes) e a API (8000)
+uv run tarefas up            # sobe os bancos (15432 e 15433, o de testes) e a API (18000)
 uv run tarefas migrar        # aplica as migrações no banco de desenvolvimento
+uv run tarefas semente       # grava os dados de demonstração (duas empresas inventadas)
 uv run tarefas check         # estilo, formato, tipos e testes (o mesmo que a CI vai rodar)
 uv run tarefas test -k placa # só os testes; o que vier depois de `test` vai para o pytest
 uv run tarefas down          # derruba; os dados do banco de desenvolvimento ficam guardados
 ```
 
 Os testes da nuvem usam o banco de testes: rode `tarefas up` antes do `check`. Com o ambiente
-no ar, `http://localhost:8000/saude` responde `{"ok": true}` quando a API alcança o banco.
+no ar, `http://localhost:18000/saude` responde `{"ok": true}` quando a API alcança o banco.
 
 A CI (`.github/workflows/ci.yml`) roda em cada PR e na `main`: o mesmo `tarefas check` (com o
 banco de testes), a checagem de licenças das dependências, a de falhas de segurança conhecidas
@@ -55,4 +56,4 @@ O repositório é um workspace `uv` com cinco pacotes: `contratos/`, `borda/`, `
 
 ## Situação
 
-SDD v0.4 aprovado como base. Mês 1 (fundação) em andamento, conforme o plano; cada tarefa entra por um PR.
+SDD v0.5 aprovado como base. Mês 1 (fundação) em andamento, conforme o plano; cada tarefa entra por um PR.

@@ -192,7 +192,8 @@ cliente nunca vê dado de outro.
 **Arquivos:** `nuvem/src/nuvem/cadastro/{modelos.py,servico.py,rotas.py}`, migração, testes.
 
 **Tabelas:** `empresa`, `site`, `portaria`, `faixa` (com sentido), `camera` (posição, endereço,
-senha cifrada), `doca`, `usuario` (papel, PIN opcional), `usuario_site`.
+senha cifrada), `doca`, `usuario` (papel, ~~PIN opcional~~ → **T09**, junto com a senha, já com o
+resumo argon2), `usuario_site`. O papel da administração (nós) também fica para a T09.
 
 **Regras (teste primeiro):**
 - Todo acesso aos dados passa por uma função que **exige** a empresa do usuário logado.
@@ -200,6 +201,9 @@ senha cifrada), `doca`, `usuario` (papel, PIN opcional), `usuario_site`.
   "não encontrado".
 - A senha da câmera é guardada cifrada (chave vinda da configuração) e nunca aparece em
   resposta da API.
+- As rotas do cadastro existem, mas respondem 401 até o login (T09): sem usuário identificado
+  não há empresa para filtrar. Os testes trocam a dependência `obter_acesso` por um usuário de
+  exemplo.
 
 **Verificar:** testes passam; `uv run tarefas semente` cria os dados de demonstração.
 

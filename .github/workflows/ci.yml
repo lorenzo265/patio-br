@@ -32,14 +32,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     services:
-      # O mesmo banco de teste do `tarefas up` (infra/docker-compose.yml): porta 5433.
+      # O mesmo banco de teste do `tarefas up` (infra/docker-compose.yml): porta 15433.
       postgres-teste:
         image: postgres:16-alpine
         env:
           POSTGRES_USER: patio
           POSTGRES_PASSWORD: patio-local
           POSTGRES_DB: patio_teste
-        ports: ["5433:5432"]
+        ports: ["15433:5432"]
         options: >-
           --health-cmd "pg_isready -U patio -d patio_teste"
           --health-interval 2s --health-timeout 3s --health-retries 30
@@ -100,7 +100,9 @@ jobs:
     timeout-minutes: 10
     env:
       COMPOSE: docker compose -f infra/docker-compose.yml --project-directory .
-      PATIO_URL_BANCO: postgresql+pg8000://patio:patio-local@localhost:5432/patio
+      PATIO_URL_BANCO: postgresql+pg8000://patio:patio-local@localhost:15432/patio
+      # A chave só do ambiente local (a mesma do .env.exemplo); nunca a de produção.
+      PATIO_CHAVE_CIFRA: _0_jqx-SW46BKdQoB9mZcMouVAft1Qjf8Pf2niPbThI=
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
@@ -118,7 +120,11 @@ jobs:
           $COMPOSE exec -T postgres-teste psql -U patio -d patio_teste -c "select 1"
       - name: tarefas migrar
         run: uv run tarefas migrar
+      - name: tarefas semente (duas vezes; a segunda não muda nada)
+        run: |
+          uv run tarefas semente
+          uv run tarefas semente
       - name: A API responde em /saude
-        run: test "$(curl --fail-with-body -sS http://localhost:8000/saude)" = '{"ok":true}'
+        run: test "$(curl --fail-with-body -sS http://localhost:18000/saude)" = '{"ok":true}'
       - name: tarefas down
         run: uv run tarefas down
