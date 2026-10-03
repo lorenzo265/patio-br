@@ -213,13 +213,19 @@ resumo argon2), `usuario_site`. O papel da administração (nós) também fica p
 
 **Objetivo:** entrar no painel com e-mail e senha; cada tela exige um papel.
 
-**Arquivos:** `nuvem/src/nuvem/cadastro/acesso.py`, telas `entrar` e `sair`, testes.
+**Arquivos:** `nuvem/src/nuvem/cadastro/acesso.py`, telas `entrar` e `sair`, testes. Entraram
+também `cadastro/login.py` (as regras do login), `nuvem/senhas.py` (argon2) e o começo do módulo
+`nuvem/web/` (Jinja), que a T12 continua.
 
 **Regras:**
 - Senha guardada com argon2; nunca em texto.
-- Sessão por cookie seguro (`HttpOnly`, `SameSite=Lax`, `Secure` fora do local).
-- Papéis: `porteiro`, `patio`, `gestor`, `admin`. Rota sem o papel certo devolve 403.
+- Sessão por cookie seguro (`HttpOnly`, `SameSite=Lax`, `Secure` fora do local). A sessão fica
+  no banco (SDD D-20); o ambiente vem da variável nova `PATIO_AMBIENTE`.
+- Papéis: `porteiro`, `patio`, `gestor`, ~~`admin`~~. Rota sem o papel certo devolve 403.
+  ~~`admin`~~ → a administração (nós) é uma tabela própria, `administrador`, fora das empresas
+  (SDD D-19), com rotas próprias (`/api/admin/...`).
 - Limite de tentativas de login por e-mail (contra adivinhação).
+- PIN do porteiro (adiado da T08), com argon2, e a troca de porteiro no tablet.
 - A verificação em duas etapas fica para o mês 4 (antes da produção), como previsto.
 
 **Verificar:** testes de login certo, senha errada, papel errado e limite de tentativas.

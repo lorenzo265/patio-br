@@ -560,9 +560,10 @@ Serve para desenvolver sem câmera, para os testes de ponta a ponta e para simul
 - **Sessão no servidor** (D-20): ao entrar, o navegador recebe um cookie com um código aleatório
   (`HttpOnly`, `SameSite=Lax` e, fora do ambiente local, `Secure`); o banco guarda só o resumo
   do código. A sessão vale 12 horas (um turno); sair a apaga na hora.
-- **Limite de tentativas:** 5 erros de senha para o mesmo e-mail em 15 minutos bloqueiam esse
-  e-mail por 15 minutos, mesmo com a senha certa (e-mail que não existe conta igual, para não
-  revelar quem existe). O PIN de cada porteiro tem o mesmo limite.
+- **Limite de tentativas:** no máximo 5 erros de senha por e-mail a cada 15 minutos. No 5º, o
+  e-mail fica bloqueado, mesmo com a senha certa, até o erro mais antigo completar 15 minutos.
+  E-mail que não existe conta igual, para não revelar quem existe. O PIN de cada porteiro tem o
+  mesmo limite.
 - **Troca de porteiro:** no tablet já aberto num site, o porteiro do turno escolhe o nome dele e
   digita o PIN; a sessão passa a ser dele. Só vale para porteiros da mesma empresa e de um site
   em comum.
