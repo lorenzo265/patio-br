@@ -204,5 +204,8 @@ def iou(a: Regiao, b: Regiao) -> float:
 
 
 def _recortar(imagem: Quadro, regiao: Regiao) -> Quadro:
+    # A parte da região fora da imagem fica de fora. O fim também não pode ser negativo: para o
+    # NumPy, -4 seria "4 antes do fim", e o recorte pegaria quase a imagem toda.
     x, y = max(regiao.x, 0), max(regiao.y, 0)
-    return imagem[y : regiao.y + regiao.altura, x : regiao.x + regiao.largura]
+    fim_x, fim_y = max(regiao.x + regiao.largura, 0), max(regiao.y + regiao.altura, 0)
+    return imagem[y:fim_y, x:fim_x]
