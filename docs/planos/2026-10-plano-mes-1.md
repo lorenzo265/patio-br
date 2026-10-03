@@ -282,11 +282,17 @@ também `cadastro/login.py` (as regras do login), `nuvem/senhas.py` (argon2) e o
 
 **Objetivo:** ver as passagens chegando.
 
-**Arquivos:** `nuvem/src/nuvem/web/` (Jinja + HTMX), tela `/portaria`.
+**Arquivos:** `nuvem/src/nuvem/web/` (Jinja + HTMX), tela `/portaria`. Entraram
+`web/portaria.py`, as telas `portaria.html` e `portaria_passagens.html`, e o HTMX 2.0.11 em
+`web/estatico/` (Zero-Clause BSD, com o hash; SDD 6.1). Dependência nova: `tzdata` (Apache-2.0),
+para o fuso do site funcionar também no Windows, que não traz a base de fusos.
 
 **Conteúdo:** lista das últimas passagens do site do usuário: horário, faixa, sentido, placas
 com confiança e a foto da placa. Atualiza sozinha a cada 2 segundos (HTMX). A atualização por
-SSE, prevista no SDD, entra no mês 3 junto com a tela definitiva.
+SSE, prevista no SDD, entra no mês 3 junto com a tela definitiva. Detalhes: as últimas 50
+passagens; o horário no fuso do site; a foto sai por `/portaria/fotos/{passagem}/{n}`, só para
+quem vê o site; porteiro e gestor veem a tela; com a sessão vencida, o HTMX leva à tela de
+entrar.
 
 **Verificar:** logado como porteiro, ver uma passagem enviada à mão (`curl` ou teste) aparecer
 em até 2 segundos.
