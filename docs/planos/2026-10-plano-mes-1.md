@@ -386,10 +386,14 @@ produz exatamente uma leitura por veículo.
 **Arquivos:** `borda/src/borda/envio.py`, testes.
 
 **Regras (teste primeiro):**
-- Toda passagem é gravada primeiro num SQLite local, depois enviada.
+- Toda passagem é gravada primeiro num SQLite local, depois enviada. As fotos vão junto na
+  fila e sobem antes da passagem (pelo endereço temporário da T11).
 - Envio com tentativas e espera crescente (1 s, 2 s, 4 s… até 5 min).
-- Só sai da fila quando a nuvem responde 201 ou 200.
+- Só sai da fila quando a nuvem responde 201 ou 200. Desvio: a recusa definitiva (403, 409,
+  422) também tira da fila, mas a passagem fica guardada à parte na caixa, com o motivo; senão,
+  uma passagem errada travaria a portaria para sempre (SDD D-24).
 - Envia na ordem em que as passagens aconteceram.
+- Dependência nova na borda: `httpx` (BSD), o cliente HTTP previsto no SDD 6.1.
 
 **Verificar:** teste com uma nuvem falsa que falha 3 vezes e depois aceita: a passagem chega uma
 vez só.
