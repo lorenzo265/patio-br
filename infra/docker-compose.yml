@@ -4,6 +4,8 @@
 #   uv run tarefas down   derruba, mantendo os dados do banco de desenvolvimento
 # Os caminhos relativos (o build da API) partem da raiz do repositório: os comandos do projeto
 # rodam o compose com --project-directory na raiz.
+# Portas na máquina: 15432 (banco), 15433 (banco de testes) e 18000 (API), longe das 5432 e 8000
+# que outros projetos costumam ocupar. Cada máquina pode trocar no .env.
 name: patio-br
 
 x-postgres: &postgres
@@ -27,7 +29,7 @@ services:
       <<: *postgres-ambiente
       POSTGRES_DB: patio
     # Só aceita conexões desta máquina.
-    ports: ["127.0.0.1:${POSTGRES_PORTA:-5432}:5432"]
+    ports: ["127.0.0.1:${POSTGRES_PORTA:-15432}:5432"]
     volumes: [postgres-dados:/var/lib/postgresql/data]
 
   # Banco dos testes automáticos: em memória, começa vazio a cada `up`.
@@ -36,7 +38,7 @@ services:
     environment:
       <<: *postgres-ambiente
       POSTGRES_DB: patio_teste
-    ports: ["127.0.0.1:${POSTGRES_TESTE_PORTA:-5433}:5432"]
+    ports: ["127.0.0.1:${POSTGRES_TESTE_PORTA:-15433}:5432"]
     tmpfs: [/var/lib/postgresql/data]
 
   # API da nuvem (nuvem/Dockerfile). As migrações não rodam sozinhas: `uv run tarefas migrar`.
@@ -46,7 +48,7 @@ services:
       dockerfile: nuvem/Dockerfile
     environment:
       PATIO_URL_BANCO: postgresql+pg8000://patio:${POSTGRES_SENHA:-patio-local}@postgres:5432/patio
-    ports: ["127.0.0.1:${API_PORTA:-8000}:8000"]
+    ports: ["127.0.0.1:${API_PORTA:-18000}:8000"]
     depends_on:
       postgres:
         condition: service_healthy
