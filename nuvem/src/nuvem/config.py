@@ -5,8 +5,10 @@ atual (o mesmo que o docker compose lê; as variáveis dele, sem o prefixo, são
 Valor obrigatório ausente impede a nuvem de iniciar: melhor parar na hora do que rodar errado.
 """
 
-from pydantic import SecretStr, ValidationError
+from pydantic import SecretStr, ValidationError, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from nuvem.cifra import Cifra
 
 PREFIXO = "PATIO_"
 
@@ -22,6 +24,18 @@ class Configuracao(BaseSettings):
     Ex.: ``postgresql+pg8000://usuario:senha@localhost:5432/patio``. Guardado como segredo para
     a senha não aparecer em registros nem ao imprimir a configuração.
     """
+
+    chave_cifra: SecretStr
+    """Chave Fernet que cifra os segredos guardados no banco (ex.: senha da câmera).
+
+    Gere com ``Fernet.generate_key()``. Trocar a chave torna ilegível o que já foi cifrado.
+    """
+
+    @field_validator("chave_cifra")
+    @classmethod
+    def _chave_valida(cls, chave: SecretStr) -> SecretStr:
+        Cifra(chave)  # recusa já na partida uma chave que não serviria
+        return chave
 
 
 class ConfiguracaoInvalidaError(Exception):

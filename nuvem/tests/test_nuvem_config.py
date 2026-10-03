@@ -8,6 +8,12 @@ from pydantic import ValidationError
 from nuvem.config import Configuracao, ConfiguracaoInvalidaError, ler_configuracao
 
 URL = "postgresql+pg8000://patio:s3nh4-de-teste@banco:5432/patio"
+CHAVE = "e2u1sbXAG2Ri9_0ZHEe1QYdjCBzi-q2Wk1ZkkXBtEyw="
+
+
+@pytest.fixture(autouse=True)
+def chave_no_ambiente(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("PATIO_CHAVE_CIFRA", CHAVE)
 
 
 def test_le_a_url_do_banco_do_ambiente(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -33,6 +39,24 @@ def test_nao_mostra_a_senha_do_banco_ao_imprimir_a_configuracao(
     assert "s3nh4-de-teste" not in repr(Configuracao(_env_file=None))
 
 
+def test_nao_mostra_a_chave_da_cifra_ao_imprimir_a_configuracao(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("PATIO_URL_BANCO", URL)
+
+    assert CHAVE not in repr(Configuracao(_env_file=None))
+
+
+def test_chave_da_cifra_invalida_impede_a_nuvem_de_iniciar(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("PATIO_URL_BANCO", URL)
+    monkeypatch.setenv("PATIO_CHAVE_CIFRA", "curta-demais")
+
+    with pytest.raises(ValidationError, match="chave_cifra"):
+        Configuracao(_env_file=None)
+
+
 @pytest.mark.integracao
 def test_le_o_env_da_pasta_atual_e_ignora_as_variaveis_do_docker(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -52,7 +76,10 @@ def test_sem_configuracao_diz_o_que_falta_e_como_resolver(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.delenv("PATIO_URL_BANCO", raising=False)
+    monkeypatch.delenv("PATIO_CHAVE_CIFRA", raising=False)
     monkeypatch.chdir(tmp_path)  # pasta sem .env
 
-    with pytest.raises(ConfiguracaoInvalidaError, match=r"PATIO_URL_BANCO.*\.env\.exemplo"):
+    with pytest.raises(
+        ConfiguracaoInvalidaError, match=r"PATIO_CHAVE_CIFRA, PATIO_URL_BANCO.*\.env\.exemplo"
+    ):
         ler_configuracao()
