@@ -39,13 +39,15 @@ def texto_de_lista(valores: object, nome: str) -> Enum:
     return Enum(*get_args(valores), name=nome, native_enum=False, create_constraint=True)
 
 
-def do_pai_na_mesma_empresa(pai: str) -> ForeignKeyConstraint:
+def do_pai_na_mesma_empresa(pai: str, coluna: str | None = None) -> ForeignKeyConstraint:
     """Chave estrangeira composta (pai, empresa) de uma tabela filha de cliente (SDD 5.5).
 
-    A tabela filha precisa das colunas ``<pai>_id`` e ``empresa_id``; o banco recusa um filho
-    de uma empresa num pai de outra.
+    A tabela filha precisa das colunas ``<pai>_id`` (ou ``coluna``) e ``empresa_id``; o banco
+    recusa um filho de uma empresa num pai de outra.
     """
-    return ForeignKeyConstraint([f"{pai}_id", "empresa_id"], [f"{pai}.id", f"{pai}.empresa_id"])
+    return ForeignKeyConstraint(
+        [coluna or f"{pai}_id", "empresa_id"], [f"{pai}.id", f"{pai}.empresa_id"]
+    )
 
 
 def pode_ser_pai() -> UniqueConstraint:
