@@ -213,11 +213,12 @@ dois lados. Mudou o formato → muda a versão do contrato.
   passagem só referencia (D-22):
   - a caixa pede o endereço para cada `ref` (`POST /api/borda/fotos/endereco`) e envia a foto
     com `PUT` nesse endereço, que vale 15 minutos e não precisa da chave (como no S3);
-  - o `ref` é escolhido pela caixa (letras, números, `.`, `_`, `-` e `/`, sem `..`), e a foto
-    fica guardada dentro da pasta da própria caixa: uma caixa nunca alcança a foto de outra;
+  - o `ref` é escolhido pela caixa (letras, números, `.`, `_`, `-` e `/`; nenhuma parte termina
+    em `.` nem é nome reservado do Windows, como `CON` ou `NUL`), e a foto fica guardada dentro
+    da pasta da própria caixa: uma caixa nunca alcança a foto de outra;
   - só JPEG, até 2 MB;
-  - a foto não se edita: reenviar a mesma foto responde 200; uma foto diferente no mesmo `ref`
-    responde 409;
+  - a foto não se edita: reenviar a mesma foto responde 200; uma foto diferente no mesmo `ref`,
+    ou um `ref` que esbarra na pasta de outro (`a` e `a/b`), responde 409;
   - a nuvem não confere, ao receber a passagem, se as fotos já chegaram: a tela mostra a foto
     quando ela existir.
 - Rostos nas fotos de contexto são borrados na caixa, antes de enviar.
@@ -631,7 +632,15 @@ Serve para desenvolver sem câmera, para os testes de ponta a ponta e para simul
 - **Limite de tentativas:** no máximo 5 erros de senha por e-mail a cada 15 minutos. No 5º, o
   e-mail fica bloqueado, mesmo com a senha certa, até o erro mais antigo completar 15 minutos.
   E-mail que não existe conta igual, para não revelar quem existe. O PIN de cada porteiro tem o
-  mesmo limite.
+  mesmo limite. As tentativas de um mesmo e-mail (ou PIN) passam **uma de cada vez**, por uma
+  trava no banco: pedidos ao mesmo tempo não escapam da contagem.
+- O resumo argon2 gasta 64 MiB de memória: cada processo da API faz **no máximo 4 ao mesmo
+  tempo**, e os outros esperam a vez. Assim, uma enxurrada de logins com e-mails diferentes
+  deixa a API lenta, mas não esgota a memória.
+- O formulário de login **recusa envio vindo de outro site** (cabeçalho `Sec-Fetch-Site` do
+  navegador): outro site não consegue fazer o tablet entrar na conta de outra pessoa.
+- Os dados de demonstração (`tarefas semente`) têm senha pública: só são gravados no ambiente
+  local (`PATIO_AMBIENTE=local`).
 - **Troca de porteiro:** no tablet já aberto num site, o porteiro do turno escolhe o nome dele e
   digita o PIN; a sessão passa a ser dele. Só vale para porteiros da mesma empresa e de um site
   em comum.
