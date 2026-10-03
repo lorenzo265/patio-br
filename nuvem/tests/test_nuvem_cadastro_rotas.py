@@ -114,3 +114,20 @@ def test_administracao_ve_todas_as_empresas(entrar: Entrar, cenario: Demonstraca
         cenario.empresa_a.cnpj,
         cenario.empresa_b.cnpj,
     ]
+
+
+def test_administracao_ve_todos_os_sites(entrar: Entrar, cenario: Demonstracao) -> None:
+    resposta = entrar(cenario.administrador.email).get("/api/admin/sites")
+
+    assert resposta.status_code == 200
+    assert [(s["empresa_id"], s["nome"]) for s in resposta.json()] == [
+        (cenario.empresa_a.id, "CD Exemplo"),
+        (cenario.empresa_a.id, "CD Exemplo 2"),
+        (cenario.empresa_b.id, "CD Outra Empresa"),
+    ]
+
+
+def test_usuario_do_cliente_nao_lista_os_sites_de_todos(
+    entrar: Entrar, cenario: Demonstracao
+) -> None:
+    assert entrar(cenario.gestor_a.email).get("/api/admin/sites").status_code == 403
