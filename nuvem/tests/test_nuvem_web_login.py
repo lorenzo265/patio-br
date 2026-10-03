@@ -45,6 +45,33 @@ def test_entrar_leva_ao_inicio_com_o_cookie_da_sessao(app: FastAPI, cenario: Dem
     assert "secure" not in cookie  # ambiente local: http://localhost
 
 
+def test_login_vindo_de_outro_site_e_recusado(app: FastAPI, cenario: Demonstracao) -> None:
+    # Outro site poderia fazer o tablet entrar numa conta dele, e a portaria trabalharia nela.
+    resposta = TestClient(app).post(
+        "/entrar",
+        data={"email": cenario.porteiro_a.email, "senha": SENHA_DA_DEMONSTRACAO},
+        headers={"Sec-Fetch-Site": "cross-site"},
+        follow_redirects=False,
+    )
+
+    assert resposta.status_code == 403
+    assert "set-cookie" not in resposta.headers
+
+
+@pytest.mark.parametrize("origem", ["same-origin", "none"])
+def test_login_da_propria_tela_ou_digitado_entra(
+    app: FastAPI, cenario: Demonstracao, origem: str
+) -> None:
+    resposta = TestClient(app).post(
+        "/entrar",
+        data={"email": cenario.porteiro_a.email, "senha": SENHA_DA_DEMONSTRACAO},
+        headers={"Sec-Fetch-Site": origem},
+        follow_redirects=False,
+    )
+
+    assert resposta.status_code == 303
+
+
 def test_fora_do_ambiente_local_o_cookie_e_secure(
     url_banco_teste: str, sessao: Session, senhas: Senhas, cenario: Demonstracao
 ) -> None:
