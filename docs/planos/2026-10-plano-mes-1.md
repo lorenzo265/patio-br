@@ -213,13 +213,19 @@ resumo argon2), `usuario_site`. O papel da administração (nós) também fica p
 
 **Objetivo:** entrar no painel com e-mail e senha; cada tela exige um papel.
 
-**Arquivos:** `nuvem/src/nuvem/cadastro/acesso.py`, telas `entrar` e `sair`, testes.
+**Arquivos:** `nuvem/src/nuvem/cadastro/acesso.py`, telas `entrar` e `sair`, testes. Entraram
+também `cadastro/login.py` (as regras do login), `nuvem/senhas.py` (argon2) e o começo do módulo
+`nuvem/web/` (Jinja), que a T12 continua.
 
 **Regras:**
 - Senha guardada com argon2; nunca em texto.
-- Sessão por cookie seguro (`HttpOnly`, `SameSite=Lax`, `Secure` fora do local).
-- Papéis: `porteiro`, `patio`, `gestor`, `admin`. Rota sem o papel certo devolve 403.
+- Sessão por cookie seguro (`HttpOnly`, `SameSite=Lax`, `Secure` fora do local). A sessão fica
+  no banco (SDD D-20); o ambiente vem da variável nova `PATIO_AMBIENTE`.
+- Papéis: `porteiro`, `patio`, `gestor`, ~~`admin`~~. Rota sem o papel certo devolve 403.
+  ~~`admin`~~ → a administração (nós) é uma tabela própria, `administrador`, fora das empresas
+  (SDD D-19), com rotas próprias (`/api/admin/...`).
 - Limite de tentativas de login por e-mail (contra adivinhação).
+- PIN do porteiro (adiado da T08), com argon2, e a troca de porteiro no tablet.
 - A verificação em duas etapas fica para o mês 4 (antes da produção), como previsto.
 
 **Verificar:** testes de login certo, senha errada, papel errado e limite de tentativas.
@@ -230,13 +236,19 @@ resumo argon2), `usuario_site`. O papel da administração (nós) também fica p
 
 **Objetivo:** a caixa (ou o simulador) se identifica para mandar passagens.
 
-**Arquivos:** `nuvem/src/nuvem/frota/{modelos.py,servico.py,rotas.py}`, testes.
+**Arquivos:** `nuvem/src/nuvem/frota/{modelos.py,servico.py,rotas.py}`, testes. Entrou também
+`frota/acesso.py` (a dependência que identifica a caixa pela chave).
 
 **Fluxo:**
-1. O admin gera um **código de ativação** de uso único para um site (expira em 24h).
+1. O admin gera um **código de ativação** de uso único para um site (expira em 24h):
+   `POST /api/admin/sites/{id}/codigos-de-ativacao`, com 12 letras e números em três grupos.
 2. A caixa chama `POST /api/borda/ativar` com o código e recebe uma **chave** própria. A nuvem
    guarda só o resumo (hash) da chave.
-3. Toda chamada da caixa usa `Authorization: Bearer <chave>`. Chave revogada → 401.
+3. Toda chamada da caixa usa `Authorization: Bearer <chave>`. Chave revogada → 401
+   (`POST /api/admin/caixas/{id}/revogar`; a lista em `GET /api/admin/caixas`).
+4. A mais: com a chave, a caixa baixa a configuração do site (`GET /api/borda/configuracao`:
+   faixas e câmeras, com a senha da câmera), como diz o SDD 7.4. Os ids são os da nuvem, em
+   texto (SDD D-21).
 
 **Verificar:** testes de código usado duas vezes, código vencido, chave revogada.
 
@@ -254,10 +266,13 @@ resumo argon2), `usuario_site`. O papel da administração (nós) também fica p
 **Regras (teste primeiro):**
 - `POST /api/borda/passagens` valida com o pacote `contratos`. Passagem nova → 201. Mesmo `id`
   de novo → 200 sem criar outra (**reenvio seguro**). Passagem de outro site que não o da caixa
-  → 403.
+  → 403. A mais (SDD 3.2): `id` que já é de outra caixa → 409; faixa ou câmera de fora do site,
+  ou sentido diferente do da faixa → 422, com o campo.
 - Fotos: a API devolve um endereço de envio para cada `ref` (`POST /api/borda/fotos/endereco`).
   O envio vai para a interface `Armazenamento`, com duas implementações: `ArmazenamentoLocal`
-  (pasta no disco, usada agora) e `ArmazenamentoS3` (mês 4, mesma interface).
+  (pasta no disco, usada agora) e `ArmazenamentoS3` (mês 4, mesma interface). No local, o
+  endereço leva um código cifrado que vale 15 minutos e a foto vai com `PUT`, sem a chave
+  (SDD D-22); só JPEG, até 2 MB; a pasta vem da variável nova `PATIO_PASTA_FOTOS`.
 
 **Verificar:** testes passam, incluindo o de envio repetido.
 
@@ -267,11 +282,17 @@ resumo argon2), `usuario_site`. O papel da administração (nós) também fica p
 
 **Objetivo:** ver as passagens chegando.
 
-**Arquivos:** `nuvem/src/nuvem/web/` (Jinja + HTMX), tela `/portaria`.
+**Arquivos:** `nuvem/src/nuvem/web/` (Jinja + HTMX), tela `/portaria`. Entraram
+`web/portaria.py`, as telas `portaria.html` e `portaria_passagens.html`, e o HTMX 2.0.11 em
+`web/estatico/` (Zero-Clause BSD, com o hash; SDD 6.1). Dependência nova: `tzdata` (Apache-2.0),
+para o fuso do site funcionar também no Windows, que não traz a base de fusos.
 
 **Conteúdo:** lista das últimas passagens do site do usuário: horário, faixa, sentido, placas
 com confiança e a foto da placa. Atualiza sozinha a cada 2 segundos (HTMX). A atualização por
-SSE, prevista no SDD, entra no mês 3 junto com a tela definitiva.
+SSE, prevista no SDD, entra no mês 3 junto com a tela definitiva. Detalhes: as últimas 50
+passagens; o horário no fuso do site; a foto sai por `/portaria/fotos/{passagem}/{n}`, só para
+quem vê o site; porteiro e gestor veem a tela; com a sessão vencida, o HTMX leva à tela de
+entrar.
 
 **Verificar:** logado como porteiro, ver uma passagem enviada à mão (`curl` ou teste) aparecer
 em até 2 segundos.
@@ -293,6 +314,11 @@ em até 2 segundos.
 **Regra:** se algum peso não tiver licença clara permitindo uso comercial, ele só pode ser usado
 em avaliação interna, e isso fica escrito. O leitor v1 (mês 2) usa pesos treinados por nós.
 
+**Feito (2026-10-03):** D-FINE, YOLOX e fast-plate-ocr sem licença declarada dos pesos (só
+avaliação interna); PaddleOCR e RapidOCR com Apache-2.0 declarada. A mais: a conferência das
+rodas achou bibliotecas nativas GPL e LGPL (PyAV com x264/x265, OpenCV com FFmpeg, NumPy com
+libquadmath), registradas como `[ABERTO-13]` no SDD; até a decisão, a caixa não lê vídeo.
+
 **Commit:** `docs: licenças dos pesos do leitor v0`
 
 #### T14. Regras puras do leitor (sem modelo)
@@ -304,12 +330,17 @@ em avaliação interna, e isso fica escrito. O leitor v1 (mês 2) usa pesos trei
 
 **Regras (teste primeiro):**
 - `interface.py`: `LeitorDePlacas` (entra imagem, sai lista de `(texto, confiança, caixa)`).
+  A "caixa" (o retângulo da placa na imagem) virou `Regiao`, porque "caixa" já é a caixa de
+  borda. Dependência nova na borda: `numpy` (BSD), o tipo do quadro.
 - `formato.py`: valida e corrige por posição (`0↔O`, `1↔I`, `8↔B`, `5↔S`); toda correção
-  reduz a confiança; nunca inventa caractere.
+  reduz a confiança (×0,9 por caractere); nunca inventa caractere (SDD 4.2).
 - `votacao.py`: junta as leituras de vários quadros do mesmo veículo e escolhe a mais
-  frequente, desempatando pela confiança.
+  frequente, desempatando pela confiança. A confiança final é a média dos vencedores vezes a
+  fração dos quadros que concordam (SDD 4.2).
 - `composicao.py`: na mesma faixa, junta a placa lida pela câmera da frente (cavalo) com a lida
   pela câmera de trás (reboque) dentro de uma janela de tempo configurável (padrão 30 s).
+  Regras completas no SDD 4.3. Desvio: o "reboque sem cavalo" sai com papel ~~`reboque`~~
+  `desconhecido`, porque sem a frente a placa traseira pode ser do próprio cavalo (SDD D-23).
 
 **Verificar:** `uv run tarefas test` com casos de borda (placa com troca, empate, reboque sem
 cavalo, cavalo sem reboque).
@@ -322,17 +353,25 @@ cavalo, cavalo sem reboque).
 verificada na T13.
 
 **Caminho:**
-1. Detector de veículos D-FINE-N pré-treinado (classes carro, caminhão, ônibus) em ONNX
-   Runtime.
-2. Recorte do veículo → detecção e leitura de texto (PaddleOCR/RapidOCR em ONNX).
-3. Filtro pelo formato de placa (T14).
+1. Detector de veículos ~~D-FINE-N~~ → **YOLOX-Tiny** pré-treinado (classes carro, moto,
+   caminhão, ônibus) em ONNX Runtime. Desvio: o YOLOX publica o ONNX pronto; o D-FINE só tem
+   `.pth` e pediria o PyTorch para exportar. Os dois têm pesos sem licença declarada (T13): só
+   avaliação interna. A escolha do detector do v1 continua no `[ABERTO-03]`.
+2. Recorte do veículo → detecção e leitura de texto (PaddleOCR ~~/RapidOCR~~ em ONNX).
+   Desvio: o RapidOCR exige o OpenCV (`[ABERTO-13]`); o v0 usa os ONNX oficiais do PaddleOCR
+   (PP-OCRv5 mobile, Apache-2.0) direto no ONNX Runtime, com o pré e o pós-processamento em
+   NumPy e Pillow.
+3. Filtro pelo formato de placa (T14), no rastreador (T16).
+4. A mais: `uv run tarefas modelos` baixa os pesos para `modelos/v0` com o SHA-256 conferido.
+   Dependências novas: `onnxruntime` (MIT) na borda; `httpx` (BSD) e `pyyaml` (MIT) no `ml`.
 
 **Arquivos:** `borda/src/borda/leitor/v0.py`, `ml/src/ml/baixar_modelos.py` (baixa os pesos
 para `modelos/`, confere o checksum; nada de pesos no Git).
 
 **Verificar:** num punhado de imagens de teste rotuladas à mão (em `dados/`, fora do Git), o v0
 lê a placa na maioria. **Não há meta de acerto no v0**: ele existe para o fluxo funcionar; o
-acerto é trabalho do v1 no mês 2.
+acerto é trabalho do v1 no mês 2. Sem imagens reais ainda: a conferência com as fotos do
+Lorenzo fica pendente; por enquanto, o v0 lê uma placa inventada, desenhada no teste.
 
 **Commit:** `feat(borda): leitor v0 com modelos pré-treinados`
 
@@ -344,12 +383,21 @@ veículo numa leitura única.
 **Arquivos:** `borda/src/borda/captura.py`, `borda/src/borda/rastreio.py`, testes.
 
 **Regras:**
-- `captura.py`: lê de arquivo ou RTSP com PyAV, a uma taxa configurável (padrão 5 quadros/s).
-- `rastreio.py`: ByteTrack (biblioteca supervision) segue cada veículo; quando o veículo sai da
-  imagem, junta as leituras (votação) e gera uma placa lida.
+- `captura.py`: lê de arquivo ou RTSP com ~~PyAV~~, a uma taxa configurável (padrão 5
+  quadros/s). Desvio: a roda do PyAV traz partes GPL (x264/x265) e o OpenCV traz o FFmpeg LGPL
+  (SDD `[ABERTO-13]`, achado na T13). A captura ficou atrás de uma interface (`FonteDeQuadros`),
+  com a amostragem e duas fontes: em memória e uma pasta de imagens (os quadros de um vídeo,
+  tirados fora da caixa), que basta para a demonstração. Arquivo de vídeo e RTSP → depois da
+  decisão do `[ABERTO-13]`. Dependência nova: `pillow` (MIT-CMU), que lê as imagens e grava o
+  JPEG das fotos.
+- `rastreio.py`: ~~ByteTrack (biblioteca supervision)~~ → rastreador nosso, por sobreposição,
+  no estilo do ByteTrack (SDD D-25), porque o supervision exige o PyAV; segue cada veículo;
+  quando o veículo sai da imagem, junta as leituras (votação) e gera uma placa lida, com o
+  recorte para a foto. Veículo sem placa legível gera leitura sem placa (passagem vazia).
 
 **Verificar:** um teste com um vídeo curto sintético (gerado no próprio teste, sem dado real)
-produz exatamente uma leitura por veículo.
+produz exatamente uma leitura por veículo. O "vídeo" são quadros desenhados em memória: sem
+decodificador de vídeo até o `[ABERTO-13]`.
 
 **Commit:** `feat(borda): captura de vídeo e rastreamento`
 
@@ -360,10 +408,14 @@ produz exatamente uma leitura por veículo.
 **Arquivos:** `borda/src/borda/envio.py`, testes.
 
 **Regras (teste primeiro):**
-- Toda passagem é gravada primeiro num SQLite local, depois enviada.
+- Toda passagem é gravada primeiro num SQLite local, depois enviada. As fotos vão junto na
+  fila e sobem antes da passagem (pelo endereço temporário da T11).
 - Envio com tentativas e espera crescente (1 s, 2 s, 4 s… até 5 min).
-- Só sai da fila quando a nuvem responde 201 ou 200.
+- Só sai da fila quando a nuvem responde 201 ou 200. Desvio: a recusa definitiva (403, 409,
+  422) também tira da fila, mas a passagem fica guardada à parte na caixa, com o motivo; senão,
+  uma passagem errada travaria a portaria para sempre (SDD D-24).
 - Envia na ordem em que as passagens aconteceram.
+- Dependência nova na borda: `httpx` (BSD), o cliente HTTP previsto no SDD 6.1.
 
 **Verificar:** teste com uma nuvem falsa que falha 3 vezes e depois aceita: a passagem chega uma
 vez só.
@@ -377,13 +429,21 @@ gravado como se fosse a caixa.
 
 **Arquivos:**
 - `borda/src/borda/agente.py`: o processo principal da caixa (configuração: faixas, câmeras,
-  endereço da nuvem, chave).
-- `ferramentas/src/simulador/__main__.py`: `uv run simulador --video <arquivo> --faixa
+  endereço da nuvem, chave). Entrou o `Agente` (rastreador por câmera de placa, composição por
+  faixa, passagem com `id` novo e foto da placa em JPEG na fila) e `rodar`, que junta as
+  câmeras na ordem do tempo. Falta o executável da caixa de verdade, que lê as câmeras (RTSP):
+  espera o `[ABERTO-13]`.
+- `ferramentas/src/simulador/__main__.py`: `uv run simulador ~~--video <arquivo>~~ --faixa
   entrada-1 --camera frente` roda o agente sobre o arquivo; também aceita
   `--passagens <arquivo.json>` para mandar passagens prontas, sem visão computacional.
+  Desvio: o vídeo espera o `[ABERTO-13]`; no lugar, `--quadros <pasta>` roda o agente sobre as
+  imagens de uma pasta. A mais: `--codigo` e `--demonstracao` (ativação, só local), `amostra`
+  (três passagens inventadas, com uma foto de placa desenhada), a chave e a fila em
+  `dados/simulador/`. Na nuvem, a mais: `GET /api/admin/sites`, para a demonstração achar o
+  site sozinha.
 
 **Verificar:** com o ambiente local no ar, o simulador manda passagens que aparecem na tela da
-portaria.
+portaria. Feito em 2026-10-03 com `--demonstracao --passagens amostra`.
 
 **Commit:** `feat(ferramentas): agente da borda e simulador de portaria`
 
