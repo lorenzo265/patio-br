@@ -22,28 +22,37 @@ Sistema de pátio para sites logísticos de médio e alto volume no Brasil:
 Precisa de **Python 3.12** e do [`uv`](https://docs.astral.sh/uv/). Funciona igual em Windows,
 Linux e Mac.
 
+O banco (PostgreSQL 16) e a API rodam no Docker: precisa também do
+[Docker Desktop](https://www.docker.com/products/docker-desktop/) aberto.
+
+Na primeira vez, copie `.env.exemplo` para `.env` (o Git ignora o `.env`; é ali que se muda
+senha ou portas):
+
 ```bash
+cp .env.exemplo .env         # no Windows (PowerShell): Copy-Item .env.exemplo .env
 uv sync                      # cria o ambiente e instala todos os pacotes do projeto
-uv run tarefas check         # estilo, formato, tipos e testes (o mesmo que a CI vai rodar)
-uv run tarefas test -k placa # só os testes; o que vier depois de `test` vai para o pytest
 ```
 
-O banco local (PostgreSQL 16) roda no Docker: precisa do
-[Docker Desktop](https://www.docker.com/products/docker-desktop/) aberto. Para mudar senha ou
-portas, copie `.env.exemplo` para `.env` (o Git ignora o `.env`).
+No dia a dia:
 
 ```bash
-uv run tarefas up            # sobe o banco de desenvolvimento (5432) e o de testes (5433)
+uv run tarefas up            # sobe os bancos (5432 e 5433, o de testes) e a API (8000)
+uv run tarefas migrar        # aplica as migrações no banco de desenvolvimento
+uv run tarefas check         # estilo, formato, tipos e testes (o mesmo que a CI vai rodar)
+uv run tarefas test -k placa # só os testes; o que vier depois de `test` vai para o pytest
 uv run tarefas down          # derruba; os dados do banco de desenvolvimento ficam guardados
 ```
 
-A CI (`.github/workflows/ci.yml`) roda em cada PR e na `main`: o mesmo `tarefas check`, a
-checagem de licenças das dependências, a de falhas de segurança conhecidas e o `tarefas up`
-com os dois bancos respondendo.
+Os testes da nuvem usam o banco de testes: rode `tarefas up` antes do `check`. Com o ambiente
+no ar, `http://localhost:8000/saude` responde `{"ok": true}` quando a API alcança o banco.
+
+A CI (`.github/workflows/ci.yml`) roda em cada PR e na `main`: o mesmo `tarefas check` (com o
+banco de testes), a checagem de licenças das dependências, a de falhas de segurança conhecidas
+e o `tarefas up` com a API construída, as migrações aplicadas e o `/saude` respondendo.
 
 O repositório é um workspace `uv` com cinco pacotes: `contratos/`, `borda/`, `nuvem/`,
 `ferramentas/` e `ml/` (ver `docs/SDD.md`, seção 6.3).
 
 ## Situação
 
-SDD v0.3 aprovado como base. Mês 1 (fundação) em andamento, conforme o plano; cada tarefa entra por um PR.
+SDD v0.4 aprovado como base. Mês 1 (fundação) em andamento, conforme o plano; cada tarefa entra por um PR.

@@ -3,7 +3,15 @@ name = "patio-nuvem"
 version = "0.1.0"
 description = "Aplicação da nuvem: API, painel e módulos do produto."
 requires-python = ">=3.12,<3.13"
-dependencies = ["patio-contratos"]
+dependencies = [
+    "alembic>=1.20.0",
+    "fastapi>=0.142.2",
+    "patio-contratos",
+    "pg8000>=1.31.5",
+    "pydantic-settings>=2.15.0",
+    "sqlalchemy>=2.1.2",
+    "uvicorn>=0.54.0",
+]
 
 [build-system]
 requires = ["hatchling>=1.25"]

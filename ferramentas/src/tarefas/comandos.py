@@ -4,8 +4,8 @@ Cada comando é uma sequência de etapas (programas externos) que roda na raiz d
 e para na primeira falha. As ferramentas são chamadas como ``python -m <ferramenta>`` com o
 mesmo Python do ambiente, o que funciona igual em Windows, Linux e Mac.
 
-Novos comandos entram junto com a tarefa que cria o que eles executam (``migrar`` na T07,
-``semente`` na T08, ``demo`` na T19).
+Novos comandos entram junto com a tarefa que cria o que eles executam (``semente`` na T08,
+``demo`` na T19).
 """
 
 from __future__ import annotations
@@ -23,6 +23,9 @@ MARCA_DO_WORKSPACE = "[tool.uv.workspace]"
 
 ARQUIVO_COMPOSE = "infra/docker-compose.yml"
 """Serviços do ambiente local, relativos à raiz do repositório."""
+
+ARQUIVO_ALEMBIC = "nuvem/alembic.ini"
+"""Configuração das migrações da nuvem, relativa à raiz do repositório."""
 
 CODIGO_PROGRAMA_NAO_ENCONTRADO = 127
 """Mesmo código que o shell devolve quando o programa não existe."""
@@ -71,13 +74,18 @@ def _compose(*argumentos: str) -> tuple[str, ...]:
 
 
 def etapas_do_up() -> list[Etapa]:
-    """Devolve a etapa que sobe os serviços locais e espera ficarem saudáveis."""
-    return [Etapa("docker compose up", _compose("up", "-d", "--wait"))]
+    """Devolve a etapa que reconstrói a API, sobe os serviços locais e espera ficarem saudáveis."""
+    return [Etapa("docker compose up", _compose("up", "--build", "-d", "--wait"))]
 
 
 def etapas_do_down() -> list[Etapa]:
     """Devolve a etapa que derruba os serviços locais, mantendo os dados do banco."""
     return [Etapa("docker compose down", _compose("down"))]
+
+
+def etapas_do_migrar() -> list[Etapa]:
+    """Devolve a etapa que aplica as migrações da nuvem no banco de ``PATIO_URL_BANCO``."""
+    return [Etapa("migrações", _ferramenta("alembic", "-c", ARQUIVO_ALEMBIC, "upgrade", "head"))]
 
 
 def etapas_do_test(extras: Sequence[str]) -> list[Etapa]:
@@ -130,6 +138,7 @@ _SEM_ARGUMENTOS: dict[str, Callable[[], list[Etapa]]] = {
     "check": etapas_do_check,
     "up": etapas_do_up,
     "down": etapas_do_down,
+    "migrar": etapas_do_migrar,
 }
 """Comandos que não aceitam argumentos extras e as etapas de cada um."""
 
@@ -139,8 +148,9 @@ def _interpretador() -> argparse.ArgumentParser:
     comandos = interpretador.add_subparsers(dest="comando", required=True)
     comandos.add_parser("check", help="estilo, formato, tipos e testes")
     comandos.add_parser("test", help="só os testes; o que vier depois vai para o pytest")
-    comandos.add_parser("up", help="sobe o ambiente local (PostgreSQL) e espera ficar pronto")
+    comandos.add_parser("up", help="sobe o ambiente local (bancos e API) e espera ficar pronto")
     comandos.add_parser("down", help="derruba o ambiente local, mantendo os dados")
+    comandos.add_parser("migrar", help="aplica as migrações da nuvem no banco de desenvolvimento")
     return interpretador
 
 

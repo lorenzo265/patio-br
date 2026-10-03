@@ -170,7 +170,8 @@ reconhecimento facial, dados reais fora do Git); teste primeiro nas regras; coma
 **Arquivos:**
 - `nuvem/src/nuvem/principal.py`: cria a aplicação e registra as rotas dos módulos.
 - `nuvem/src/nuvem/config.py`: configurações lidas do ambiente (pydantic-settings).
-- `nuvem/src/nuvem/banco.py`: conexão SQLAlchemy 2 com PostgreSQL (psycopg 3).
+- `nuvem/src/nuvem/banco.py`: conexão SQLAlchemy 2 com PostgreSQL (~~psycopg 3~~ → **pg8000**:
+  o psycopg é LGPL, que a regra de licença não aceita; SDD D-18).
 - `nuvem/migracoes/`: Alembic configurado.
 - Rota `GET /saude`.
 - `nuvem/tests/conftest.py`: banco de teste limpo a cada teste.
@@ -178,7 +179,8 @@ reconhecimento facial, dados reais fora do Git); teste primeiro nas regras; coma
 - `nuvem/Dockerfile` e o serviço `api` em `infra/docker-compose.yml` (adiados da T04).
 
 **Verificar:** `uv run tarefas migrar` roda; o teste de `/saude` passa; com `uv run tarefas up`,
-`GET http://localhost:8000/saude` responde `{"ok": true}`.
+`GET http://localhost:8000/saude` responde `{"ok": true}` (e 503 `{"ok": false}` com o banco fora
+do ar).
 
 **Commit:** `feat(nuvem): esqueleto fastapi, banco e migrações`
 

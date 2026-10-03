@@ -49,12 +49,16 @@ Python 3.12, [`uv`](https://docs.astral.sh/uv/) e Docker Desktop. Os comandos do
 Python puro e funcionam igual em Windows, Linux e Mac:
 
 ```bash
-uv sync                      # instala o ambiente
+uv sync                      # instala o ambiente (antes, na primeira vez: .env.exemplo → .env)
+uv run tarefas up            # sobe os bancos (desenvolvimento e testes) e a API, no Docker
+uv run tarefas migrar        # aplica as migrações no banco de desenvolvimento
 uv run tarefas check         # estilo, formato, tipos e testes (o mesmo que a CI roda)
 uv run tarefas test -k placa # só os testes; o resto vai para o pytest
-uv run tarefas up            # sobe o PostgreSQL local (desenvolvimento e testes)
 uv run tarefas down          # derruba, mantendo os dados
 ```
+
+Os testes da nuvem usam o banco de testes do `tarefas up`, zerado e migrado do zero a cada
+rodada; cada teste roda numa transação desfeita no fim (fixture `sessao`).
 
 - **Uma tarefa = uma branch = um PR** para a `main` (ex.: `mes1/t06-contratos`). O PR só entra
   com a CI verde.

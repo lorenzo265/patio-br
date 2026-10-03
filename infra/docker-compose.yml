@@ -2,7 +2,8 @@
 # Use pelos comandos do projeto, que leem o .env da raiz:
 #   uv run tarefas up     sobe e espera os serviços ficarem prontos
 #   uv run tarefas down   derruba, mantendo os dados do banco de desenvolvimento
-# A API entra aqui na T07, junto com o esqueleto da nuvem.
+# Os caminhos relativos (o build da API) partem da raiz do repositório: os comandos do projeto
+# rodam o compose com --project-directory na raiz.
 name: patio-br
 
 x-postgres: &postgres
@@ -35,6 +36,24 @@ services:
       POSTGRES_DB: patio_teste
     ports: ["127.0.0.1:${POSTGRES_TESTE_PORTA:-5433}:5432"]
     tmpfs: [/var/lib/postgresql/data]
+
+  # API da nuvem (nuvem/Dockerfile). As migrações não rodam sozinhas: `uv run tarefas migrar`.
+  api:
+    build:
+      context: .
+      dockerfile: nuvem/Dockerfile
+    environment:
+      PATIO_URL_BANCO: postgresql+pg8000://patio:${POSTGRES_SENHA:-patio-local}@postgres:5432/patio
+    ports: ["127.0.0.1:${API_PORTA:-8000}:8000"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      # /saude só responde 200 quando a API alcança o banco.
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/saude')"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
 
 volumes:
   postgres-dados:
