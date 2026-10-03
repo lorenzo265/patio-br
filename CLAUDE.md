@@ -63,6 +63,7 @@ uv sync                      # instala o ambiente (antes, na primeira vez: .env.
 uv run tarefas up            # sobe os bancos (desenvolvimento e testes) e a API, no Docker
 uv run tarefas migrar        # aplica as migrações no banco de desenvolvimento
 uv run tarefas semente       # grava os dados de demonstração (duas empresas inventadas)
+uv run tarefas modelos       # baixa os pesos do leitor v0 para modelos/ (SHA-256 conferido)
 uv run tarefas check         # estilo, formato, tipos e testes (o mesmo que a CI roda)
 uv run tarefas test -k placa # só os testes; o resto vai para o pytest
 uv run tarefas down          # derruba, mantendo os dados

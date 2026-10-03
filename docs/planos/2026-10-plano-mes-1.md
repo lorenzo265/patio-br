@@ -353,17 +353,25 @@ cavalo, cavalo sem reboque).
 verificada na T13.
 
 **Caminho:**
-1. Detector de veículos D-FINE-N pré-treinado (classes carro, caminhão, ônibus) em ONNX
-   Runtime.
-2. Recorte do veículo → detecção e leitura de texto (PaddleOCR/RapidOCR em ONNX).
-3. Filtro pelo formato de placa (T14).
+1. Detector de veículos ~~D-FINE-N~~ → **YOLOX-Tiny** pré-treinado (classes carro, moto,
+   caminhão, ônibus) em ONNX Runtime. Desvio: o YOLOX publica o ONNX pronto; o D-FINE só tem
+   `.pth` e pediria o PyTorch para exportar. Os dois têm pesos sem licença declarada (T13): só
+   avaliação interna. A escolha do detector do v1 continua no `[ABERTO-03]`.
+2. Recorte do veículo → detecção e leitura de texto (PaddleOCR ~~/RapidOCR~~ em ONNX).
+   Desvio: o RapidOCR exige o OpenCV (`[ABERTO-13]`); o v0 usa os ONNX oficiais do PaddleOCR
+   (PP-OCRv5 mobile, Apache-2.0) direto no ONNX Runtime, com o pré e o pós-processamento em
+   NumPy e Pillow.
+3. Filtro pelo formato de placa (T14), no rastreador (T16).
+4. A mais: `uv run tarefas modelos` baixa os pesos para `modelos/v0` com o SHA-256 conferido.
+   Dependências novas: `onnxruntime` (MIT) na borda; `httpx` (BSD) e `pyyaml` (MIT) no `ml`.
 
 **Arquivos:** `borda/src/borda/leitor/v0.py`, `ml/src/ml/baixar_modelos.py` (baixa os pesos
 para `modelos/`, confere o checksum; nada de pesos no Git).
 
 **Verificar:** num punhado de imagens de teste rotuladas à mão (em `dados/`, fora do Git), o v0
 lê a placa na maioria. **Não há meta de acerto no v0**: ele existe para o fluxo funcionar; o
-acerto é trabalho do v1 no mês 2.
+acerto é trabalho do v1 no mês 2. Sem imagens reais ainda: a conferência com as fotos do
+Lorenzo fica pendente; por enquanto, o v0 lê uma placa inventada, desenhada no teste.
 
 **Commit:** `feat(borda): leitor v0 com modelos pré-treinados`
 
