@@ -23,6 +23,7 @@ não recebeu fica guardado para a próxima vez.
 import argparse
 import io
 import json
+import os
 import sys
 import threading
 import unicodedata
@@ -61,6 +62,8 @@ ESPERA_MAXIMA_PADRAO = 60.0
 ESPACO_ENTRE_PASSAGENS = timedelta(seconds=20)
 DURACAO_DA_PASSAGEM = timedelta(seconds=6)
 HOSTS_LOCAIS = frozenset({"localhost", "127.0.0.1", "::1"})
+PORTA_PADRAO_DA_API = "18000"
+"""A mesma do ``.env.exemplo`` e do docker compose."""
 
 CarregarModelos = Callable[[Path], tuple[DetectorDeVeiculos, LeitorDePlacas]]
 
@@ -105,8 +108,8 @@ def principal(
     Returns:
         0 se tudo foi enviado; 1 se algo precisa de ação; 2 se o pedido não é aceito.
     """
-    argumentos = _interpretador().parse_args(argv)
     raiz = raiz or Path.cwd()
+    argumentos = _interpretador(_nuvem_local(raiz)).parse_args(argv)
     agora = agora or datetime.now(UTC)
     cliente = cliente or cliente_para(argumentos.nuvem)
     try:
@@ -166,12 +169,31 @@ def cliente_para(nuvem: str) -> httpx.Client:
     return httpx.Client(timeout=30, trust_env=urlsplit(nuvem).hostname not in HOSTS_LOCAIS)
 
 
-def _interpretador() -> argparse.ArgumentParser:
+def _nuvem_local(raiz: Path) -> str:
+    # A porta da API vem da API_PORTA, do ambiente ou do .env, como no docker compose: quem a
+    # trocou no .env (a 18000 estava ocupada) não manda as passagens a outro programa.
+    porta = os.environ.get("API_PORTA") or _valor_do_env(raiz / ".env", "API_PORTA")
+    return f"http://localhost:{porta or PORTA_PADRAO_DA_API}"
+
+
+def _valor_do_env(arquivo: Path, nome: str) -> str | None:
+    if not arquivo.is_file():
+        return None
+    for linha in arquivo.read_text(encoding="utf-8").splitlines():
+        chave, igual, valor = linha.strip().partition("=")
+        if igual and chave.strip() == nome:
+            return valor.strip().strip("\"'") or None
+    return None
+
+
+def _interpretador(nuvem_local: str) -> argparse.ArgumentParser:
     interpretador = argparse.ArgumentParser(
         prog="simulador", description="Faz o papel de uma caixa de borda (SDD 6.4)."
     )
     interpretador.add_argument(
-        "--nuvem", default="http://localhost:18000", help="endereço da nuvem (padrão: a local)"
+        "--nuvem",
+        default=nuvem_local,
+        help=f"endereço da nuvem (padrão: a local, {nuvem_local}; a porta vem da API_PORTA)",
     )
     ativacao = interpretador.add_mutually_exclusive_group()
     ativacao.add_argument("--codigo", help="código de ativação gerado pela administração")
