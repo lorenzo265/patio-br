@@ -314,6 +314,11 @@ em até 2 segundos.
 **Regra:** se algum peso não tiver licença clara permitindo uso comercial, ele só pode ser usado
 em avaliação interna, e isso fica escrito. O leitor v1 (mês 2) usa pesos treinados por nós.
 
+**Feito (2026-10-03):** D-FINE, YOLOX e fast-plate-ocr sem licença declarada dos pesos (só
+avaliação interna); PaddleOCR e RapidOCR com Apache-2.0 declarada. A mais: a conferência das
+rodas achou bibliotecas nativas GPL e LGPL (PyAV com x264/x265, OpenCV com FFmpeg, NumPy com
+libquadmath), registradas como `[ABERTO-13]` no SDD; até a decisão, a caixa não lê vídeo.
+
 **Commit:** `docs: licenças dos pesos do leitor v0`
 
 #### T14. Regras puras do leitor (sem modelo)

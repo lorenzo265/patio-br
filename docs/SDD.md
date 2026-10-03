@@ -1,7 +1,7 @@
 # SDD — patio-br (nome provisório)
 
 **Documento de desenho do software (SDD) do MVP do piloto**
-Versão 0.11 · 2026-10-03 · Situação: aprovado como base; itens em aberto na seção 12
+Versão 0.12 · 2026-10-03 · Situação: aprovado como base; itens em aberto na seção 12
 
 ---
 
@@ -276,9 +276,9 @@ usados só em avaliação interna, nunca no produto.
 
 | Passo | O que faz | Ferramenta (licença) |
 |---|---|---|
-| 1. Captura | puxa o vídeo (RTSP) e só processa quando há veículo na faixa | FFmpeg/PyAV + go2rtc (MIT) |
+| 1. Captura | puxa o vídeo (RTSP) e só processa quando há veículo na faixa | FFmpeg/PyAV + go2rtc (MIT); FFmpeg é LGPL e a roda do PyAV traz partes GPL: `[ABERTO-13]` |
 | 2. Detecção | acha o veículo e a placa no quadro | D-FINE-N ou YOLOX-Tiny (Apache-2.0) — `[ABERTO-03]` |
-| 3. Rastreamento | segue o mesmo veículo entre quadros | ByteTrack + supervision (MIT) |
+| 3. Rastreamento | segue o mesmo veículo entre quadros | ByteTrack + supervision (MIT); o supervision exige o PyAV: `[ABERTO-13]` |
 | 4. Leitura (OCR) | lê os caracteres da placa | modelo leve no estilo do fast-plate-ocr (código MIT), com pesos nossos |
 | 5. Votação | junta as leituras de vários quadros e fica com a mais confiável | código nosso |
 | 6. Formato | valida e corrige pela posição dos caracteres | código nosso |
@@ -744,7 +744,8 @@ folga.
 | ABERTO-09 | Tolerância de janela (padrão 4h após o fim da janela, usada também para "não veio") e momento do alerta de estadia (padrão: 4h depois da chegada) | com o cliente do piloto |
 | ABERTO-10 | Modelo de dados detalhado do modo B | no início da Fase 2 |
 | ABERTO-11 | Implementação da fila de tarefas no PostgreSQL (biblioteca ou tabela própria) | no mês 2, quando o worker entrar com o casamento |
-| ABERTO-12 | Licença dos pesos de terceiros usados em avaliação (ex.: fast-plate-ocr) | antes de usá-los, mesmo internamente |
+| ABERTO-12 | Licença dos pesos de terceiros usados em avaliação (ex.: fast-plate-ocr) | antes de usá-los, mesmo internamente. Levantado na T13 (`docs/validacao/fatos-tecnicos-stack.md`, 2026-10-03): D-FINE, YOLOX e fast-plate-ocr sem licença declarada dos pesos (só avaliação interna); PaddleOCR e RapidOCR com Apache-2.0 declarada. Falta confirmar para fechar |
+| ABERTO-13 | Bibliotecas nativas GPL e LGPL dentro das rodas: o PyAV do PyPI traz x264 e x265 (GPL); o supervision exige o PyAV; o OpenCV traz o FFmpeg (LGPL) e o RapidOCR exige o OpenCV; até a NumPy traz a libquadmath (LGPL). Proposta: aceitar LGPL nativa usada sem modificação e carregada dinamicamente (como o MPL-2.0), GPL só com a exceção de runtime do GCC, e o FFmpeg só montado sem partes GPL | com o Lorenzo, antes de a caixa ler vídeo (T15, T16 e T18) |
 
 ---
 
@@ -790,3 +791,4 @@ folga.
 | 0.9 | 2026-10-03 | tela crua da portaria (T12): arquivos de terceiros do painel (HTMX) no repositório, com licença e hash (seção 6.1) |
 | 0.10 | 2026-10-03 | regras puras do leitor (T14): formato, votação e composição na caixa; leitura só da traseira com papel desconhecido (D-23; seções 4.2 e 4.3) |
 | 0.11 | 2026-10-03 | fila de envio da caixa (T17): ordem, espera crescente e recusa definitiva guardada à parte (D-24; seção 7.4) |
+| 0.12 | 2026-10-03 | licenças dos pesos do leitor v0 (T13): situação do `[ABERTO-12]`; novo `[ABERTO-13]`, bibliotecas nativas GPL e LGPL dentro das rodas (seções 4.2 e 12) |
