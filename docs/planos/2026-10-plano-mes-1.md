@@ -375,12 +375,21 @@ veículo numa leitura única.
 **Arquivos:** `borda/src/borda/captura.py`, `borda/src/borda/rastreio.py`, testes.
 
 **Regras:**
-- `captura.py`: lê de arquivo ou RTSP com PyAV, a uma taxa configurável (padrão 5 quadros/s).
-- `rastreio.py`: ByteTrack (biblioteca supervision) segue cada veículo; quando o veículo sai da
-  imagem, junta as leituras (votação) e gera uma placa lida.
+- `captura.py`: lê de arquivo ou RTSP com ~~PyAV~~, a uma taxa configurável (padrão 5
+  quadros/s). Desvio: a roda do PyAV traz partes GPL (x264/x265) e o OpenCV traz o FFmpeg LGPL
+  (SDD `[ABERTO-13]`, achado na T13). A captura ficou atrás de uma interface (`FonteDeQuadros`),
+  com a amostragem e duas fontes: em memória e uma pasta de imagens (os quadros de um vídeo,
+  tirados fora da caixa), que basta para a demonstração. Arquivo de vídeo e RTSP → depois da
+  decisão do `[ABERTO-13]`. Dependência nova: `pillow` (MIT-CMU), que lê as imagens e grava o
+  JPEG das fotos.
+- `rastreio.py`: ~~ByteTrack (biblioteca supervision)~~ → rastreador nosso, por sobreposição,
+  no estilo do ByteTrack (SDD D-25), porque o supervision exige o PyAV; segue cada veículo;
+  quando o veículo sai da imagem, junta as leituras (votação) e gera uma placa lida, com o
+  recorte para a foto. Veículo sem placa legível gera leitura sem placa (passagem vazia).
 
 **Verificar:** um teste com um vídeo curto sintético (gerado no próprio teste, sem dado real)
-produz exatamente uma leitura por veículo.
+produz exatamente uma leitura por veículo. O "vídeo" são quadros desenhados em memória: sem
+decodificador de vídeo até o `[ABERTO-13]`.
 
 **Commit:** `feat(borda): captura de vídeo e rastreamento`
 
