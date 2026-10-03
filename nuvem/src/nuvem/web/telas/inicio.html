@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block conteudo %}
+<h1>Olá, {{ nome }}</h1>
+{% if administracao %}
+<p>Administração da plataforma.</p>
+{% else %}
+<p>Papel: {{ papel }}</p>
+<p>Sites: {{ sites | join(", ") }}</p>
+{% if pode_trocar_porteiro %}
+<p><a href="/portaria">Portaria</a> · <a href="/trocar-porteiro">Trocar porteiro</a></p>
+{% endif %}
+{% endif %}
+<form method="post" action="/sair">
+  <button type="submit">Sair</button>
+</form>
+{% endblock %}
