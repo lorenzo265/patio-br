@@ -2,7 +2,8 @@
 
 O login abre uma sessão no banco e põe o código dela num cookie ``HttpOnly`` e
 ``SameSite=Lax`` (``Secure`` fora do ambiente local). O ``SameSite=Lax`` também impede que
-outro site faça o navegador postar formulários aqui com o cookie.
+outro site faça o navegador postar formulários aqui com o cookie. O login, que não usa o
+cookie, recusa o envio que o navegador marca como vindo de outro site (``Sec-Fetch-Site``).
 """
 
 from datetime import datetime
@@ -55,6 +56,10 @@ def entrar(
     senha: Annotated[str, Form()],
 ) -> Response:
     """Confere e-mail e senha; se baterem, abre a sessão e leva ao início."""
+    if request.headers.get("sec-fetch-site") == "cross-site":
+        # Outro site faria o tablet entrar numa conta dele, e a portaria trabalharia nela.
+        contexto = {"email": "", "erro": "Entre por esta tela."}
+        return tela(request, "entrar.html", contexto, status.HTTP_403_FORBIDDEN)
     try:
         codigo = login.entrar(sessao, senhas, email=email, senha=senha, agora=momento)
     except login.MuitasTentativasError:

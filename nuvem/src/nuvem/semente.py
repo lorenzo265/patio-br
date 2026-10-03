@@ -190,6 +190,11 @@ def principal() -> None:
         configuracao = ler_configuracao()
     except ConfiguracaoInvalidaError as erro:
         raise SystemExit(f"erro: {erro}") from None
+    if configuracao.ambiente != "local":
+        # As contas da demonstração têm senha pública, inclusive a da administração.
+        raise SystemExit(
+            f"erro: a semente roda só no ambiente local (PATIO_AMBIENTE={configuracao.ambiente})"
+        )
     motor = criar_motor(configuracao.url_banco.get_secret_value())
     with Session(motor) as sessao:
         demonstracao = semear(sessao, Cifra(configuracao.chave_cifra), Senhas())

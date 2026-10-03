@@ -1,5 +1,10 @@
 """Resumo de senhas e PINs com argon2 (SDD 8.2): guarda-se o resumo, nunca o texto."""
 
+import threading
+import time
+from concurrent.futures import ThreadPoolExecutor
+from typing import Literal
+
 from argon2 import PasswordHasher, extract_parameters
 
 from nuvem.senhas import Senhas
@@ -52,3 +57,33 @@ def test_resumo_feito_com_custo_menor_pede_para_ser_refeito() -> None:
 def test_gastar_o_mesmo_tempo_nao_falha() -> None:
     # Usado quando o e-mail não existe: o tempo da resposta não pode revelar quem existe.
     RAPIDAS.gastar_o_mesmo_tempo("qualquer-senha")
+
+
+class _ResumidorQueConta(PasswordHasher):
+    """Confere devagar e anota quantas conferências correram ao mesmo tempo."""
+
+    def __init__(self) -> None:
+        super().__init__(time_cost=1, memory_cost=8, parallelism=1)
+        self._trava = threading.Lock()
+        self._correndo = 0
+        self.maximo = 0
+
+    def verify(self, hash: str | bytes, password: str | bytes) -> Literal[True]:
+        with self._trava:
+            self._correndo += 1
+            self.maximo = max(self.maximo, self._correndo)
+        time.sleep(0.02)
+        with self._trava:
+            self._correndo -= 1
+        return True
+
+
+def test_resumos_ao_mesmo_tempo_tem_limite() -> None:
+    # Cada resumo de verdade gasta 64 MiB: sem limite, muitos logins juntos esgotam a memória.
+    resumidor = _ResumidorQueConta()
+    senhas = Senhas(resumidor, ao_mesmo_tempo=2)
+
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        list(executor.map(lambda _: senhas.confere("resumo", "segredo"), range(16)))
+
+    assert resumidor.maximo == 2
