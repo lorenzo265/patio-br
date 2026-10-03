@@ -1,7 +1,7 @@
 # SDD — patio-br (nome provisório)
 
 **Documento de desenho do software (SDD) do MVP do piloto**
-Versão 0.7 · 2026-10-03 · Situação: aprovado como base; itens em aberto na seção 12
+Versão 0.8 · 2026-10-03 · Situação: aprovado como base; itens em aberto na seção 12
 
 ---
 
@@ -199,12 +199,27 @@ dois lados. Mudou o formato → muda a versão do contrato.
 
 - `id` é gerado na caixa. A nuvem ignora um `id` já recebido, então a caixa pode reenviar
   sem duplicar.
+- **Recebimento** (`POST /api/borda/passagens`, com a chave da caixa):
+  - passagem nova → **201**; o mesmo `id` de novo, da mesma caixa → **200**, sem criar outra;
+  - `caixa_id` ou `site_id` que não são os da chave → **403**;
+  - `id` que já é de outra caixa → **409**;
+  - faixa ou câmera que não são do site, ou sentido diferente do da faixa → **422**, dizendo
+    qual campo.
 - `caixa_id`, `site_id`, `faixa_id` e `camera_id` são os identificadores da nuvem, em texto
   (ex.: `"12"`), que a caixa recebe na ativação e na configuração (D-21). Os nomes do exemplo
   acima são só ilustração.
 - Os horários são da caixa (sincronizada por NTP) e são a prova da chegada.
 - As fotos sobem direto para o armazenamento com um endereço temporário fornecido pela API; a
-  passagem só referencia.
+  passagem só referencia (D-22):
+  - a caixa pede o endereço para cada `ref` (`POST /api/borda/fotos/endereco`) e envia a foto
+    com `PUT` nesse endereço, que vale 15 minutos e não precisa da chave (como no S3);
+  - o `ref` é escolhido pela caixa (letras, números, `.`, `_`, `-` e `/`, sem `..`), e a foto
+    fica guardada dentro da pasta da própria caixa: uma caixa nunca alcança a foto de outra;
+  - só JPEG, até 2 MB;
+  - a foto não se edita: reenviar a mesma foto responde 200; uma foto diferente no mesmo `ref`
+    responde 409;
+  - a nuvem não confere, ao receber a passagem, se as fotos já chegaram: a tela mostra a foto
+    quando ela existir.
 - Rostos nas fotos de contexto são borrados na caixa, antes de enviar.
 - A passagem traz **só o que a caixa viu**. A placa que nenhuma câmera viu (o reboque do meio
   de um bitrem) é completada pela nuvem e fica na visita (seção 4.3).
@@ -676,6 +691,7 @@ folga.
 | D-19 | A administração (nós) fica numa tabela própria, `administrador`, fora das empresas; o login dela gera um acesso de outro tipo, que nunca vira o `Acesso` de um cliente | toda tabela de cliente tem empresa e toda leitura de cliente filtra por ela (seção 5.5); com tipos separados, uma rota de cliente não atende a administração por engano, e vice-versa | papel `admin` na tabela `usuario`, com empresa vazia (abre exceção na regra da empresa); uma "empresa da plataforma" com permissão de ver as outras (um furo na separação) |
 | D-20 | Sessão de login guardada no banco; o cookie leva só um código aleatório | sair e desligar um usuário valem na hora; o banco guarda só o resumo do código; não precisa de outra chave secreta | cookie assinado com os dados do usuário, ou token JWT (não dá para revogar antes de vencer) |
 | D-21 | Na passagem e na configuração da caixa, os identificadores (caixa, site, faixa, câmera) são os ids da nuvem em texto | a caixa os recebe prontos na ativação e na configuração; a nuvem confere cada um contra o cadastro sem tabela de tradução | um código próprio para cada coisa (ex.: `entrada-1`), que precisaria ser único, editável e traduzido em toda passagem |
+| D-22 | Fotos enviadas pela caixa a um endereço temporário; no armazenamento local, o endereço leva um código cifrado (Fernet, com a chave da cifra) que diz a caixa, o `ref` e quando vence | a mesma forma do endereço assinado do S3 (mês 4): a caixa só aprende "peça o endereço e envie"; não precisa de outro segredo | foto dentro da passagem (passagem pesada, reenvio caro); envio pela API com a chave da caixa (no S3 seria outro caminho) |
 
 ---
 
@@ -736,3 +752,4 @@ folga.
 | 0.5 | 2026-10-03 | separação de clientes garantida também no banco, por chave estrangeira composta (seção 5.5) |
 | 0.6 | 2026-10-03 | login e papéis (T09): administração em tabela própria (D-19), sessão no banco (D-20), senha e PIN com argon2, limite de tentativas e troca de porteiro por PIN (seções 5.1 e 8.2) |
 | 0.7 | 2026-10-03 | ativação da caixa (T10): código de uso único por site, chave própria com `Bearer`, configuração baixada pela caixa; ids da nuvem em texto na passagem (D-21; seções 3.2, 5.1 e 7.4) |
+| 0.8 | 2026-10-03 | recebimento de passagens e fotos (T11): respostas 201/200/403/409/422 e envio de fotos por endereço temporário (D-22; seção 3.2) |
