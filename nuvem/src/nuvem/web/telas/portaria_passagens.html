@@ -1,0 +1,29 @@
+{% if passagens %}
+<table>
+  <thead>
+    <tr><th>Horário</th><th>Faixa</th><th>Placas</th><th>Foto da placa</th></tr>
+  </thead>
+  <tbody>
+    {% for passagem in passagens %}
+    <tr id="passagem-{{ passagem.id }}">
+      <td>{{ passagem.data }} <strong>{{ passagem.hora }}</strong></td>
+      <td>{{ passagem.faixa }} ({{ passagem.sentido }})</td>
+      <td>
+        {% for placa in passagem.placas %}
+        <div><strong>{{ placa.placa }}</strong> {{ placa.papel }} · {{ placa.confianca }}</div>
+        {% else %}
+        <em>nenhuma placa lida</em>
+        {% endfor %}
+      </td>
+      <td>
+        {% if passagem.foto is not none %}
+        <img src="/portaria/fotos/{{ passagem.id }}/{{ passagem.foto }}" alt="foto da placa (ainda não chegou?)" height="60" loading="lazy">
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p>Nenhuma passagem ainda.</p>
+{% endif %}

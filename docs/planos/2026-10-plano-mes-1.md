@@ -213,13 +213,19 @@ resumo argon2), `usuario_site`. O papel da administração (nós) também fica p
 
 **Objetivo:** entrar no painel com e-mail e senha; cada tela exige um papel.
 
-**Arquivos:** `nuvem/src/nuvem/cadastro/acesso.py`, telas `entrar` e `sair`, testes.
+**Arquivos:** `nuvem/src/nuvem/cadastro/acesso.py`, telas `entrar` e `sair`, testes. Entraram
+também `cadastro/login.py` (as regras do login), `nuvem/senhas.py` (argon2) e o começo do módulo
+`nuvem/web/` (Jinja), que a T12 continua.
 
 **Regras:**
 - Senha guardada com argon2; nunca em texto.
-- Sessão por cookie seguro (`HttpOnly`, `SameSite=Lax`, `Secure` fora do local).
-- Papéis: `porteiro`, `patio`, `gestor`, `admin`. Rota sem o papel certo devolve 403.
+- Sessão por cookie seguro (`HttpOnly`, `SameSite=Lax`, `Secure` fora do local). A sessão fica
+  no banco (SDD D-20); o ambiente vem da variável nova `PATIO_AMBIENTE`.
+- Papéis: `porteiro`, `patio`, `gestor`, ~~`admin`~~. Rota sem o papel certo devolve 403.
+  ~~`admin`~~ → a administração (nós) é uma tabela própria, `administrador`, fora das empresas
+  (SDD D-19), com rotas próprias (`/api/admin/...`).
 - Limite de tentativas de login por e-mail (contra adivinhação).
+- PIN do porteiro (adiado da T08), com argon2, e a troca de porteiro no tablet.
 - A verificação em duas etapas fica para o mês 4 (antes da produção), como previsto.
 
 **Verificar:** testes de login certo, senha errada, papel errado e limite de tentativas.
@@ -230,13 +236,19 @@ resumo argon2), `usuario_site`. O papel da administração (nós) também fica p
 
 **Objetivo:** a caixa (ou o simulador) se identifica para mandar passagens.
 
-**Arquivos:** `nuvem/src/nuvem/frota/{modelos.py,servico.py,rotas.py}`, testes.
+**Arquivos:** `nuvem/src/nuvem/frota/{modelos.py,servico.py,rotas.py}`, testes. Entrou também
+`frota/acesso.py` (a dependência que identifica a caixa pela chave).
 
 **Fluxo:**
-1. O admin gera um **código de ativação** de uso único para um site (expira em 24h).
+1. O admin gera um **código de ativação** de uso único para um site (expira em 24h):
+   `POST /api/admin/sites/{id}/codigos-de-ativacao`, com 12 letras e números em três grupos.
 2. A caixa chama `POST /api/borda/ativar` com o código e recebe uma **chave** própria. A nuvem
    guarda só o resumo (hash) da chave.
-3. Toda chamada da caixa usa `Authorization: Bearer <chave>`. Chave revogada → 401.
+3. Toda chamada da caixa usa `Authorization: Bearer <chave>`. Chave revogada → 401
+   (`POST /api/admin/caixas/{id}/revogar`; a lista em `GET /api/admin/caixas`).
+4. A mais: com a chave, a caixa baixa a configuração do site (`GET /api/borda/configuracao`:
+   faixas e câmeras, com a senha da câmera), como diz o SDD 7.4. Os ids são os da nuvem, em
+   texto (SDD D-21).
 
 **Verificar:** testes de código usado duas vezes, código vencido, chave revogada.
 
@@ -254,10 +266,13 @@ resumo argon2), `usuario_site`. O papel da administração (nós) também fica p
 **Regras (teste primeiro):**
 - `POST /api/borda/passagens` valida com o pacote `contratos`. Passagem nova → 201. Mesmo `id`
   de novo → 200 sem criar outra (**reenvio seguro**). Passagem de outro site que não o da caixa
-  → 403.
+  → 403. A mais (SDD 3.2): `id` que já é de outra caixa → 409; faixa ou câmera de fora do site,
+  ou sentido diferente do da faixa → 422, com o campo.
 - Fotos: a API devolve um endereço de envio para cada `ref` (`POST /api/borda/fotos/endereco`).
   O envio vai para a interface `Armazenamento`, com duas implementações: `ArmazenamentoLocal`
-  (pasta no disco, usada agora) e `ArmazenamentoS3` (mês 4, mesma interface).
+  (pasta no disco, usada agora) e `ArmazenamentoS3` (mês 4, mesma interface). No local, o
+  endereço leva um código cifrado que vale 15 minutos e a foto vai com `PUT`, sem a chave
+  (SDD D-22); só JPEG, até 2 MB; a pasta vem da variável nova `PATIO_PASTA_FOTOS`.
 
 **Verificar:** testes passam, incluindo o de envio repetido.
 
@@ -267,11 +282,17 @@ resumo argon2), `usuario_site`. O papel da administração (nós) também fica p
 
 **Objetivo:** ver as passagens chegando.
 
-**Arquivos:** `nuvem/src/nuvem/web/` (Jinja + HTMX), tela `/portaria`.
+**Arquivos:** `nuvem/src/nuvem/web/` (Jinja + HTMX), tela `/portaria`. Entraram
+`web/portaria.py`, as telas `portaria.html` e `portaria_passagens.html`, e o HTMX 2.0.11 em
+`web/estatico/` (Zero-Clause BSD, com o hash; SDD 6.1). Dependência nova: `tzdata` (Apache-2.0),
+para o fuso do site funcionar também no Windows, que não traz a base de fusos.
 
 **Conteúdo:** lista das últimas passagens do site do usuário: horário, faixa, sentido, placas
 com confiança e a foto da placa. Atualiza sozinha a cada 2 segundos (HTMX). A atualização por
-SSE, prevista no SDD, entra no mês 3 junto com a tela definitiva.
+SSE, prevista no SDD, entra no mês 3 junto com a tela definitiva. Detalhes: as últimas 50
+passagens; o horário no fuso do site; a foto sai por `/portaria/fotos/{passagem}/{n}`, só para
+quem vê o site; porteiro e gestor veem a tela; com a sessão vencida, o HTMX leva à tela de
+entrar.
 
 **Verificar:** logado como porteiro, ver uma passagem enviada à mão (`curl` ou teste) aparecer
 em até 2 segundos.

@@ -29,8 +29,9 @@ COPY contratos/ contratos/
 COPY nuvem/ nuvem/
 RUN uv sync --frozen --no-dev --package patio-nuvem
 
-# Não roda como root.
-RUN useradd --system --no-create-home patio
+# Não roda como root. A pasta das fotos (o volume do compose) é do usuário da API.
+RUN useradd --system --no-create-home patio \
+    && mkdir -p /app/dados/fotos && chown patio /app/dados/fotos
 USER patio
 
 ENV PATH="/app/.venv/bin:$PATH"
