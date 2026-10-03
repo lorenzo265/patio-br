@@ -13,7 +13,9 @@ x-postgres: &postgres
     # Senha só do ambiente local; nunca a use em homologação ou produção.
     POSTGRES_PASSWORD: ${POSTGRES_SENHA:-patio-local}
   healthcheck:
-    test: ["CMD-SHELL", "pg_isready -U patio -d $${POSTGRES_DB}"]
+    # -h 127.0.0.1: testa pela rede, o caminho que a API usa. Pelo socket local o banco diz
+    # "pronto" já no servidor provisório da primeira inicialização, que não aceita rede.
+    test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U patio -d $${POSTGRES_DB}"]
     interval: 2s
     timeout: 3s
     retries: 30
