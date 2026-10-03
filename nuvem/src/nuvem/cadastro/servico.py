@@ -73,6 +73,17 @@ def obter_site(sessao: Session, acesso: Acesso, site_id: int) -> Site:
     return site
 
 
+def nomes_das_faixas(sessao: Session, acesso: Acesso, site_id: int) -> dict[int, str]:
+    """Os nomes das faixas de um site que o usuário vê, por id.
+
+    Raises:
+        NaoEncontradoError: se o site não existir ou não for visível para este usuário.
+    """
+    site = obter_site(sessao, acesso, site_id)
+    faixas, _ = _faixas_e_cameras_do_site(sessao, empresa_id=acesso.empresa_id, site_id=site.id)
+    return {faixa.id: faixa.nome for faixa in faixas}
+
+
 def listar_cameras(sessao: Session, acesso: Acesso, site_id: int) -> list[Camera]:
     """Devolve as câmeras de um site que o usuário vê.
 

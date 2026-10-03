@@ -7,10 +7,12 @@ aqui as suas rotas.
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import Annotated
 
 from fastapi import Depends, FastAPI, Request, status
 from fastapi.responses import JSONResponse, RedirectResponse, Response
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
@@ -30,9 +32,13 @@ from nuvem.erros import (
 from nuvem.frota import rotas as frota
 from nuvem.portaria import rotas as portaria
 from nuvem.senhas import Senhas
+from nuvem.web import portaria as tela_da_portaria
 from nuvem.web import rotas as web
 
 _registro = logging.getLogger(__name__)
+
+PASTA_ESTATICA = Path(web.__file__).parent / "estatico"
+"""Arquivos servidos como estão (o HTMX), em ``/estatico``."""
 
 
 def criar_app(configuracao: Configuracao | None = None, senhas: Senhas | None = None) -> FastAPI:
@@ -70,6 +76,8 @@ def criar_app(configuracao: Configuracao | None = None, senhas: Senhas | None = 
     app.include_router(frota.roteador_admin)
     app.include_router(portaria.roteador_borda)
     app.include_router(web.roteador)
+    app.include_router(tela_da_portaria.roteador)
+    app.mount("/estatico", StaticFiles(directory=PASTA_ESTATICA), name="estatico")
     return app
 
 
@@ -87,6 +95,11 @@ def _nao_encontrado(requisicao: Request, _erro: Exception) -> Response:
 
 
 def _nao_identificado(requisicao: Request, _erro: Exception) -> Response:
+    if requisicao.headers.get("HX-Request"):
+        # Pedido do HTMX (ex.: a lista que se atualiza sozinha): ele mesmo leva à tela.
+        return Response(
+            status_code=status.HTTP_401_UNAUTHORIZED, headers={"HX-Redirect": "/entrar"}
+        )
     if _e_da_api(requisicao):
         return JSONResponse(
             {"detail": "entre no sistema"}, status_code=status.HTTP_401_UNAUTHORIZED

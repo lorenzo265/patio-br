@@ -11,7 +11,10 @@
     input, select { width: 100%; box-sizing: border-box; }
     button { margin-top: 1rem; }
     .erro { color: #a00000; font-weight: bold; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border-bottom: 1px solid #ccc; padding: 0.4rem; text-align: left; vertical-align: top; }
   </style>
+  {% block cabeca %}{% endblock %}
 </head>
 <body>
   {% block conteudo %}{% endblock %}
