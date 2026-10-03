@@ -529,7 +529,10 @@ Serve para desenvolver sem câmera, para os testes de ponta a ponta e para simul
 - **Quadros** (`--quadros pasta`): roda o leitor v0 sobre as imagens de uma pasta, como se fossem
   uma câmera. O arquivo de vídeo (`--video`) espera o `[ABERTO-13]`.
 - **Demonstração** (`--demonstracao`): só no ambiente local, entra como a administração da
-  semente, gera o código e ativa a caixa sozinho.
+  semente, gera o código e ativa a caixa sozinho. Se já há uma caixa ativada e a chave dela
+  ainda vale, usa a mesma: o que ficou na fila de uma rodada anterior é dela.
+- Com a nuvem local, o simulador não usa o proxy do sistema (numa rede de empresa, ele não
+  alcançaria o `localhost`).
 
 ---
 
