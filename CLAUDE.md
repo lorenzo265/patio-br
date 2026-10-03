@@ -41,7 +41,9 @@ economia em R$. Uma caixa de borda (mini PC) lê as placas; a nuvem decide.
    exemplo do ambiente local.
 5. **As garantias do SDD 5.5 valem para todo código da nuvem:** passagem repetida é ignorada;
    horário e foto não se editam (correção é um evento novo); nenhuma consulta sem filtro de
-   empresa.
+   empresa. Na prática: toda leitura de dado do cliente recebe o `Acesso` de quem pede
+   (`nuvem.cadastro.acesso`); toda tabela de cliente tem `empresa_id`, e cada filha aponta para
+   o pai pela dupla (pai, empresa); o que é de outra empresa responde "não encontrado".
 
 ## Como trabalhar
 
@@ -52,13 +54,18 @@ Python puro e funcionam igual em Windows, Linux e Mac:
 uv sync                      # instala o ambiente (antes, na primeira vez: .env.exemplo → .env)
 uv run tarefas up            # sobe os bancos (desenvolvimento e testes) e a API, no Docker
 uv run tarefas migrar        # aplica as migrações no banco de desenvolvimento
+uv run tarefas semente       # grava os dados de demonstração (duas empresas inventadas)
 uv run tarefas check         # estilo, formato, tipos e testes (o mesmo que a CI roda)
 uv run tarefas test -k placa # só os testes; o resto vai para o pytest
 uv run tarefas down          # derruba, mantendo os dados
 ```
 
 Os testes da nuvem usam o banco de testes do `tarefas up`, zerado e migrado do zero a cada
-rodada; cada teste roda numa transação desfeita no fim (fixture `sessao`).
+rodada; cada teste roda numa transação desfeita no fim (fixture `sessao`). A fixture `cenario`
+grava os dados de demonstração (`nuvem.semente`): duas empresas, para testar a separação.
+Modelo novo ou alterado pede migração nova (`alembic revision --autogenerate`, ver
+`nuvem/alembic.ini`); um teste falha se faltar. Com o pg8000, violação de chave estrangeira ou
+de CHECK chega como `ProgrammingError`, não `IntegrityError`: use `nuvem.banco.sqlstate`.
 
 - **Uma tarefa = uma branch = um PR** para a `main` (ex.: `mes1/t06-contratos`). O PR só entra
   com a CI verde.

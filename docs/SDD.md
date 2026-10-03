@@ -1,7 +1,7 @@
 # SDD — patio-br (nome provisório)
 
 **Documento de desenho do software (SDD) do MVP do piloto**
-Versão 0.4 · 2026-10-02 · Situação: aprovado como base; itens em aberto na seção 12
+Versão 0.5 · 2026-10-03 · Situação: aprovado como base; itens em aberto na seção 12
 
 ---
 
@@ -408,6 +408,8 @@ Pontuação inicial (os pesos e o limite são ajustados com os dados do mês 2 �
 - **Reenvio seguro:** passagem com `id` repetido é ignorada.
 - **Prova:** horários e fotos não se editam. Correção = evento novo; a leitura original fica.
 - **Separação de clientes:** nenhuma consulta sem filtro de empresa; testes tentam furar isso.
+  O banco também garante: cada tabela filha aponta para o pai pela dupla (pai, empresa), então
+  não aceita, por exemplo, uma portaria de uma empresa num site de outra.
 
 ---
 
@@ -701,3 +703,4 @@ folga.
 | 0.2 | 2026-10-02 | plano do mês 1 criado (`docs/planos/2026-10-plano-mes-1.md`); `[ABERTO-11]` passa para o mês 2; regra de licença inclui ISC/PSF e MPL-2.0 só sem modificação |
 | 0.3 | 2026-10-02 | campo `inferida` sai da Passagem v1, antes de qualquer caixa usá-la; a placa inferida fica na visita (D-17; seções 3.2, 4.3 e 5.1) |
 | 0.4 | 2026-10-02 | driver do PostgreSQL: pg8000 no lugar do psycopg, por licença (D-18; seção 6.1) |
+| 0.5 | 2026-10-03 | separação de clientes garantida também no banco, por chave estrangeira composta (seção 5.5) |
