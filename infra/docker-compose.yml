@@ -49,8 +49,10 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      # /saude só responde 200 quando a API alcança o banco.
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/saude')"]
+      # /saude só responde 200 quando a API alcança o banco. Usa http.client, que não passa por
+      # proxy: o Docker Desktop põe HTTP_PROXY nos contêineres quando há proxy configurado, e
+      # o urllib mandaria esta chamada a 127.0.0.1 para o proxy, marcando a API como doente.
+      test: ["CMD", "python", "-c", "import http.client as h; c = h.HTTPConnection('127.0.0.1', 8000, timeout=3); c.request('GET', '/saude'); exit(c.getresponse().status != 200)"]
       interval: 2s
       timeout: 3s
       retries: 30
