@@ -213,11 +213,12 @@ dois lados. Mudou o formato → muda a versão do contrato.
   passagem só referencia (D-22):
   - a caixa pede o endereço para cada `ref` (`POST /api/borda/fotos/endereco`) e envia a foto
     com `PUT` nesse endereço, que vale 15 minutos e não precisa da chave (como no S3);
-  - o `ref` é escolhido pela caixa (letras, números, `.`, `_`, `-` e `/`, sem `..`), e a foto
-    fica guardada dentro da pasta da própria caixa: uma caixa nunca alcança a foto de outra;
+  - o `ref` é escolhido pela caixa (letras, números, `.`, `_`, `-` e `/`; nenhuma parte termina
+    em `.` nem é nome reservado do Windows, como `CON` ou `NUL`), e a foto fica guardada dentro
+    da pasta da própria caixa: uma caixa nunca alcança a foto de outra;
   - só JPEG, até 2 MB;
-  - a foto não se edita: reenviar a mesma foto responde 200; uma foto diferente no mesmo `ref`
-    responde 409;
+  - a foto não se edita: reenviar a mesma foto responde 200; uma foto diferente no mesmo `ref`,
+    ou um `ref` que esbarra na pasta de outro (`a` e `a/b`), responde 409;
   - a nuvem não confere, ao receber a passagem, se as fotos já chegaram: a tela mostra a foto
     quando ela existir.
 - Rostos nas fotos de contexto são borrados na caixa, antes de enviar.
