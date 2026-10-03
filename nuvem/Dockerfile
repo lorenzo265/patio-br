@@ -3,8 +3,10 @@
 # No ambiente local, quem constrói e sobe é o `uv run tarefas up` (infra/docker-compose.yml).
 FROM python:3.12-slim
 
-# Mesma versão do uv da CI e do uv.lock.
-COPY --from=ghcr.io/astral-sh/uv:0.8.17 /uv /bin/uv
+# Mesma versão do uv da CI e do uv.lock. Vem do PyPI, de onde já vêm todas as dependências,
+# e não da imagem do ghcr.io, que às vezes recusa downloads por excesso de pedidos (429).
+RUN PIP_ROOT_USER_ACTION=ignore PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    pip install --no-cache-dir uv==0.8.17
 
 ENV UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
