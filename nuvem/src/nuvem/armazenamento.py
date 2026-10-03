@@ -35,11 +35,19 @@ CAMINHO_DO_ENVIO = "/api/borda/fotos/envio/"
 _PARTE_DO_REF = r"[A-Za-z0-9._-]+"
 _FORMATO_DO_REF = re.compile(rf"{_PARTE_DO_REF}(/{_PARTE_DO_REF})*")
 _TAMANHO_MAXIMO_DO_REF = 200
+_NOMES_RESERVADOS_DO_WINDOWS = frozenset(
+    ["CON", "PRN", "AUX", "NUL"] + [f"{nome}{n}" for nome in ("COM", "LPT") for n in range(1, 10)]
+)
+"""No Windows, ``NUL`` ou ``con.jpg`` não são arquivos, e sim dispositivos (e ``x.`` vira ``x``)."""
 _INICIO_DO_JPEG = b"\xff\xd8\xff"
 
 
 class RefInvalidoError(ValueError):
-    """O ``ref`` da foto foge da regra (letras, números, ``.``, ``_``, ``-``, ``/``; sem ``..``)."""
+    """O ``ref`` da foto foge da regra (letras, números, ``.``, ``_``, ``-``, ``/``).
+
+    Nenhuma parte do ``ref`` termina em ``.`` (o que já recusa ``..``) nem é nome reservado do
+    Windows.
+    """
 
 
 class EnderecoRecusadoError(Exception):
@@ -59,7 +67,10 @@ class FotoGrandeDemaisError(FotoInvalidaError):
 
 
 class FotoDiferenteError(Exception):
-    """Já existe outra foto neste ``ref``: a foto guardada não se troca (SDD 5.5)."""
+    """Já existe outra foto neste ``ref``: a foto guardada não se troca (SDD 5.5).
+
+    Também quando o ``ref`` esbarra na pasta de outro (``a`` e ``a/b``).
+    """
 
 
 def validar_ref(ref: str) -> None:
@@ -72,11 +83,13 @@ def validar_ref(ref: str) -> None:
     if (
         len(ref) > _TAMANHO_MAXIMO_DO_REF
         or not _FORMATO_DO_REF.fullmatch(ref)
-        or any(parte in (".", "..") for parte in partes)
+        or any(parte.endswith(".") for parte in partes)
+        or any(parte.split(".")[0].upper() in _NOMES_RESERVADOS_DO_WINDOWS for parte in partes)
     ):
         raise RefInvalidoError(
-            "o ref da foto usa só letras, números, '.', '_', '-' e '/', sem '..', "
-            f"com até {_TAMANHO_MAXIMO_DO_REF} caracteres"
+            "o ref da foto usa só letras, números, '.', '_', '-' e '/', com até "
+            f"{_TAMANHO_MAXIMO_DO_REF} caracteres; nenhuma parte termina em '.' nem é nome "
+            "reservado do Windows (CON, NUL, COM1...)"
         )
 
 
@@ -156,7 +169,11 @@ class ArmazenamentoLocal:
     def _gravar_sem_trocar(caminho: Path, conteudo: bytes) -> bool:
         if caminho.is_file():
             return _mesma_foto(caminho, conteudo)
-        caminho.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            caminho.parent.mkdir(parents=True, exist_ok=True)
+        except (FileExistsError, NotADirectoryError) as erro:
+            # Uma parte do caminho já é uma foto (``a``, e agora chega ``a/b``).
+            raise FotoDiferenteError("o ref da foto esbarra numa foto já guardada") from erro
         parcial = caminho.with_name(f"{caminho.name}.{uuid4().hex}.parcial")
         parcial.write_bytes(conteudo)
         try:
@@ -171,6 +188,9 @@ class ArmazenamentoLocal:
 
 
 def _mesma_foto(caminho: Path, conteudo: bytes) -> bool:
+    if not caminho.is_file():
+        # O ``ref`` já é uma pasta (``a/b`` guardada, e agora chega ``a``).
+        raise FotoDiferenteError("o ref da foto esbarra na pasta de outras fotos")
     if caminho.read_bytes() != conteudo:
         raise FotoDiferenteError("já existe outra foto neste ref")
     return False

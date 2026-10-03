@@ -79,6 +79,20 @@ def test_foto_diferente_no_mesmo_ref_e_recusada(armazenamento: ArmazenamentoLoca
     assert armazenamento.ler(1, "p1.jpg") == JPEG
 
 
+@pytest.mark.parametrize(
+    ("primeiro", "depois"), [("a.jpg", "a.jpg/b.jpg"), ("c/d.jpg", "c")], ids=["foto", "pasta"]
+)
+def test_ref_que_esbarra_na_pasta_de_outro_e_recusado(
+    armazenamento: ArmazenamentoLocal, primeiro: str, depois: str
+) -> None:
+    # Como uma foto diferente no mesmo ref: 409, e a caixa não fica tentando de novo.
+    armazenamento.receber(_codigo(armazenamento, 1, primeiro), JPEG, agora=AGORA)
+
+    with pytest.raises(FotoDiferenteError):
+        armazenamento.receber(_codigo(armazenamento, 1, depois), JPEG, agora=AGORA)
+    assert armazenamento.ler(1, primeiro) == JPEG
+
+
 def test_uma_caixa_nao_alcanca_a_foto_de_outra(armazenamento: ArmazenamentoLocal) -> None:
     armazenamento.receber(_codigo(armazenamento, 1, "p1.jpg"), JPEG, agora=AGORA)
 
@@ -99,8 +113,34 @@ def test_foto_acima_de_2_mb_e_recusada(armazenamento: ArmazenamentoLocal) -> Non
 
 @pytest.mark.parametrize(
     "ref",
-    ["../fora.jpg", "a/../../fora.jpg", "/raiz.jpg", "com espaco.jpg", "", "a" * 201, "x//y.jpg"],
-    ids=["sobe", "sobe no meio", "absoluto", "espaço", "vazio", "longo", "barra dupla"],
+    [
+        "../fora.jpg",
+        "a/../../fora.jpg",
+        "/raiz.jpg",
+        "com espaco.jpg",
+        "",
+        "a" * 201,
+        "x//y.jpg",
+        ".../y.jpg",
+        "foto.",
+        "NUL",
+        "a/con.jpg",
+        "Lpt1.jpg",
+    ],
+    ids=[
+        "sobe",
+        "sobe no meio",
+        "absoluto",
+        "espaço",
+        "vazio",
+        "longo",
+        "barra dupla",
+        "só pontos",
+        "ponto no fim",
+        "NUL do Windows",
+        "CON com extensão",
+        "LPT1 em minúsculas",
+    ],
 )
 def test_ref_que_sairia_da_pasta_ou_foge_da_regra_e_recusado(ref: str) -> None:
     with pytest.raises(RefInvalidoError):

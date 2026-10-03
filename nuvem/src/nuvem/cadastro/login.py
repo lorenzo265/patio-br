@@ -6,6 +6,9 @@ entram pela mesma tela, com e-mail e senha; o e-mail é único entre as duas tab
 As funções gravam com ``flush``; o ``commit`` é de quem chama. Atenção: uma recusa também grava
 o erro (para o limite de tentativas), então quem chama faz ``commit`` mesmo quando recebe
 ``LoginRecusadoError``.
+
+As tentativas de um mesmo alvo passam uma de cada vez: a trava no banco vale até o ``commit``
+(ou o ``rollback``) de quem chama.
 """
 
 import secrets
@@ -182,6 +185,9 @@ def _abrir_sessao(sessao: Session, conta: Conta, agora: datetime) -> str:
 
 
 def _recusar_se_bloqueado(sessao: Session, alvo: str, agora: datetime) -> None:
+    # Uma tentativa por vez para o mesmo alvo. Sem a trava, pedidos ao mesmo tempo contariam os
+    # erros antes de qualquer um gravar o seu, e todos passariam do limite.
+    sessao.execute(select(func.pg_advisory_xact_lock(_chave_da_trava(alvo))))
     erros = sessao.scalar(
         select(func.count())
         .select_from(TentativaLogin)
@@ -209,3 +215,8 @@ def _registrar_erro(sessao: Session, alvo: str, agora: datetime) -> None:
 def _esquecer_erros(sessao: Session, alvo: str) -> None:
     sessao.execute(delete(TentativaLogin).where(TentativaLogin.alvo_resumo == alvo))
     sessao.flush()
+
+
+def _chave_da_trava(alvo: str) -> int:
+    # A trava do PostgreSQL leva um número: os primeiros 60 bits do resumo cabem no bigint.
+    return int(alvo[:15], 16)
