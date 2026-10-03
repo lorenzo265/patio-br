@@ -31,6 +31,8 @@ economia em R$. Uma caixa de borda (mini PC) lê as placas; a nuvem decide.
    - Modelos de visão: só código Apache, MIT ou BSD e **pesos treinados por nós** (SDD 4.1).
      O YOLO da Ultralytics (AGPL) não entra. O banco RodoSol-ALPR é só acadêmico: nunca treina
      o produto (SDD 4.6). A CI não vê modelos; essa checagem é sua.
+   - Arquivos de terceiros do painel (ex.: o HTMX) ficam em `nuvem/src/nuvem/web/estatico/`,
+     com licença e hash no `LEIA-ME.md` de lá (SDD 6.1). A CI também não os vê.
 2. **LGPD** (SDD 8.3). Sem reconhecimento facial. Foto guardada é recorte de placa e de
    veículo; rostos nas fotos de contexto são borrados na própria caixa. A base de treino guarda
    só recortes de placa.
@@ -44,6 +46,12 @@ economia em R$. Uma caixa de borda (mini PC) lê as placas; a nuvem decide.
    empresa. Na prática: toda leitura de dado do cliente recebe o `Acesso` de quem pede
    (`nuvem.cadastro.acesso`); toda tabela de cliente tem `empresa_id`, e cada filha aponta para
    o pai pela dupla (pai, empresa); o que é de outra empresa responde "não encontrado".
+   Nas rotas: `obter_acesso` (qualquer usuário do cliente) ou `exigir_papel(...)`; sem login,
+   401; papel errado, 403. A administração (nós) é outra tabela e outro tipo, `AcessoAdmin`
+   (`obter_acesso_admin`), e não usa as rotas do cliente (SDD D-19). A caixa de borda se
+   identifica pela chave (`nuvem.frota.acesso.obter_caixa`) e só lê e grava no site dela.
+6. **Senha, PIN e código de sessão só como resumo** (`nuvem.senhas`, argon2; SDD 8.2). Nunca o
+   texto, nem em registro de erro.
 
 ## Como trabalhar
 
@@ -55,6 +63,8 @@ uv sync                      # instala o ambiente (antes, na primeira vez: .env.
 uv run tarefas up            # sobe os bancos (desenvolvimento e testes) e a API, no Docker
 uv run tarefas migrar        # aplica as migrações no banco de desenvolvimento
 uv run tarefas semente       # grava os dados de demonstração (duas empresas inventadas)
+uv run tarefas modelos       # baixa os pesos do leitor v0 para modelos/ (SHA-256 conferido)
+uv run tarefas demo          # a demonstração do mês 1 (docs/guias/demo-mes-1.md)
 uv run tarefas check         # estilo, formato, tipos e testes (o mesmo que a CI roda)
 uv run tarefas test -k placa # só os testes; o resto vai para o pytest
 uv run tarefas down          # derruba, mantendo os dados
@@ -63,6 +73,9 @@ uv run tarefas down          # derruba, mantendo os dados
 Os testes da nuvem usam o banco de testes do `tarefas up`, zerado e migrado do zero a cada
 rodada; cada teste roda numa transação desfeita no fim (fixture `sessao`). A fixture `cenario`
 grava os dados de demonstração (`nuvem.semente`): duas empresas, para testar a separação.
+Nos testes de rota, a fixture `entrar` entra pela tela de login, como uma pessoa, e cada
+requisição usa a própria sessão do banco: o que a rota grava sem `commit` se perde, como em
+produção.
 Modelo novo ou alterado pede migração nova (`alembic revision --autogenerate`, ver
 `nuvem/alembic.ini`); um teste falha se faltar. Com o pg8000, violação de chave estrangeira ou
 de CHECK chega como `ProgrammingError`, não `IntegrityError`: use `nuvem.banco.sqlstate`.

@@ -39,13 +39,52 @@ No dia a dia:
 uv run tarefas up            # sobe os bancos (15432 e 15433, o de testes) e a API (18000)
 uv run tarefas migrar        # aplica as migrações no banco de desenvolvimento
 uv run tarefas semente       # grava os dados de demonstração (duas empresas inventadas)
+uv run tarefas modelos       # baixa os modelos do leitor v0 para modelos/ (fora do Git)
+uv run tarefas demo          # a demonstração do mês 1: sobe, semeia e manda passagens
 uv run tarefas check         # estilo, formato, tipos e testes (o mesmo que a CI vai rodar)
 uv run tarefas test -k placa # só os testes; o que vier depois de `test` vai para o pytest
 uv run tarefas down          # derruba; os dados do banco de desenvolvimento ficam guardados
 ```
 
+### Windows com Controle de Aplicativo
+
+Se o Windows bloqueia programas sem assinatura (Controle de Aplicativo), o venv precisa nascer
+do Python oficial, que é assinado, e os comandos rodam pelo `python.exe` do venv:
+
+```powershell
+uv venv --python 3.12 --python-preference only-system
+uv sync --frozen
+Copy-Item .env.exemplo .env
+.venv\Scripts\python.exe -m tarefas up
+.venv\Scripts\python.exe -m tarefas check
+```
+
+- `--frozen` instala exatamente o `uv.lock`, sem reescrevê-lo (o uv da máquina pode ser de
+  outra versão que a do projeto).
+- Use sempre `.venv\Scripts\python.exe -m <comando>` (`tarefas`, `simulador`): os
+  executáveis `uv run tarefas` e `.venv\Scripts\tarefas.exe` também são bloqueados.
+- Se a saída for longa, veja só o fim: `... -m tarefas check 2>&1 | Select-Object -Last 30`.
+
 Os testes da nuvem usam o banco de testes: rode `tarefas up` antes do `check`. Com o ambiente
 no ar, `http://localhost:18000/saude` responde `{"ok": true}` quando a API alcança o banco.
+
+Depois do `migrar` e da `semente`, entre no painel em `http://localhost:18000/entrar` com
+`gestor@empresa-a.example` e a senha `demonstracao-local` (a mesma para todas as pessoas da
+demonstração; os e-mails estão em `nuvem/src/nuvem/semente.py`). A administração (nós) entra
+com `admin@patio-br.example`. Com o porteiro (`porteiro@empresa-a.example`), a tela
+`http://localhost:18000/portaria` mostra as passagens que chegam, atualizada a cada 2 segundos.
+
+Para ver passagens chegando sem câmera, o simulador faz o papel da caixa de borda (ativa com a
+administração da semente e manda três passagens inventadas):
+
+```bash
+uv run simulador --demonstracao --passagens amostra
+```
+
+A demonstração do mês 1 inteira, do zero, num comando só: `uv run tarefas demo` (passo a passo
+em [`docs/guias/demo-mes-1.md`](docs/guias/demo-mes-1.md)).
+
+Quando um PR acrescenta variável ao `.env.exemplo`, copie-o de novo para `.env`.
 
 A CI (`.github/workflows/ci.yml`) roda em cada PR e na `main`: o mesmo `tarefas check` (com o
 banco de testes), a checagem de licenças das dependências, a de falhas de segurança conhecidas

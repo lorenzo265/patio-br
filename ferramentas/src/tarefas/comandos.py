@@ -4,7 +4,7 @@ Cada comando é uma sequência de etapas (programas externos) que roda na raiz d
 e para na primeira falha. As ferramentas são chamadas como ``python -m <ferramenta>`` com o
 mesmo Python do ambiente, o que funciona igual em Windows, Linux e Mac.
 
-Novos comandos entram junto com a tarefa que cria o que eles executam (``demo`` na T19).
+Novos comandos entram junto com a tarefa que cria o que eles executam.
 """
 
 from __future__ import annotations
@@ -92,6 +92,26 @@ def etapas_do_semente() -> list[Etapa]:
     return [Etapa("dados de demonstração", _ferramenta("nuvem.semente"))]
 
 
+def etapas_do_modelos() -> list[Etapa]:
+    """Devolve a etapa que baixa os modelos do leitor v0 para ``modelos/v0`` (fora do Git)."""
+    return [Etapa("modelos do leitor v0", _ferramenta("ml.baixar_modelos"))]
+
+
+def etapas_do_demo() -> list[Etapa]:
+    """Devolve a demonstração do mês 1: sobe tudo, migra, semeia e roda o simulador.
+
+    O simulador ativa uma caixa com a administração da semente e manda a amostra (passagens
+    inventadas, com foto desenhada), que aparece na tela da portaria.
+    """
+    simulador = _ferramenta("simulador", "--demonstracao", "--passagens", "amostra")
+    return [
+        *etapas_do_up(),
+        *etapas_do_migrar(),
+        *etapas_do_semente(),
+        Etapa("simulador", simulador),
+    ]
+
+
 def etapas_do_test(extras: Sequence[str]) -> list[Etapa]:
     """Devolve só a etapa de testes, repassando ``extras`` ao pytest (ex.: ``-k placa``)."""
     return [Etapa("pytest", _ferramenta("pytest", *extras))]
@@ -144,6 +164,8 @@ _SEM_ARGUMENTOS: dict[str, Callable[[], list[Etapa]]] = {
     "down": etapas_do_down,
     "migrar": etapas_do_migrar,
     "semente": etapas_do_semente,
+    "modelos": etapas_do_modelos,
+    "demo": etapas_do_demo,
 }
 """Comandos que não aceitam argumentos extras e as etapas de cada um."""
 
@@ -158,6 +180,10 @@ def _interpretador() -> argparse.ArgumentParser:
     comandos.add_parser("migrar", help="aplica as migrações da nuvem no banco de desenvolvimento")
     comandos.add_parser(
         "semente", help="grava os dados de demonstração no banco de desenvolvimento"
+    )
+    comandos.add_parser("modelos", help="baixa os modelos do leitor v0 (conferindo o SHA-256)")
+    comandos.add_parser(
+        "demo", help="demonstração: sobe tudo, semeia e manda passagens pelo simulador"
     )
     return interpretador
 

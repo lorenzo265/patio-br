@@ -12,8 +12,10 @@ from tarefas.comandos import (
     RaizNaoEncontradaError,
     encontrar_raiz,
     etapas_do_check,
+    etapas_do_demo,
     etapas_do_down,
     etapas_do_migrar,
+    etapas_do_modelos,
     etapas_do_semente,
     etapas_do_test,
     etapas_do_up,
@@ -181,6 +183,42 @@ def test_semente_grava_os_dados_de_demonstracao_da_nuvem() -> None:
     (etapa,) = etapas_do_semente()
 
     assert etapa.argumentos[2:] == ("nuvem.semente",)
+
+
+def test_demo_sobe_migra_semeia_e_roda_o_simulador_com_a_amostra() -> None:
+    etapas = etapas_do_demo()
+
+    assert [etapa.nome for etapa in etapas] == [
+        "docker compose up",
+        "migrações",
+        "dados de demonstração",
+        "simulador",
+    ]
+    assert etapas[-1].argumentos[2:] == ("simulador", "--demonstracao", "--passagens", "amostra")
+
+
+def test_principal_conhece_o_comando_demo(tmp_path: Path) -> None:
+    (tmp_path / "pyproject.toml").write_text("[tool.uv.workspace]\n", encoding="utf-8")
+    executor = ExecutorFalso()
+
+    principal(["demo"], partida=tmp_path, executor=executor, saida=io.StringIO())
+
+    assert _modulos(executor)[1:] == ["alembic", "nuvem.semente", "simulador"]
+
+
+def test_modelos_baixa_os_pesos_do_leitor_v0() -> None:
+    (etapa,) = etapas_do_modelos()
+
+    assert etapa.argumentos[2:] == ("ml.baixar_modelos",)
+
+
+def test_principal_conhece_o_comando_modelos(tmp_path: Path) -> None:
+    (tmp_path / "pyproject.toml").write_text("[tool.uv.workspace]\n", encoding="utf-8")
+    executor = ExecutorFalso()
+
+    principal(["modelos"], partida=tmp_path, executor=executor, saida=io.StringIO())
+
+    assert _modulos(executor) == ["ml.baixar_modelos"]
 
 
 def test_principal_conhece_o_comando_migrar(tmp_path: Path) -> None:
