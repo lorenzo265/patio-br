@@ -138,6 +138,12 @@ def principal(
                 )
             print(f"{guardadas} passagens guardadas na fila da caixa", file=saida)
             _enviar(fila, caixa, cliente, argumentos.esperar_no_maximo, saida)
+            if argumentos.demonstracao:
+                print(
+                    f"veja em {caixa.nuvem}/portaria (entre com porteiro@empresa-a.example e a "
+                    f"senha {SENHA_DA_DEMONSTRACAO})",
+                    file=saida,
+                )
         finally:
             fila.fechar()
     except SimuladorError as erro:
