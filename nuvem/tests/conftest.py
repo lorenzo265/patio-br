@@ -6,6 +6,7 @@ testado faça commit: nada que um teste grava sobra para o próximo.
 """
 
 from collections.abc import Callable, Iterator
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -25,6 +26,8 @@ from nuvem.banco import obter_sessao
 from nuvem.cadastro.acesso import Acesso, acesso_do_usuario
 from nuvem.cifra import Cifra, obter_cifra
 from nuvem.config import Configuracao
+from nuvem.frota import servico as frota
+from nuvem.frota.servico import CaixaAtivada
 from nuvem.principal import criar_app
 from nuvem.semente import SENHA_DA_DEMONSTRACAO, Demonstracao, semear
 from nuvem.senhas import Senhas
@@ -112,6 +115,16 @@ def cenario(sessao: Session, cifra: Cifra, senhas: Senhas) -> Demonstracao:
 
 
 @pytest.fixture
+def caixa_a(sessao: Session, cenario: Demonstracao) -> CaixaAtivada:
+    """Uma caixa de borda ativada no site_a (a chave dela está em ``chave``)."""
+    agora = datetime.now(UTC)
+    gerado = frota.gerar_codigo_de_ativacao(
+        sessao, cenario.site_a.id, administrador_id=cenario.administrador.id, agora=agora
+    )
+    return frota.ativar(sessao, gerado.codigo, agora=agora)
+
+
+@pytest.fixture
 def acesso_a(sessao: Session, cenario: Demonstracao) -> Acesso:
     """O gestor da empresa A, ligado só ao site_a."""
     return acesso_do_usuario(sessao, cenario.gestor_a.id)
@@ -124,14 +137,20 @@ def acesso_b(sessao: Session, cenario: Demonstracao) -> Acesso:
 
 
 @pytest.fixture
-def app(url_banco_teste: str, conexao: Connection, senhas: Senhas, cifra: Cifra) -> FastAPI:
+def app(
+    url_banco_teste: str, conexao: Connection, senhas: Senhas, cifra: Cifra, tmp_path: Path
+) -> FastAPI:
     """A aplicação no ambiente local, dentro da transação do teste (desfeita no fim).
 
     Cada requisição ganha a própria sessão, como em produção: o que a rota grava sem
     ``commit`` se perde no fim da requisição.
     """
     configuracao = Configuracao(
-        url_banco=url_banco_teste, chave_cifra=CHAVE_QUALQUER, ambiente="local", _env_file=None
+        url_banco=url_banco_teste,
+        chave_cifra=CHAVE_QUALQUER,
+        ambiente="local",
+        pasta_fotos=tmp_path / "fotos",
+        _env_file=None,
     )
     app = criar_app(configuracao, senhas=senhas)
 

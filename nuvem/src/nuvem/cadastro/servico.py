@@ -125,20 +125,7 @@ def faixas_para_a_borda(
 
     Quem chama já conferiu a chave da caixa; ``empresa_id`` e ``site_id`` são os dela.
     """
-    faixas = sessao.scalars(
-        select(Faixa)
-        .join(
-            Portaria,
-            and_(Portaria.id == Faixa.portaria_id, Portaria.empresa_id == Faixa.empresa_id),
-        )
-        .where(Faixa.empresa_id == empresa_id, Portaria.site_id == site_id)
-        .order_by(Faixa.id)
-    ).all()
-    cameras = sessao.scalars(
-        select(Camera)
-        .where(Camera.empresa_id == empresa_id, Camera.faixa_id.in_([f.id for f in faixas]))
-        .order_by(Camera.id)
-    ).all()
+    faixas, cameras = _faixas_e_cameras_do_site(sessao, empresa_id=empresa_id, site_id=site_id)
     return [
         FaixaDaBorda(
             id=faixa.id,
@@ -159,6 +146,51 @@ def faixas_para_a_borda(
         )
         for faixa in faixas
     ]
+
+
+@dataclass(frozen=True)
+class FaixaDoSite:
+    """Uma faixa do site e os ids das câmeras dela, para conferir o que a caixa manda."""
+
+    id: int
+    sentido: Sentido
+    cameras: frozenset[int]
+
+
+def estrutura_do_site(sessao: Session, *, empresa_id: int, site_id: int) -> dict[int, FaixaDoSite]:
+    """As faixas de um site (por id), com as câmeras de cada uma, sem senhas.
+
+    Quem chama já conferiu a chave da caixa; ``empresa_id`` e ``site_id`` são os dela.
+    """
+    faixas, cameras = _faixas_e_cameras_do_site(sessao, empresa_id=empresa_id, site_id=site_id)
+    return {
+        faixa.id: FaixaDoSite(
+            id=faixa.id,
+            sentido=faixa.sentido,
+            cameras=frozenset(c.id for c in cameras if c.faixa_id == faixa.id),
+        )
+        for faixa in faixas
+    }
+
+
+def _faixas_e_cameras_do_site(
+    sessao: Session, *, empresa_id: int, site_id: int
+) -> tuple[Sequence[Faixa], Sequence[Camera]]:
+    faixas = sessao.scalars(
+        select(Faixa)
+        .join(
+            Portaria,
+            and_(Portaria.id == Faixa.portaria_id, Portaria.empresa_id == Faixa.empresa_id),
+        )
+        .where(Faixa.empresa_id == empresa_id, Portaria.site_id == site_id)
+        .order_by(Faixa.id)
+    ).all()
+    cameras = sessao.scalars(
+        select(Camera)
+        .where(Camera.empresa_id == empresa_id, Camera.faixa_id.in_([f.id for f in faixas]))
+        .order_by(Camera.id)
+    ).all()
+    return faixas, cameras
 
 
 # --- Administração (nós) -------------------------------------------------------------------

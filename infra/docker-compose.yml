@@ -52,6 +52,9 @@ services:
       PATIO_CHAVE_CIFRA: ${PATIO_CHAVE_CIFRA:-_0_jqx-SW46BKdQoB9mZcMouVAft1Qjf8Pf2niPbThI=}
       # Local: o cookie do login vai sem Secure, porque aqui é http://localhost.
       PATIO_AMBIENTE: ${PATIO_AMBIENTE:-local}
+      # Fotos das passagens: dentro do contêiner, num volume que sobrevive ao `down`.
+      PATIO_PASTA_FOTOS: /app/dados/fotos
+    volumes: [fotos:/app/dados/fotos]
     ports: ["127.0.0.1:${API_PORTA:-18000}:8000"]
     depends_on:
       postgres:
@@ -67,3 +70,4 @@ services:
 
 volumes:
   postgres-dados:
+  fotos:
