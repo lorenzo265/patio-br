@@ -1,7 +1,7 @@
 # SDD — patio-br (nome provisório)
 
 **Documento de desenho do software (SDD) do MVP do piloto**
-Versão 0.19 · 2026-10-04 · Situação: aprovado como base; itens em aberto na seção 12
+Versão 0.20 · 2026-10-04 · Situação: aprovado como base; itens em aberto na seção 12
 
 ---
 
@@ -253,6 +253,21 @@ entrega agendamentos no formato interno, com `origem` e `codigo_externo` preench
 `link`, `planilha`, `api_generica`. Depois: `totvs`, `sap`, `senior`, `fleetbase` (previsão de
 chegada), cada um um conector novo, sem mudar o resto.
 
+Regras comuns a todos os conectores:
+
+- **Formato interno:** as placas passam pela mesma regra de formato do leitor (seção 4.2); o
+  celular é do Brasil (DDD e os 9 números do celular) e fica guardado com o +55; a chave da NF-e
+  tem 44 caracteres e o dígito verificador confere, já com o CNPJ alfanumérico.
+- **Obrigatórios:** janela, tipo, placa do cavalo e `codigo_externo`. Motorista, celular e
+  toneladas podem chegar depois, por um reenvio (a planilha do cliente nem sempre os tem); o link
+  da transportadora pede todos.
+- **Reenvio atualiza** (D-33): o mesmo `codigo_externo` da mesma origem, no mesmo site, muda o
+  agendamento que já existe em vez de criar outro. Reenviar igual não muda nada.
+- **Cada mudança fica registrada** (o que era, o que ficou, quando, por qual origem e por quem),
+  inclusive a criação e o cancelamento. Trocar o celular apaga a autorização de WhatsApp: ela é do
+  número, não do agendamento.
+- **Cancelado não volta pelo reenvio:** o conector recebe a recusa, com o motivo.
+
 ### 3.5 Fases futuras (já previstas)
 
 | Fase | Módulos |
@@ -401,7 +416,8 @@ O banco público brasileiro (RodoSol-ALPR) só permite uso acadêmico. Por isso:
 | `Doca` | site, nome, situação |
 | `Usuario` | empresa, nome, e-mail, papel (porteiro, pátio ou gestor), sites com acesso, senha, PIN (porteiro), ativo, verificação em duas etapas (gestor) |
 | `Administrador` | nome, e-mail, senha, ativo, verificação em duas etapas; é a administração (nós), fora de qualquer empresa (D-19) |
-| `Agendamento` | site, janela início/fim, tipo (carga/descarga), placas esperadas (cavalo, reboques), motorista (nome, celular), autorização de WhatsApp, toneladas, chave NF-e (opcional), `origem`, `codigo_externo`, situação |
+| `Agendamento` | site, janela início/fim, tipo (carga/descarga), placas esperadas (cavalo, reboques), motorista (nome, celular), autorização de WhatsApp, toneladas, chave NF-e (opcional), `origem`, `codigo_externo`, situação (ativo ou cancelado; o andamento da chegada é da visita, D-32) |
+| `MudancaAgendamento` | agendamento, quando, tipo (criado, alterado, cancelado), por onde (a origem do conector ou o painel), quem (usuário, se houver), o que era e o que ficou — **só se acrescenta** |
 | `Veiculo` | placa, tipo (cavalo, reboque, caminhão simples); campo de posição no pátio reservado para o modo B |
 | `Passagem` | formato da seção 3.2 |
 | `Visita` | site, agendamento (opcional), composição confirmada (cada placa marcada como lida ou inferida), estado, horários de cada etapa, doca |
@@ -807,6 +823,8 @@ folga.
 | D-29 | Decodificador de vídeo da caixa: OpenCV sem interface gráfica (`opencv-python-headless`, Apache-2.0) | a roda traz o FFmpeg montado como LGPL 2.1, sem x264 nem x265 (conferido no Linux e no Windows; `docs/validacao/fatos-tecnicos-stack.md`), o que a D-27 aceita; lê arquivo e RTSP e já entrega os quadros em BGR, como a caixa usa | PyAV (a roda traz x264 e x265, GPL); o programa `ffmpeg` à parte (as montagens comuns são GPL; teríamos de montar o nosso); GStreamer (mais peças, e cada plugin com a sua licença) |
 | D-30 | Na caixa, cada câmera ao vivo é lida na própria linha de execução, e o agente processa os quadros na ordem em que chegam | ao vivo, os quadros já chegam na ordem do tempo; esperar a câmera mais lenta (como na leitura de arquivos) faria uma câmera caída, que espera até 30 s para reabrir, segurar todas as outras, e o vídeo delas atrasaria e se perderia | juntar as câmeras pela hora dos quadros (certo para arquivos, onde nada chega atrasado); um processo por câmera (mais memória, e a composição junta câmeras da mesma faixa) |
 | D-31 | O OpenSSL 1.1.1w que vem na roda do OpenCV para Linux é aceito, com o crédito que a licença pede em `borda/AVISOS-DE-TERCEIROS.md` | decisão de 04/10, que fecha o `[ABERTO-14]`: a licença OpenSSL/SSLeay é no estilo BSD, sem cópia obrigatória; a caixa não usa TLS pelo FFmpeg (RTSP sem TLS, na rede local), e o HTTPS dela vai pelo Python, com o OpenSSL do sistema; quando o OpenCV passar ao OpenSSL 3 (Apache-2.0), a roda nova entra no lugar | montar o nosso FFmpeg e o nosso OpenCV sem OpenSSL (trabalho grande para pouco ganho agora) |
+| D-32 | O agendamento tem situação própria, só ativo ou cancelado; o andamento da chegada (`AGENDADA`, `NA_FILA`, `NAO_VEIO`...) é da visita (seção 5.2) | o agendamento muda pela origem (a planilha reimportada, o link) até o caminhão chegar; se carregasse os estados da chegada, um reenvio da planilha poderia mexer num check-in já feito | o agendamento com os estados da visita |
+| D-33 | O mesmo `codigo_externo` da mesma origem, no mesmo site, atualiza o agendamento, e a mudança fica registrada | o gestor reimporta a planilha do dia várias vezes, com correções; recusar a repetida o obrigaria a apagar e criar de novo, e duplicar deixaria dois candidatos iguais no casamento | recusar o código repetido; criar outro agendamento |
 
 ---
 
@@ -881,3 +899,4 @@ folga.
 | 0.17 | 2026-10-04 | programa da caixa: ativação, configuração, câmeras RTSP, agente e remetente; câmeras ao vivo lidas em paralelo (D-30; seções 7.4 e 11) |
 | 0.18 | 2026-10-04 | decisão de 04/10 sobre o OpenSSL dentro do OpenCV (D-31, fecha o `[ABERTO-14]`); créditos de terceiros da caixa em `borda/AVISOS-DE-TERCEIROS.md` (seções 6.1, 11 e 12) |
 | 0.19 | 2026-10-04 | plano do mês 2 criado (`docs/planos/2026-11-plano-mes-2.md`); novos `[ABERTO-15]` (gravar sem rostos), `[ABERTO-16]` (ambiente de treino) e `[ABERTO-17]` (leitor comercial no teste técnico) (seção 12) |
+| 0.20 | 2026-10-04 | agendamentos (T27): regras comuns aos conectores, situação própria do agendamento (D-32), reenvio que atualiza (D-33) e o registro das mudanças (seções 3.4, 5.1 e 11) |
