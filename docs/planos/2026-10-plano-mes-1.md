@@ -314,6 +314,11 @@ em até 2 segundos.
 **Regra:** se algum peso não tiver licença clara permitindo uso comercial, ele só pode ser usado
 em avaliação interna, e isso fica escrito. O leitor v1 (mês 2) usa pesos treinados por nós.
 
+**Feito (2026-10-03):** D-FINE, YOLOX e fast-plate-ocr sem licença declarada dos pesos (só
+avaliação interna); PaddleOCR e RapidOCR com Apache-2.0 declarada. A mais: a conferência das
+rodas achou bibliotecas nativas GPL e LGPL (PyAV com x264/x265, OpenCV com FFmpeg, NumPy com
+libquadmath), registradas como `[ABERTO-13]` no SDD; até a decisão, a caixa não lê vídeo.
+
 **Commit:** `docs: licenças dos pesos do leitor v0`
 
 #### T14. Regras puras do leitor (sem modelo)
@@ -325,12 +330,17 @@ em avaliação interna, e isso fica escrito. O leitor v1 (mês 2) usa pesos trei
 
 **Regras (teste primeiro):**
 - `interface.py`: `LeitorDePlacas` (entra imagem, sai lista de `(texto, confiança, caixa)`).
+  A "caixa" (o retângulo da placa na imagem) virou `Regiao`, porque "caixa" já é a caixa de
+  borda. Dependência nova na borda: `numpy` (BSD), o tipo do quadro.
 - `formato.py`: valida e corrige por posição (`0↔O`, `1↔I`, `8↔B`, `5↔S`); toda correção
-  reduz a confiança; nunca inventa caractere.
+  reduz a confiança (×0,9 por caractere); nunca inventa caractere (SDD 4.2).
 - `votacao.py`: junta as leituras de vários quadros do mesmo veículo e escolhe a mais
-  frequente, desempatando pela confiança.
+  frequente, desempatando pela confiança. A confiança final é a média dos vencedores vezes a
+  fração dos quadros que concordam (SDD 4.2).
 - `composicao.py`: na mesma faixa, junta a placa lida pela câmera da frente (cavalo) com a lida
   pela câmera de trás (reboque) dentro de uma janela de tempo configurável (padrão 30 s).
+  Regras completas no SDD 4.3. Desvio: o "reboque sem cavalo" sai com papel ~~`reboque`~~
+  `desconhecido`, porque sem a frente a placa traseira pode ser do próprio cavalo (SDD D-23).
 
 **Verificar:** `uv run tarefas test` com casos de borda (placa com troca, empate, reboque sem
 cavalo, cavalo sem reboque).
@@ -381,10 +391,14 @@ produz exatamente uma leitura por veículo.
 **Arquivos:** `borda/src/borda/envio.py`, testes.
 
 **Regras (teste primeiro):**
-- Toda passagem é gravada primeiro num SQLite local, depois enviada.
+- Toda passagem é gravada primeiro num SQLite local, depois enviada. As fotos vão junto na
+  fila e sobem antes da passagem (pelo endereço temporário da T11).
 - Envio com tentativas e espera crescente (1 s, 2 s, 4 s… até 5 min).
-- Só sai da fila quando a nuvem responde 201 ou 200.
+- Só sai da fila quando a nuvem responde 201 ou 200. Desvio: a recusa definitiva (403, 409,
+  422) também tira da fila, mas a passagem fica guardada à parte na caixa, com o motivo; senão,
+  uma passagem errada travaria a portaria para sempre (SDD D-24).
 - Envia na ordem em que as passagens aconteceram.
+- Dependência nova na borda: `httpx` (BSD), o cliente HTTP previsto no SDD 6.1.
 
 **Verificar:** teste com uma nuvem falsa que falha 3 vezes e depois aceita: a passagem chega uma
 vez só.

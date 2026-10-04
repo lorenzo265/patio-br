@@ -1,7 +1,7 @@
 # SDD — patio-br (nome provisório)
 
 **Documento de desenho do software (SDD) do MVP do piloto**
-Versão 0.9 · 2026-10-03 · Situação: aprovado como base; itens em aberto na seção 12
+Versão 0.12 · 2026-10-03 · Situação: aprovado como base; itens em aberto na seção 12
 
 ---
 
@@ -277,9 +277,9 @@ usados só em avaliação interna, nunca no produto.
 
 | Passo | O que faz | Ferramenta (licença) |
 |---|---|---|
-| 1. Captura | puxa o vídeo (RTSP) e só processa quando há veículo na faixa | FFmpeg/PyAV + go2rtc (MIT) |
+| 1. Captura | puxa o vídeo (RTSP) e só processa quando há veículo na faixa | FFmpeg/PyAV + go2rtc (MIT); FFmpeg é LGPL e a roda do PyAV traz partes GPL: `[ABERTO-13]` |
 | 2. Detecção | acha o veículo e a placa no quadro | D-FINE-N ou YOLOX-Tiny (Apache-2.0) — `[ABERTO-03]` |
-| 3. Rastreamento | segue o mesmo veículo entre quadros | ByteTrack + supervision (MIT) |
+| 3. Rastreamento | segue o mesmo veículo entre quadros | ByteTrack + supervision (MIT); o supervision exige o PyAV: `[ABERTO-13]` |
 | 4. Leitura (OCR) | lê os caracteres da placa | modelo leve no estilo do fast-plate-ocr (código MIT), com pesos nossos |
 | 5. Votação | junta as leituras de vários quadros e fica com a mais confiável | código nosso |
 | 6. Formato | valida e corrige pela posição dos caracteres | código nosso |
@@ -293,6 +293,15 @@ usados só em avaliação interna, nunca no produto.
 Correções por posição: onde só cabe letra, `0→O`, `1→I`, `8→B`, `5→S`; onde só cabe número, o
 inverso. A correção é registrada na passagem (confiança menor).
 
+- **Formato:** só os separadores (espaço, `-`, `.`, `·`) são retirados. Texto que não fica com 7
+  caracteres, ou com um caractere que não cabe na posição e não tem correção, é descartado: o
+  leitor nunca inventa nem apaga caractere. Cada caractere corrigido multiplica a confiança por
+  0,9. A 5ª posição aceita letra e número (antiga e Mercosul) e nunca é corrigida.
+- **Votação:** fica a placa lida em mais quadros; no empate, a de maior confiança média. A
+  confiança final é a média das confianças dos quadros vencedores vezes a fração dos quadros
+  que concordam (ex.: 4 de 5 quadros a 0,95 → 0,95 × 0,8 = 0,76). `quadros` na passagem é o
+  número de quadros vencedores.
+
 ### 4.3 Composições e o que a câmera não vê
 
 - Pela regra do CONTRAN, reboques só têm placa traseira. A câmera da frente lê o cavalo; a de
@@ -301,6 +310,15 @@ inverso. A correção é registrada na passagem (confiança menor).
   com um agendamento do dia, a nuvem, no casamento, completa o meio a partir dele e registra na
   composição da visita que essa placa foi **inferida**, e não lida. A passagem não muda: a caixa
   não conhece os agendamentos e só envia o que viu.
+- **Composição na caixa**, por faixa, com uma janela de tempo (padrão 30 s):
+  - a leitura da câmera da frente é o **cavalo**, e espera a de trás até o fim da janela;
+  - a leitura de trás, com placa **diferente** da frente, é o **reboque** da composição mais
+    recente da faixa, que se fecha ali. As mais antigas que ainda esperavam saem sozinhas;
+  - a leitura de trás **igual** à da frente é a placa traseira do mesmo veículo, sem reboque: a
+    composição se fecha só com o cavalo;
+  - a leitura de trás **sem** nenhuma da frente na janela sai com papel **desconhecido**: sem a
+    frente, não dá para saber se é um reboque ou o próprio cavalo (D-23);
+  - a leitura da frente que chega ao fim da janela sem a de trás sai sozinha, como cavalo.
 
 ### 4.4 Onde roda
 
@@ -542,6 +560,15 @@ Serve para desenvolver sem câmera, para os testes de ponta a ponta e para simul
 - **Rede:** a caixa **só faz conexões de saída**. Nenhuma porta aberta na rede do cliente.
   Câmeras num switch separado.
 - **Disco local:** fila de passagens (SQLite) e cache de recortes por até 30 dias para treino.
+- **Fila de envio** (SQLite, no disco da caixa):
+  - toda passagem é gravada primeiro na fila, com as fotos, e só depois enviada;
+  - envia na ordem em que as passagens aconteceram: primeiro as fotos, depois a passagem;
+  - erro de rede, 5xx, 401, 408 ou 429: tenta de novo, esperando 1 s, 2 s, 4 s... até 5 min
+    entre as tentativas, sem passar à frente;
+  - 201 ou 200: a passagem sai da fila;
+  - recusa definitiva (403, 409 ou 422): a passagem sai da fila e fica guardada à parte na
+    caixa, com o motivo, para não travar as seguintes (D-24). Foto recusada de vez (409, 413 ou
+    415) fica de fora, e a passagem segue sem ela.
 
 ### 7.5 WhatsApp e SMS
 
@@ -706,6 +733,8 @@ folga.
 | D-20 | Sessão de login guardada no banco; o cookie leva só um código aleatório | sair e desligar um usuário valem na hora; o banco guarda só o resumo do código; não precisa de outra chave secreta | cookie assinado com os dados do usuário, ou token JWT (não dá para revogar antes de vencer) |
 | D-21 | Na passagem e na configuração da caixa, os identificadores (caixa, site, faixa, câmera) são os ids da nuvem em texto | a caixa os recebe prontos na ativação e na configuração; a nuvem confere cada um contra o cadastro sem tabela de tradução | um código próprio para cada coisa (ex.: `entrada-1`), que precisaria ser único, editável e traduzido em toda passagem |
 | D-22 | Fotos enviadas pela caixa a um endereço temporário; no armazenamento local, o endereço leva um código cifrado (Fernet, com a chave da cifra) que diz a caixa, o `ref` e quando vence | a mesma forma do endereço assinado do S3 (mês 4): a caixa só aprende "peça o endereço e envie"; não precisa de outro segredo | foto dentro da passagem (passagem pesada, reenvio caro); envio pela API com a chave da caixa (no S3 seria outro caminho) |
+| D-23 | A placa lida só pela câmera de trás, sem a da frente, vai com papel `desconhecido` | sem a frente, a placa traseira pode ser de um reboque ou do próprio cavalo sem reboque; a caixa só diz o que viu, e o casamento (mês 2) testa a placa em qualquer papel | papel `reboque` sempre que a leitura vem da traseira (erra no cavalo sem reboque com a frente ilegível e na saída, que só tem câmera traseira) |
+| D-24 | Passagem que a nuvem recusa de vez (403, 409, 422) sai da fila e fica guardada à parte na caixa | reenviar não muda a resposta, e a fila em ordem ficaria travada para sempre atrás dela; guardada à parte, nada se perde e o suporte vê o motivo | só tirar da fila com 201 ou 200 (trava a portaria inteira por uma passagem errada); apagar a recusada (perde a prova) |
 
 ---
 
@@ -724,7 +753,8 @@ folga.
 | ABERTO-09 | Tolerância de janela (padrão 4h após o fim da janela, usada também para "não veio") e momento do alerta de estadia (padrão: 4h depois da chegada) | com o cliente do piloto |
 | ABERTO-10 | Modelo de dados detalhado do modo B | no início da Fase 2 |
 | ABERTO-11 | Implementação da fila de tarefas no PostgreSQL (biblioteca ou tabela própria) | no mês 2, quando o worker entrar com o casamento |
-| ABERTO-12 | Licença dos pesos de terceiros usados em avaliação (ex.: fast-plate-ocr) | antes de usá-los, mesmo internamente |
+| ABERTO-12 | Licença dos pesos de terceiros usados em avaliação (ex.: fast-plate-ocr) | antes de usá-los, mesmo internamente. Levantado na T13 (`docs/validacao/fatos-tecnicos-stack.md`, 2026-10-03): D-FINE, YOLOX e fast-plate-ocr sem licença declarada dos pesos (só avaliação interna); PaddleOCR e RapidOCR com Apache-2.0 declarada. Falta confirmar para fechar |
+| ABERTO-13 | Bibliotecas nativas GPL e LGPL dentro das rodas: o PyAV do PyPI traz x264 e x265 (GPL); o supervision exige o PyAV; o OpenCV traz o FFmpeg (LGPL) e o RapidOCR exige o OpenCV; até a NumPy traz a libquadmath (LGPL). Proposta: aceitar LGPL nativa usada sem modificação e carregada dinamicamente (como o MPL-2.0), GPL só com a exceção de runtime do GCC, e o FFmpeg só montado sem partes GPL | com o Lorenzo, antes de a caixa ler vídeo (T15, T16 e T18) |
 
 ---
 
@@ -768,3 +798,6 @@ folga.
 | 0.7 | 2026-10-03 | ativação da caixa (T10): código de uso único por site, chave própria com `Bearer`, configuração baixada pela caixa; ids da nuvem em texto na passagem (D-21; seções 3.2, 5.1 e 7.4) |
 | 0.8 | 2026-10-03 | recebimento de passagens e fotos (T11): respostas 201/200/403/409/422 e envio de fotos por endereço temporário (D-22; seção 3.2) |
 | 0.9 | 2026-10-03 | tela crua da portaria (T12): arquivos de terceiros do painel (HTMX) no repositório, com licença e hash (seção 6.1) |
+| 0.10 | 2026-10-03 | regras puras do leitor (T14): formato, votação e composição na caixa; leitura só da traseira com papel desconhecido (D-23; seções 4.2 e 4.3) |
+| 0.11 | 2026-10-03 | fila de envio da caixa (T17): ordem, espera crescente e recusa definitiva guardada à parte (D-24; seção 7.4) |
+| 0.12 | 2026-10-03 | licenças dos pesos do leitor v0 (T13): situação do `[ABERTO-12]`; novo `[ABERTO-13]`, bibliotecas nativas GPL e LGPL dentro das rodas (seções 4.2 e 12) |
