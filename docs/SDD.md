@@ -1,7 +1,7 @@
 # SDD — patio-br (nome provisório)
 
 **Documento de desenho do software (SDD) do MVP do piloto**
-Versão 0.26 · 2026-10-04 · Situação: aprovado como base; itens em aberto na seção 12
+Versão 0.27 · 2026-10-04 · Situação: aprovado como base; itens em aberto na seção 12
 
 ---
 
@@ -582,7 +582,7 @@ licença deles é conferida à mão, como a dos modelos.
 
 | Tela | Quem | Conteúdo |
 |---|---|---|
-| Portaria | porteiro | chegadas ao vivo com foto; **fila de exceções** em cartões (foto, candidatos, "é este" / "corrigir"); saídas; registro manual |
+| Portaria | porteiro | chegadas ao vivo com foto e o resultado do casamento (check-in, exceção, saída); **fila de exceções** em cartões (foto, candidatos, "é este" / "corrigir"); saídas; registro manual |
 | Pátio e docas | líder | fila por tempo de espera; docas livres/ocupadas; chamar / iniciar / finalizar; alerta perto de 5h |
 | Gestor | gestor | indicadores (espera média, visitas acima de 5h, % de check-in automático, uso de docas); extrato do mês (PDF e planilha) |
 | Agendamentos | gestor | lista do dia ou da semana, no fuso do site, com o cancelamento; importar planilha com modelo e relatório de erros por linha; gerar e revogar links da transportadora (o endereço aparece uma vez só, ao gerar) |
@@ -617,7 +617,13 @@ Serve para desenvolver sem câmera, para os testes de ponta a ponta e para simul
 - Usa o mesmo agente da caixa (captura → leitor → rastreamento → composição → fila) e a mesma
   ativação: código de uso único, chave guardada em `dados/` (fora do Git).
 - **Passagens prontas** (`--passagens arquivo.json`): manda passagens escritas à mão, sem visão
-  computacional; caixa, site, faixa e horários vêm da ativação e da hora atual quando faltam.
+  computacional; caixa, site, faixa e horários vêm da ativação e da hora atual quando faltam. Uma
+  passagem pode dizer só o sentido (`"sentido": "saida"`), e vai pela primeira faixa dele.
+- **Agendamentos** (`--agendamentos arquivo.json` ou `amostra`, só com `--demonstracao`): entra
+  como o gestor da semente e sobe os agendamentos pela planilha, com as janelas relativas à hora
+  atual e códigos novos a cada rodada. A amostra de agendamentos e a de passagens vêm juntas: há
+  chegadas que casam, uma que vira exceção por ter dois candidatos, uma sem placa e uma saída.
+  A amostra não traz celular: mesmo inventado, um número pode ser de alguém.
 - **Quadros** (`--quadros pasta`): roda o leitor v0 sobre as imagens de uma pasta, como se fossem
   uma câmera.
 - **Vídeo** (`--video arquivo`): o mesmo, sobre um arquivo de vídeo (ex.: uma gravação da
@@ -976,3 +982,4 @@ folga.
 | 0.24 | 2026-10-04 | visita, eventos e exceções (T31): a visita nasce na chegada (D-35), exceção na própria visita, eventos que o banco não deixa alterar (seções 5.1, 5.2, 5.5 e 11) |
 | 0.25 | 2026-10-04 | casamento (T32): candidatos com a tolerância, motivos da exceção, placa antiga e Mercosul (D-36), saída por qualquer placa da composição (D-37), composição lida ou inferida, passagem repetida (seções 5.3 e 11) |
 | 0.26 | 2026-10-04 | fila de tarefas e worker (T33): tabela nossa com `SKIP LOCKED` (D-38, fecha o `[ABERTO-11]` pela recomendação do plano), espera crescente, "não veio" a cada 5 minutos (seções 6.1, 11 e 12) |
+| 0.27 | 2026-10-04 | simulador com agendamentos (T35): `--agendamentos`, passagem pelo sentido, resultado do casamento na tela da portaria (seções 6.2 e 6.4) |
