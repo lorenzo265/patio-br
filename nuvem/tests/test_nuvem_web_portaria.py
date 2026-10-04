@@ -244,3 +244,18 @@ def test_porteiro_de_outro_site_da_mesma_empresa_nao_ve_a_foto(
     resposta = entrar("porteiro-site2@empresa-a.example").get(f"/portaria/fotos/{passagem.id}/0")
 
     assert resposta.status_code == 404
+
+
+def test_sentido_aparece_com_acento(
+    sessao: Session,
+    entrar: Entrar,
+    cenario: Demonstracao,
+    caixa_a: CaixaAtivada,
+    registrar_passagem: Registrar,
+) -> None:
+    saida = cadastro.criar_faixa(sessao, cenario.portaria_a, nome="Saída 2", sentido="saida")
+    registrar_passagem(faixa_id=str(saida.id), sentido="saida", placas=[], fotos=[])
+
+    lista = entrar(cenario.porteiro_a.email).get(f"/portaria/passagens?site={cenario.site_a.id}")
+
+    assert "Saída 2 (saída)" in lista.text

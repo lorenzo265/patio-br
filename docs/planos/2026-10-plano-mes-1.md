@@ -429,13 +429,21 @@ gravado como se fosse a caixa.
 
 **Arquivos:**
 - `borda/src/borda/agente.py`: o processo principal da caixa (configuração: faixas, câmeras,
-  endereço da nuvem, chave).
-- `ferramentas/src/simulador/__main__.py`: `uv run simulador --video <arquivo> --faixa
+  endereço da nuvem, chave). Entrou o `Agente` (rastreador por câmera de placa, composição por
+  faixa, passagem com `id` novo e foto da placa em JPEG na fila) e `rodar`, que junta as
+  câmeras na ordem do tempo. Falta o executável da caixa de verdade, que lê as câmeras (RTSP):
+  espera o `[ABERTO-13]`.
+- `ferramentas/src/simulador/__main__.py`: `uv run simulador ~~--video <arquivo>~~ --faixa
   entrada-1 --camera frente` roda o agente sobre o arquivo; também aceita
   `--passagens <arquivo.json>` para mandar passagens prontas, sem visão computacional.
+  Desvio: o vídeo espera o `[ABERTO-13]`; no lugar, `--quadros <pasta>` roda o agente sobre as
+  imagens de uma pasta. A mais: `--codigo` e `--demonstracao` (ativação, só local), `amostra`
+  (três passagens inventadas, com uma foto de placa desenhada), a chave e a fila em
+  `dados/simulador/`. Na nuvem, a mais: `GET /api/admin/sites`, para a demonstração achar o
+  site sozinha.
 
 **Verificar:** com o ambiente local no ar, o simulador manda passagens que aparecem na tela da
-portaria.
+portaria. Feito em 2026-10-03 com `--demonstracao --passagens amostra`.
 
 **Commit:** `feat(ferramentas): agente da borda e simulador de portaria`
 

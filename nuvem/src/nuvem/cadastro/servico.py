@@ -356,6 +356,11 @@ def definir_pin(sessao: Session, senhas: Senhas, usuario: Usuario, pin: str) -> 
     sessao.flush()
 
 
+def listar_sites_para_administracao(sessao: Session) -> list[Site]:
+    """Todos os sites, por empresa e nome. Só para a administração (as rotas dela conferem)."""
+    return list(sessao.scalars(select(Site).order_by(Site.empresa_id, Site.nome)))
+
+
 def listar_empresas(sessao: Session) -> list[Empresa]:
     """Todas as empresas, por nome. Só para a administração (as rotas dela conferem)."""
     return list(sessao.scalars(select(Empresa).order_by(Empresa.nome)))

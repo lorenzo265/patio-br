@@ -51,6 +51,16 @@ class EmpresaPublica(BaseModel):
     cnpj: str
 
 
+class SiteParaAdministracao(BaseModel):
+    """Um site como a administração o vê: com a empresa."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    empresa_id: int
+    nome: str
+
+
 class CameraPublica(BaseModel):
     """Uma câmera como a API a mostra: sem login nem senha."""
 
@@ -90,3 +100,12 @@ def listar_empresas(
 ) -> list[EmpresaPublica]:
     """Todas as empresas (só a administração)."""
     return [EmpresaPublica.model_validate(empresa) for empresa in servico.listar_empresas(sessao)]
+
+
+@roteador_admin.get("/sites")
+def listar_sites_para_administracao(
+    sessao: SessaoDaRequisicao, _administracao: AcessoDaAdministracao
+) -> list[SiteParaAdministracao]:
+    """Todos os sites, de todas as empresas (só a administração)."""
+    sites = servico.listar_sites_para_administracao(sessao)
+    return [SiteParaAdministracao.model_validate(site) for site in sites]

@@ -601,6 +601,16 @@ requires-dist = [{ name = "pydantic", specifier = ">=2.13.5" }]
 name = "patio-ferramentas"
 version = "0.1.0"
 source = { editable = "ferramentas" }
+dependencies = [
+    { name = "httpx" },
+    { name = "patio-borda" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "httpx", specifier = ">=0.28.1" },
+    { name = "patio-borda", editable = "borda" },
+]
 
 [[package]]
 name = "patio-ml"
