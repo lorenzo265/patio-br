@@ -1,7 +1,7 @@
 # SDD — patio-br (nome provisório)
 
 **Documento de desenho do software (SDD) do MVP do piloto**
-Versão 0.16 · 2026-10-04 · Situação: aprovado como base; itens em aberto na seção 12
+Versão 0.17 · 2026-10-04 · Situação: aprovado como base; itens em aberto na seção 12
 
 ---
 
@@ -597,6 +597,18 @@ Serve para desenvolver sem câmera, para os testes de ponta a ponta e para simul
   faixa, a composição; cada composição vira uma passagem com a hora da caixa e um `id` novo, e
   vai para a fila com a foto de cada placa (o recorte, em JPEG). Por enquanto a caixa só manda
   fotos de placa; a foto de contexto entra com o borrão de rostos (seção 8.3).
+- **Programa da caixa** (`caixa`):
+  - `caixa ativar --nuvem <endereço> --codigo <código>` troca o código pela chave e a guarda em
+    `dados/caixa/caixa.json`, que só o dono do arquivo lê;
+  - `caixa rodar` baixa a configuração (se a nuvem não responde, tenta de novo, esperando 1 s,
+    2 s, 4 s... até 5 min), abre as câmeras de placa por RTSP (por TCP, com o login e a senha da
+    configuração), roda o agente e o remetente da fila até ser desligado (sinal de término ou
+    Ctrl+C) e, ao desligar, encerra o que estava em aberto, que fica na fila para a próxima vez;
+  - cada câmera é lida na própria linha de execução, e os quadros são processados na ordem em
+    que chegam (D-30): uma câmera caída não segura as outras. Se o agente não dá conta, os
+    quadros que não cabem na espera são descartados, com registro;
+  - a configuração vale até o programa reiniciar. Por enquanto, sem a nuvem no ar a caixa não
+    começa: a configuração não fica no disco, porque traz as senhas das câmeras.
 - **Saúde:** a cada minuto envia CPU, temperatura, disco, câmeras no ar, quadros por segundo e
   passagens pendentes → tela "Frota de borda" e alertas.
 - **Atualização:** a caixa pergunta à nuvem qual versão rodar, baixa e reinicia; se o teste de
@@ -792,6 +804,7 @@ folga.
 | D-27 | Bibliotecas nativas dentro das rodas: LGPL aceita quando usada sem modificação e carregada dinamicamente; GPL só com a exceção de runtime do GCC; FFmpeg só montado sem partes GPL | decisão de 04/10, que fecha o `[ABERTO-13]`: é a mesma lógica do MPL-2.0 (biblioteca usada sem modificação); proibir toda LGPL nativa derrubaria a NumPy (`libquadmath`), de que o ONNX Runtime precisa; o PyAV do PyPI traz x264 e x265 (GPL, sem exceção) e continua de fora, e com ele o supervision | proibir toda biblioteca nativa GPL e LGPL (sem NumPy e sem vídeo); aceitar qualquer GPL nativa (contaminaria o programa da caixa) |
 | D-28 | Endereço público da API configurável (`PATIO_URL_PUBLICA`): os endereços que a API devolve à caixa partem dele | atrás de um proxy HTTPS, o pedido chega como `http://`, e a caixa receberia um endereço de envio de foto errado, tentando para sempre; sem a variável (ambiente local), vale o endereço do pedido; fora do ambiente local, só `https://` | confiar nos cabeçalhos do proxy (`--forwarded-allow-ips`), o que depende de como a hospedagem for montada (mês 4) |
 | D-29 | Decodificador de vídeo da caixa: OpenCV sem interface gráfica (`opencv-python-headless`, Apache-2.0) | a roda traz o FFmpeg montado como LGPL 2.1, sem x264 nem x265 (conferido no Linux e no Windows; `docs/validacao/fatos-tecnicos-stack.md`), o que a D-27 aceita; lê arquivo e RTSP e já entrega os quadros em BGR, como a caixa usa | PyAV (a roda traz x264 e x265, GPL); o programa `ffmpeg` à parte (as montagens comuns são GPL; teríamos de montar o nosso); GStreamer (mais peças, e cada plugin com a sua licença) |
+| D-30 | Na caixa, cada câmera ao vivo é lida na própria linha de execução, e o agente processa os quadros na ordem em que chegam | ao vivo, os quadros já chegam na ordem do tempo; esperar a câmera mais lenta (como na leitura de arquivos) faria uma câmera caída, que espera até 30 s para reabrir, segurar todas as outras, e o vídeo delas atrasaria e se perderia | juntar as câmeras pela hora dos quadros (certo para arquivos, onde nada chega atrasado); um processo por câmera (mais memória, e a composição junta câmeras da mesma faixa) |
 
 ---
 
@@ -861,3 +874,4 @@ folga.
 | 0.14 | 2026-10-03 | agente da caixa e simulador (T18): o que o agente junta, só fotos de placa por enquanto, modos do simulador (seções 6.4 e 7.4) |
 | 0.15 | 2026-10-04 | decisões de 04/10: pesos de terceiros só para comparar e avaliar (D-26, fecha o `[ABERTO-12]`); bibliotecas nativas dentro das rodas (D-27, fecha o `[ABERTO-13]`); endereço público da API (D-28); limite por IP, anti-CSRF e comando da administração antes da produção (seções 3.2, 4.1, 4.2, 6.1, 6.4, 8.2, 11 e 12) |
 | 0.16 | 2026-10-04 | leitura de vídeo na caixa: OpenCV sem interface gráfica (D-29), fontes de câmera e de arquivo, `simulador --video`; novo `[ABERTO-14]`, o OpenSSL dentro da roda do OpenCV (seções 4.2, 6.1, 6.4, 11 e 12) |
+| 0.17 | 2026-10-04 | programa da caixa: ativação, configuração, câmeras RTSP, agente e remetente; câmeras ao vivo lidas em paralelo (D-30; seções 7.4 e 11) |

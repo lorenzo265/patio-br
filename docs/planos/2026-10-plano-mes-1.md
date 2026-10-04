@@ -517,6 +517,9 @@ Coisas que levam tempo de calendário: começar na **semana 1**.
 - **04/10, SDD 0.16:** a caixa lê vídeo pelo OpenCV sem interface gráfica (D-29): câmera (RTSP)
   e arquivo, e o `simulador --video`. Novo `[ABERTO-14]`: o OpenSSL 1.1.1w dentro da roda do
   OpenCV para Linux. O programa da caixa (ativação, câmeras RTSP e envio) vem na tarefa seguinte.
+- **04/10, SDD 0.17:** o programa da caixa (`caixa ativar` e `caixa rodar`): ativação, câmeras
+  RTSP da configuração, agente e envio (D-30). Saúde, atualização e o contêiner da caixa seguem
+  no mês 3, como no cronograma.
 
 ---
 
