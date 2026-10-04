@@ -185,7 +185,7 @@ def test_semente_grava_os_dados_de_demonstracao_da_nuvem() -> None:
     assert etapa.argumentos[2:] == ("nuvem.semente",)
 
 
-def test_demo_sobe_migra_semeia_e_roda_o_simulador_com_a_amostra() -> None:
+def test_demo_sobe_migra_semeia_e_roda_o_simulador_com_as_amostras() -> None:
     etapas = etapas_do_demo()
 
     assert [etapa.nome for etapa in etapas] == [
@@ -194,7 +194,14 @@ def test_demo_sobe_migra_semeia_e_roda_o_simulador_com_a_amostra() -> None:
         "dados de demonstração",
         "simulador",
     ]
-    assert etapas[-1].argumentos[2:] == ("simulador", "--demonstracao", "--passagens", "amostra")
+    assert etapas[-1].argumentos[2:] == (
+        "simulador",
+        "--demonstracao",
+        "--agendamentos",
+        "amostra",
+        "--passagens",
+        "amostra",
+    )
 
 
 def test_principal_conhece_o_comando_demo(tmp_path: Path) -> None:

@@ -9,6 +9,7 @@
 As funções gravam com ``flush``; o ``commit`` é de quem chama.
 """
 
+from collections.abc import Sequence
 from datetime import datetime
 from uuid import UUID
 
@@ -18,13 +19,14 @@ from sqlalchemy.orm import Session
 
 from contratos.passagem import Passagem
 from nuvem import tarefas_de_fundo as fila
+from nuvem.agendamento import servico as agendamentos
 from nuvem.armazenamento import Armazenamento, RefInvalidoError, validar_ref
 from nuvem.cadastro import servico as cadastro
 from nuvem.cadastro.acesso import Acesso
 from nuvem.cadastro.servico import FaixaDoSite
 from nuvem.erros import NaoEncontradoError
 from nuvem.frota.servico import AcessoDaCaixa
-from nuvem.portaria.modelos import PassagemRecebida
+from nuvem.portaria.modelos import PassagemRecebida, Visita
 
 LIMITE_DA_TELA = 50
 """Quantas passagens a tela da portaria mostra (as últimas)."""
@@ -119,6 +121,54 @@ def ultimas_passagens(
             .limit(limite)
         )
     )
+
+
+def resultados(
+    sessao: Session, acesso: Acesso, passagens: Sequence[PassagemRecebida]
+) -> dict[UUID, str]:
+    """O que o casamento fez com cada passagem, em poucas palavras, para a tela da portaria.
+
+    Ex.: "check-in AG-1", "exceção · saiu", "saída", "aguardando o casamento".
+    """
+    ids = [passagem.id for passagem in passagens]
+    da_empresa = Visita.empresa_id == acesso.empresa_id
+    entradas = {
+        v.passagem_entrada_id: v
+        for v in sessao.scalars(
+            select(Visita).where(da_empresa, Visita.passagem_entrada_id.in_(ids))
+        )
+    }
+    saidas = set(
+        sessao.scalars(
+            select(Visita.passagem_saida_id).where(da_empresa, Visita.passagem_saida_id.in_(ids))
+        )
+    )
+    codigos = agendamentos.codigos_externos(
+        sessao, acesso, [v.agendamento_id for v in entradas.values() if v.agendamento_id]
+    )
+    tarefas = fila.situacao_das_tarefas(sessao, "casar_passagem", [str(i) for i in ids])
+    textos: dict[UUID, str] = {}
+    for passagem in passagens:
+        visita = entradas.get(passagem.id)
+        if visita is not None:
+            codigo = codigos.get(visita.agendamento_id or 0)
+            texto = f"check-in {codigo}" if codigo else "exceção"
+            textos[passagem.id] = f"{texto} · saiu" if visita.estado == "SAIU" else texto
+        elif passagem.id in saidas:
+            textos[passagem.id] = "saída"
+        else:
+            textos[passagem.id] = _sem_visita(passagem, tarefas.get(str(passagem.id)))
+    return textos
+
+
+def _sem_visita(passagem: PassagemRecebida, tarefa: str | None) -> str:
+    if tarefa == "pendente":
+        return "aguardando o casamento"
+    if tarefa == "falhou":
+        return "o casamento falhou (veja com o suporte)"
+    if tarefa == "feita" and passagem.sentido == "saida":
+        return "saída sem visita aberta"
+    return ""
 
 
 def obter_passagem(sessao: Session, acesso: Acesso, passagem_id: UUID) -> PassagemRecebida:

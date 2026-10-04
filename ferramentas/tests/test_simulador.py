@@ -80,6 +80,10 @@ class NuvemFalsa:
         self.chaves_revogadas: set[str] = set()
         self.entrou_como: str | None = None
         self.enderecos: set[str] = set()
+        self.planilhas: list[tuple[str | None, str]] = []
+        """As planilhas recebidas: o site pedido e o texto do CSV."""
+        self.ordem: list[str] = []
+        self.planilha_recusada: str | None = None
 
     def __call__(self, pedido: httpx.Request) -> httpx.Response:
         caminho = pedido.url.path
@@ -87,9 +91,24 @@ class NuvemFalsa:
         autorizacao = pedido.headers.get("authorization", "")
         if autorizacao:
             self.chaves_usadas.add(autorizacao.removeprefix("Bearer "))
+        self.ordem.append(caminho)
         if caminho == "/entrar":
             self.entrou_como = dict(httpx.QueryParams(pedido.content.decode()))["email"]
             return httpx.Response(303, headers={"set-cookie": "patio_sessao=x; Path=/"})
+        if caminho == "/api/cadastro/sites":
+            return httpx.Response(
+                200, json=[{"id": 1, "nome": "CD Exemplo", "fuso": "America/Sao_Paulo"}]
+            )
+        if caminho == "/api/agendamentos/planilha":
+            if self.planilha_recusada:
+                return httpx.Response(422, json={"detail": self.planilha_recusada})
+            corpo = pedido.content.decode()
+            csv = corpo[corpo.index("código;") : corpo.rindex("\r\n--")]
+            self.planilhas.append((pedido.url.params.get("site_id"), csv))
+            linhas = len(csv.strip().splitlines()) - 1
+            return httpx.Response(
+                200, json={"criados": linhas, "alterados": 0, "iguais": 0, "recusados": []}
+            )
         if caminho == "/api/admin/sites":
             return httpx.Response(200, json=[{"id": 1, "empresa_id": 1, "nome": "CD Exemplo"}])
         if caminho == "/api/admin/sites/1/codigos-de-ativacao":
@@ -144,17 +163,21 @@ def test_demonstracao_ativa_sozinha_e_manda_a_amostra_com_fotos(
     assert codigo == 0, saida
     assert nuvem.entrou_como == "admin@patio-br.example"
     assert nuvem.codigos_usados == ["AAAA-BBBB-CCCC"]
-    assert len(nuvem.passagens) == 3
+    assert len(nuvem.passagens) == 5
     assert {p["caixa_id"] for p in nuvem.passagens} == {"7"}
-    assert {p["faixa_id"] for p in nuvem.passagens} == {"11"}
+    # As quatro primeiras entram; a última sai (a amostra diz só o sentido).
+    assert [p["faixa_id"] for p in nuvem.passagens] == ["11", "11", "11", "11", "12"]
+    assert [p["sentido"] for p in nuvem.passagens][-1] == "saida"
     placas = [[placa["placa"] for placa in p["placas"]] for p in nuvem.passagens]
-    assert placas == [["ABC1D23", "XYZ9876"], ["BRA2E19"], []]
+    assert placas == [["ABC1D23", "XYZ9876"], ["BRA2E19"], [], ["CDE3F45"], ["FGH6I78"]]
+    assert nuvem.passagens[-1]["placas"][0]["camera_id"] == "23"  # a traseira da saída
     # Cada placa da amostra leva uma foto desenhada (inventada), em JPEG.
-    assert len(nuvem.fotos) == 3
+    assert len(nuvem.fotos) == 5
     for conteudo in nuvem.fotos.values():
         with Image.open(io.BytesIO(conteudo)) as foto:
             assert foto.format == "JPEG"
-    assert "3 enviadas" in saida
+    assert "5 enviadas" in saida
+    assert nuvem.planilhas == []  # sem --agendamentos, nada de agendamento
 
 
 def test_horarios_da_amostra_ficam_no_passado_e_em_ordem(nuvem: NuvemFalsa, tmp_path: Path) -> None:
@@ -463,3 +486,124 @@ def test_dados_da_demonstracao_batem_com_a_semente_da_nuvem() -> None:
     assert EMAIL_DA_ADMINISTRACAO == "admin@patio-br.example"
     assert SITE_DA_DEMONSTRACAO == "CD Exemplo"
     assert EMAIL_DA_ADMINISTRACAO in Path(semente.__file__).read_text(encoding="utf-8")
+
+
+# --- Agendamentos (T35) ---------------------------------------------------------------------
+
+CABECALHO_DA_PLANILHA = (
+    "código;dia;início;fim;tipo;placa do cavalo;reboque 1;reboque 2;reboque 3;motorista;"
+    "celular;toneladas;chave da NF-e"
+)
+
+
+def test_agendamentos_da_amostra_sobem_pela_planilha_antes_das_passagens(
+    nuvem: NuvemFalsa, tmp_path: Path
+) -> None:
+    codigo, saida = _rodar(
+        nuvem, tmp_path, "--demonstracao", "--agendamentos", "amostra", "--passagens", "amostra"
+    )
+
+    assert codigo == 0, saida
+    assert nuvem.entrou_como == "gestor@empresa-a.example"
+    [(site, csv)] = nuvem.planilhas
+    linhas = csv.strip().splitlines()
+    assert site == "1"
+    assert linhas[0] == CABECALHO_DA_PLANILHA
+    # AGORA é 14h em São Paulo; a primeira janela vai de 1h antes a 1h depois.
+    assert linhas[1] == (
+        "DEMO-20261005-140000-1;05/10/2026;13:00;15:00;descarga;ABC1D23;XYZ9876;;;"
+        "Motorista Demonstração 1;;32,5;"
+    )
+    assert [linha.split(";")[5] for linha in linhas[1:]] == [
+        "ABC1D23",
+        "BRA2E19",
+        "BRA2E19",
+        "CDE3F45",
+    ]
+    assert nuvem.ordem.index("/api/agendamentos/planilha") < nuvem.ordem.index(
+        "/api/borda/passagens"
+    )
+    assert "4 agendamentos: 4 novos, 0 alterados, 0 iguais" in saida
+
+
+def test_cada_rodada_tem_codigos_novos(nuvem: NuvemFalsa, tmp_path: Path) -> None:
+    _rodar(nuvem, tmp_path, "--demonstracao", "--agendamentos", "amostra", "--passagens", "amostra")
+    saida = io.StringIO()
+    principal(
+        ["--nuvem", NUVEM, "--demonstracao", "--agendamentos", "amostra", "--passagens", "amostra"],
+        cliente=httpx.Client(transport=httpx.MockTransport(nuvem)),
+        raiz=tmp_path,
+        agora=AGORA.replace(minute=7),
+        saida=saida,
+    )
+
+    codigos = [csv.splitlines()[1].split(";")[0] for _, csv in nuvem.planilhas]
+    assert codigos == ["DEMO-20261005-140000-1", "DEMO-20261005-140700-1"]
+
+
+def test_janela_que_passaria_da_meia_noite_para_no_fim_do_dia(
+    nuvem: NuvemFalsa, tmp_path: Path
+) -> None:
+    # 23h30 em São Paulo: a janela de 1h depois passaria da meia-noite.
+    saida = io.StringIO()
+    principal(
+        ["--nuvem", NUVEM, "--demonstracao", "--agendamentos", "amostra", "--passagens", "amostra"],
+        cliente=httpx.Client(transport=httpx.MockTransport(nuvem)),
+        raiz=tmp_path,
+        agora=datetime(2026, 10, 6, 2, 30, tzinfo=UTC),
+        saida=saida,
+    )
+
+    primeira = nuvem.planilhas[0][1].splitlines()[1].split(";")
+    assert primeira[1:4] == ["05/10/2026", "22:30", "23:59"]
+
+
+def test_agendamentos_so_com_demonstracao(nuvem: NuvemFalsa, tmp_path: Path) -> None:
+    codigo, saida = _rodar(
+        nuvem, tmp_path, "--codigo", "AAAA-BBBB-CCCC", "--agendamentos", "amostra",
+        "--passagens", "amostra",
+    )  # fmt: skip
+
+    assert codigo == 2
+    assert "--agendamentos só vale com --demonstracao" in saida
+    assert nuvem.planilhas == []
+
+
+def test_planilha_recusada_pela_nuvem_explica(nuvem: NuvemFalsa, tmp_path: Path) -> None:
+    nuvem.planilha_recusada = "faltam as colunas: dia"
+
+    codigo, saida = _rodar(
+        nuvem, tmp_path, "--demonstracao", "--agendamentos", "amostra", "--passagens", "amostra"
+    )
+
+    assert codigo == 1
+    assert "a nuvem recusou os agendamentos: faltam as colunas: dia" in saida
+
+
+def test_arquivo_de_agendamentos_proprio(nuvem: NuvemFalsa, tmp_path: Path) -> None:
+    arquivo = tmp_path / "meus-agendamentos.json"
+    agendamento = {"codigo": "X", "cavalo": "XYZ9K87", "de_minutos": 0, "ate_minutos": 30}
+    arquivo.write_text(json.dumps([agendamento | {"tipo": "carga"}]), encoding="utf-8")
+
+    codigo, saida = _rodar(
+        nuvem, tmp_path, "--demonstracao", "--agendamentos", str(arquivo), "--passagens", "amostra"
+    )
+
+    assert codigo == 0, saida
+    linha = nuvem.planilhas[0][1].splitlines()[1]
+    assert linha == "DEMO-20261005-140000-X;05/10/2026;14:00;14:30;carga;XYZ9K87;;;;;;;"
+
+
+def test_gestor_da_demonstracao_bate_com_a_semente_da_nuvem() -> None:
+    from nuvem import semente
+    from simulador.__main__ import GESTOR_DA_DEMONSTRACAO
+
+    assert GESTOR_DA_DEMONSTRACAO == "gestor@empresa-a.example"
+    assert 'gestor", "gestor"' in Path(semente.__file__).read_text(encoding="utf-8")
+
+
+def test_colunas_da_planilha_batem_com_o_modelo_da_nuvem() -> None:
+    from nuvem.agendamento.planilha import COLUNAS
+    from simulador.__main__ import COLUNAS_DA_PLANILHA
+
+    assert tuple(coluna.nome for coluna in COLUNAS) == COLUNAS_DA_PLANILHA

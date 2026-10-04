@@ -1,7 +1,7 @@
 {% if passagens %}
 <table>
   <thead>
-    <tr><th>Horário</th><th>Faixa</th><th>Placas</th><th>Foto da placa</th></tr>
+    <tr><th>Horário</th><th>Faixa</th><th>Placas</th><th>Foto da placa</th><th>Casamento</th></tr>
   </thead>
   <tbody>
     {% for passagem in passagens %}
@@ -20,6 +20,7 @@
         <img src="/portaria/fotos/{{ passagem.id }}/{{ passagem.foto }}" alt="foto da placa (ainda não chegou?)" height="60" loading="lazy">
         {% endif %}
       </td>
+      <td>{{ passagem.resultado }}</td>
     </tr>
     {% endfor %}
   </tbody>

@@ -98,12 +98,15 @@ def etapas_do_modelos() -> list[Etapa]:
 
 
 def etapas_do_demo() -> list[Etapa]:
-    """Devolve a demonstração do mês 1: sobe tudo, migra, semeia e roda o simulador.
+    """Devolve a demonstração: sobe tudo, migra, semeia e roda o simulador.
 
-    O simulador ativa uma caixa com a administração da semente e manda a amostra (passagens
-    inventadas, com foto desenhada), que aparece na tela da portaria.
+    O simulador ativa uma caixa com a administração da semente, sobe os agendamentos da amostra
+    como o gestor e manda as passagens da amostra (inventadas, com foto desenhada). O worker as
+    casa: na tela da portaria aparecem os check-ins, as exceções e a saída.
     """
-    simulador = _ferramenta("simulador", "--demonstracao", "--passagens", "amostra")
+    simulador = _ferramenta(
+        "simulador", "--demonstracao", "--agendamentos", "amostra", "--passagens", "amostra"
+    )
     return [
         *etapas_do_up(),
         *etapas_do_migrar(),
