@@ -18,3 +18,7 @@ class NaoIdentificadoError(Exception):
 
 class SemPermissaoError(Exception):
     """Quem pede entrou, mas o papel dele não permite isto: a API responde 403."""
+
+
+class CaixaNaoIdentificadaError(Exception):
+    """A chamada da borda veio sem chave, com chave inventada ou revogada: a API responde 401."""

@@ -18,8 +18,15 @@ from sqlalchemy.orm import Session, sessionmaker
 from nuvem.banco import criar_motor, obter_sessao
 from nuvem.cadastro.rotas import roteador as rotas_do_cadastro
 from nuvem.cadastro.rotas import roteador_admin as rotas_da_administracao
+from nuvem.cifra import Cifra
 from nuvem.config import Configuracao, ler_configuracao
-from nuvem.erros import NaoEncontradoError, NaoIdentificadoError, SemPermissaoError
+from nuvem.erros import (
+    CaixaNaoIdentificadaError,
+    NaoEncontradoError,
+    NaoIdentificadoError,
+    SemPermissaoError,
+)
+from nuvem.frota import rotas as frota
 from nuvem.senhas import Senhas
 from nuvem.web import rotas as web
 
@@ -47,13 +54,17 @@ def criar_app(configuracao: Configuracao | None = None, senhas: Senhas | None = 
     app = FastAPI(title="patio-br", lifespan=ciclo_de_vida)
     app.state.sessoes = sessionmaker(motor)
     app.state.senhas = senhas or Senhas()
+    app.state.cifra = Cifra(configuracao.chave_cifra)
     app.state.cookie_seguro = configuracao.cookie_seguro
     app.add_api_route("/saude", saude, methods=["GET"])
     app.add_exception_handler(NaoEncontradoError, _nao_encontrado)
     app.add_exception_handler(NaoIdentificadoError, _nao_identificado)
     app.add_exception_handler(SemPermissaoError, _sem_permissao)
+    app.add_exception_handler(CaixaNaoIdentificadaError, _caixa_nao_identificada)
     app.include_router(rotas_do_cadastro)
     app.include_router(rotas_da_administracao)
+    app.include_router(frota.roteador_borda)
+    app.include_router(frota.roteador_admin)
     app.include_router(web.roteador)
     return app
 
@@ -77,6 +88,14 @@ def _nao_identificado(requisicao: Request, _erro: Exception) -> Response:
             {"detail": "entre no sistema"}, status_code=status.HTTP_401_UNAUTHORIZED
         )
     return RedirectResponse("/entrar", status_code=status.HTTP_303_SEE_OTHER)
+
+
+def _caixa_nao_identificada(_requisicao: Request, _erro: Exception) -> Response:
+    return JSONResponse(
+        {"detail": "chave da caixa ausente, inválida ou revogada"},
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        headers={"WWW-Authenticate": "Bearer"},
+    )
 
 
 def _sem_permissao(requisicao: Request, _erro: Exception) -> Response:

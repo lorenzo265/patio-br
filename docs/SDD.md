@@ -1,7 +1,7 @@
 # SDD — patio-br (nome provisório)
 
 **Documento de desenho do software (SDD) do MVP do piloto**
-Versão 0.6 · 2026-10-03 · Situação: aprovado como base; itens em aberto na seção 12
+Versão 0.7 · 2026-10-03 · Situação: aprovado como base; itens em aberto na seção 12
 
 ---
 
@@ -199,6 +199,9 @@ dois lados. Mudou o formato → muda a versão do contrato.
 
 - `id` é gerado na caixa. A nuvem ignora um `id` já recebido, então a caixa pode reenviar
   sem duplicar.
+- `caixa_id`, `site_id`, `faixa_id` e `camera_id` são os identificadores da nuvem, em texto
+  (ex.: `"12"`), que a caixa recebe na ativação e na configuração (D-21). Os nomes do exemplo
+  acima são só ilustração.
 - Os horários são da caixa (sincronizada por NTP) e são a prova da chegada.
 - As fotos sobem direto para o armazenamento com um endereço temporário fornecido pela API; a
   passagem só referencia.
@@ -352,7 +355,8 @@ O banco público brasileiro (RodoSol-ALPR) só permite uso acadêmico. Por isso:
 | `Mensagem` | visita, canal, modelo, situação (enviada, entregue, lida, falhou), custo |
 | `ParametrosSite` | custo mensal de um ponto de portaria, postos antes/depois, valor da estadia (R$/t·h), franquia (h), tolerância de janela, horas para alerta, custo hora-doca (opcional) |
 | `Extrato` | site, mês, números calculados, versão da regra de cálculo |
-| `CaixaBorda` | site, versão instalada, último contato, saúde, chave de acesso |
+| `CaixaBorda` | site, versão instalada, último contato, saúde, chave de acesso (só o resumo), ativada em, revogada em |
+| `CodigoAtivacao` | site, resumo do código, criado por (administração), vence em, usado em |
 | `Rotulo` | recorte, placa correta, origem (correção ou rotulagem), revisado |
 
 Toda tabela de dados do cliente tem `empresa_id`. Toda consulta filtra por empresa.
@@ -502,8 +506,13 @@ Serve para desenvolver sem câmera, para os testes de ponta a ponta e para simul
   roteador 4G/5G de reserva. Site-tipo com 2 faixas de entrada e 2 de saída = **6 câmeras**:
   frente + traseira em cada entrada (4) e traseira em cada saída (2).
 - **Software:** Ubuntu Server 24.04, Docker, contêineres `go2rtc` e `agente`.
-- **Ativação:** código de uso único. A caixa se registra e baixa a configuração (câmeras,
-  faixas, sentido) da nuvem.
+- **Ativação:** a administração gera, para um site, um código de uso único (12 letras e
+  números, em três grupos de 4) que vale 24 horas. A caixa troca o código por uma **chave
+  própria**; a nuvem guarda só o resumo da chave. Toda chamada da caixa leva
+  `Authorization: Bearer <chave>`; chave revogada recebe 401.
+- **Configuração:** com a chave, a caixa baixa da nuvem as faixas (com sentido) e as câmeras
+  (posição, endereço, login e senha) do site dela. A senha da câmera sai decifrada só nessa
+  resposta, só para a caixa do próprio site, porque a caixa precisa dela para ler o vídeo.
 - **Saúde:** a cada minuto envia CPU, temperatura, disco, câmeras no ar, quadros por segundo e
   passagens pendentes → tela "Frota de borda" e alertas.
 - **Atualização:** a caixa pergunta à nuvem qual versão rodar, baixa e reinicia; se o teste de
@@ -674,6 +683,7 @@ folga.
 | D-18 | Driver do PostgreSQL: pg8000 (BSD-3) | psycopg 2 e 3 são LGPL, que a regra de licença (seção 6.1) não aceita; pg8000 é síncrono como o resto da nuvem, Python puro (igual em Windows e Linux) e é o driver síncrono de PostgreSQL do conector oficial do Cloud SQL, do Google | psycopg 3 (LGPL-3.0); asyncpg (Apache-2.0, mas obrigaria a nuvem inteira a ser assíncrona) |
 | D-19 | A administração (nós) fica numa tabela própria, `administrador`, fora das empresas; o login dela gera um acesso de outro tipo, que nunca vira o `Acesso` de um cliente | toda tabela de cliente tem empresa e toda leitura de cliente filtra por ela (seção 5.5); com tipos separados, uma rota de cliente não atende a administração por engano, e vice-versa | papel `admin` na tabela `usuario`, com empresa vazia (abre exceção na regra da empresa); uma "empresa da plataforma" com permissão de ver as outras (um furo na separação) |
 | D-20 | Sessão de login guardada no banco; o cookie leva só um código aleatório | sair e desligar um usuário valem na hora; o banco guarda só o resumo do código; não precisa de outra chave secreta | cookie assinado com os dados do usuário, ou token JWT (não dá para revogar antes de vencer) |
+| D-21 | Na passagem e na configuração da caixa, os identificadores (caixa, site, faixa, câmera) são os ids da nuvem em texto | a caixa os recebe prontos na ativação e na configuração; a nuvem confere cada um contra o cadastro sem tabela de tradução | um código próprio para cada coisa (ex.: `entrada-1`), que precisaria ser único, editável e traduzido em toda passagem |
 
 ---
 
@@ -733,3 +743,4 @@ folga.
 | 0.4 | 2026-10-02 | driver do PostgreSQL: pg8000 no lugar do psycopg, por licença (D-18; seção 6.1) |
 | 0.5 | 2026-10-03 | separação de clientes garantida também no banco, por chave estrangeira composta (seção 5.5) |
 | 0.6 | 2026-10-03 | login e papéis (T09): administração em tabela própria (D-19), sessão no banco (D-20), senha e PIN com argon2, limite de tentativas e troca de porteiro por PIN (seções 5.1 e 8.2) |
+| 0.7 | 2026-10-03 | ativação da caixa (T10): código de uso único por site, chave própria com `Bearer`, configuração baixada pela caixa; ids da nuvem em texto na passagem (D-21; seções 3.2, 5.1 e 7.4) |

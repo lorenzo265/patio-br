@@ -236,13 +236,19 @@ também `cadastro/login.py` (as regras do login), `nuvem/senhas.py` (argon2) e o
 
 **Objetivo:** a caixa (ou o simulador) se identifica para mandar passagens.
 
-**Arquivos:** `nuvem/src/nuvem/frota/{modelos.py,servico.py,rotas.py}`, testes.
+**Arquivos:** `nuvem/src/nuvem/frota/{modelos.py,servico.py,rotas.py}`, testes. Entrou também
+`frota/acesso.py` (a dependência que identifica a caixa pela chave).
 
 **Fluxo:**
-1. O admin gera um **código de ativação** de uso único para um site (expira em 24h).
+1. O admin gera um **código de ativação** de uso único para um site (expira em 24h):
+   `POST /api/admin/sites/{id}/codigos-de-ativacao`, com 12 letras e números em três grupos.
 2. A caixa chama `POST /api/borda/ativar` com o código e recebe uma **chave** própria. A nuvem
    guarda só o resumo (hash) da chave.
-3. Toda chamada da caixa usa `Authorization: Bearer <chave>`. Chave revogada → 401.
+3. Toda chamada da caixa usa `Authorization: Bearer <chave>`. Chave revogada → 401
+   (`POST /api/admin/caixas/{id}/revogar`; a lista em `GET /api/admin/caixas`).
+4. A mais: com a chave, a caixa baixa a configuração do site (`GET /api/borda/configuracao`:
+   faixas e câmeras, com a senha da câmera), como diz o SDD 7.4. Os ids são os da nuvem, em
+   texto (SDD D-21).
 
 **Verificar:** testes de código usado duas vezes, código vencido, chave revogada.
 
