@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block titulo %}Agendar · {{ aberto.site.nome }}{% endblock %}
+{% block cabeca %}<meta name="referrer" content="no-referrer">{% endblock %}
+{% block conteudo %}
+<h1>Agendar no {{ aberto.site.nome }}</h1>
+<p>Link de <strong>{{ aberto.nome }}</strong>.
+{% if aberto.site.abre %}O site recebe das {{ aberto.site.abre.strftime("%H:%M") }} às {{ aberto.site.fecha.strftime("%H:%M") }}.{% else %}O site recebe 24 horas por dia.{% endif %}
+Horários na hora do site.</p>
+{% if erros %}
+<div class="erro" role="alert">
+  <p>Confira o que falta:</p>
+  <ul>{% for erro in erros %}<li>{{ erro }}</li>{% endfor %}</ul>
+</div>
+{% endif %}
+<form method="post" action="/agendar/{{ codigo }}">
+  <label>Dia
+    <input type="date" name="data" value="{{ valores.data }}" required>
+  </label>
+  <label>Chega a partir das
+    <input type="time" name="hora_inicio" value="{{ valores.hora_inicio }}" required>
+  </label>
+  <label>Até as
+    <input type="time" name="hora_fim" value="{{ valores.hora_fim }}" required>
+  </label>
+  <label>Tipo
+    <select name="tipo" required>
+      <option value="" {% if not valores.tipo %}selected{% endif %}>Escolha</option>
+      <option value="descarga" {% if valores.tipo == "descarga" %}selected{% endif %}>Descarga</option>
+      <option value="carga" {% if valores.tipo == "carga" %}selected{% endif %}>Carga</option>
+    </select>
+  </label>
+  <label>Placa do cavalo (ou do caminhão)
+    <input name="placa_cavalo" value="{{ valores.placa_cavalo }}" autocapitalize="characters" autocomplete="off" required>
+  </label>
+  <label>Placa do reboque 1 (se houver)
+    <input name="reboque_1" value="{{ valores.reboque_1 }}" autocapitalize="characters" autocomplete="off">
+  </label>
+  <label>Placa do reboque 2 (se houver)
+    <input name="reboque_2" value="{{ valores.reboque_2 }}" autocapitalize="characters" autocomplete="off">
+  </label>
+  <label>Placa do reboque 3 (se houver)
+    <input name="reboque_3" value="{{ valores.reboque_3 }}" autocapitalize="characters" autocomplete="off">
+  </label>
+  <label>Nome do motorista
+    <input name="motorista_nome" value="{{ valores.motorista_nome }}" autocomplete="off" required>
+  </label>
+  <label>Celular do motorista (com DDD)
+    <input type="tel" name="motorista_celular" value="{{ valores.motorista_celular }}" autocomplete="off" required>
+  </label>
+  <label>Toneladas
+    <input name="toneladas" value="{{ valores.toneladas }}" inputmode="decimal" required>
+  </label>
+  <label>Chave da NF-e (opcional)
+    <input name="chave_nfe" value="{{ valores.chave_nfe }}" inputmode="numeric" autocomplete="off">
+  </label>
+  <button type="submit">Agendar</button>
+</form>
+{% endblock %}

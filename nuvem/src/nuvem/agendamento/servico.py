@@ -43,11 +43,13 @@ Resultado = Literal["criado", "alterado", "igual"]
 
 @dataclass(frozen=True)
 class SiteDoAgendamento:
-    """O site onde o conector grava, e quem está gravando (se for uma pessoa do cliente)."""
+    """O site onde o conector grava, e quem está gravando: uma pessoa do cliente ou um link."""
 
     empresa_id: int
     site_id: int
     usuario_id: int | None
+    link_id: int | None = None
+    """O link da transportadora, quando é ele que grava (vai no agendamento criado)."""
 
 
 @dataclass(frozen=True)
@@ -115,6 +117,7 @@ def gravar(
                 origem=origem,
                 codigo_externo=dados.codigo_externo,
                 situacao="ativo",
+                link_id=site.link_id,
                 criado_em=agora,
                 atualizado_em=agora,
                 **valores,

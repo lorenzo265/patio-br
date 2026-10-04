@@ -16,6 +16,7 @@ As funções gravam com ``flush`` (o registro ganha id); o ``commit`` é de quem
 import re
 from collections.abc import Sequence
 from dataclasses import dataclass
+from datetime import time
 from urllib.parse import urlsplit
 
 from sqlalchemy import Select, and_, select
@@ -204,6 +205,35 @@ def _faixas_e_cameras_do_site(
     return faixas, cameras
 
 
+# --- Leitura pelo link da transportadora ---------------------------------------------------
+
+
+@dataclass(frozen=True)
+class HorarioDoSite:
+    """O nome, o fuso e o horário de operação de um site (vazio = 24 horas)."""
+
+    nome: str
+    fuso: str
+    abre: time | None
+    fecha: time | None
+
+
+def horario_do_site(sessao: Session, *, empresa_id: int, site_id: int) -> HorarioDoSite:
+    """O horário de um site, para o formulário do link da transportadora.
+
+    Quem chama já conferiu o código do link; ``empresa_id`` e ``site_id`` são os dele.
+
+    Raises:
+        NaoEncontradoError: se o site não existir nesta empresa.
+    """
+    site = sessao.scalars(
+        select(Site).where(Site.id == site_id, Site.empresa_id == empresa_id)
+    ).one_or_none()
+    if site is None:
+        raise NaoEncontradoError(f"site {site_id}")
+    return HorarioDoSite(nome=site.nome, fuso=site.fuso, abre=site.abre, fecha=site.fecha)
+
+
 # --- Administração (nós) -------------------------------------------------------------------
 
 
@@ -230,9 +260,18 @@ def criar_empresa(sessao: Session, *, nome: str, cnpj: str) -> Empresa:
     return _gravar(sessao, Empresa(nome=nome, cnpj=cnpj))
 
 
-def criar_site(sessao: Session, empresa: Empresa, *, nome: str, fuso: str = FUSO_PADRAO) -> Site:
-    """Cadastra um site do cliente."""
-    return _gravar(sessao, Site(empresa_id=empresa.id, nome=nome, fuso=fuso))
+def criar_site(
+    sessao: Session,
+    empresa: Empresa,
+    *,
+    nome: str,
+    fuso: str = FUSO_PADRAO,
+    abre: time | None = None,
+    fecha: time | None = None,
+) -> Site:
+    """Cadastra um site do cliente; sem ``abre`` nem ``fecha``, ele funciona 24 horas."""
+    site = Site(empresa_id=empresa.id, nome=nome, fuso=fuso, abre=abre, fecha=fecha)
+    return _gravar(sessao, site)
 
 
 def criar_portaria(sessao: Session, site: Site, *, nome: str) -> Portaria:

@@ -7,7 +7,7 @@ empresa B num site da empresa A, mesmo que o código erre (SDD 5.5).
 A administração (nós) fica fora das empresas, numa tabela própria (SDD D-19).
 """
 
-from datetime import datetime
+from datetime import datetime, time
 from typing import Literal
 
 from sqlalchemy import CheckConstraint, DateTime, ForeignKey, PrimaryKeyConstraint, String, true
@@ -41,12 +41,22 @@ class Site(Base):
     """Um local do cliente com portaria e pátio (ex.: um centro de distribuição)."""
 
     __tablename__ = "site"
-    __table_args__ = (pode_ser_pai(),)
+    __table_args__ = (
+        pode_ser_pai(),
+        CheckConstraint(
+            "(abre IS NULL AND fecha IS NULL)"
+            " OR (abre IS NOT NULL AND fecha IS NOT NULL AND abre < fecha)",
+            name="horario_em_ordem",
+        ),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     empresa_id: Mapped[int] = mapped_column(ForeignKey("empresa.id"), index=True)
     nome: Mapped[str]
     fuso: Mapped[str] = mapped_column(default=FUSO_PADRAO)
+    abre: Mapped[time | None]
+    """Horário de operação, na hora do site; sem ``abre`` nem ``fecha``, funciona 24 horas."""
+    fecha: Mapped[time | None]
 
 
 class Portaria(Base):

@@ -2,9 +2,9 @@
 
 Duas empresas inventadas, para ver a separação na prática:
 
-- **Empresa A**: o site "CD Exemplo" (uma portaria com uma faixa de entrada e uma de saída, três
-  câmeras e duas docas), mais o site "CD Exemplo 2", que ninguém da A vê; no CD Exemplo, um
-  gestor, um líder de pátio e dois porteiros (dia e noite);
+- **Empresa A**: o site "CD Exemplo" (aberto das 6h às 22h; uma portaria com uma faixa de
+  entrada e uma de saída, três câmeras e duas docas), mais o site "CD Exemplo 2", que ninguém da
+  A vê; no CD Exemplo, um gestor, um líder de pátio e dois porteiros (dia e noite);
 - **Empresa B**: o site "CD Outra Empresa", com uma câmera, um gestor e um porteiro;
 - **Administração** (nós): uma pessoa, fora das duas empresas.
 
@@ -16,6 +16,7 @@ nada. Só para desenvolvimento e demonstração; nunca em produção.
 """
 
 from dataclasses import dataclass
+from datetime import time
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -85,7 +86,7 @@ def semear(sessao: Session, cifra: Cifra, senhas: Senhas) -> Demonstracao | None
         return None
 
     empresa_a = servico.criar_empresa(sessao, nome="Empresa A (demonstração)", cnpj=CNPJ_A)
-    site_a = servico.criar_site(sessao, empresa_a, nome="CD Exemplo")
+    site_a = servico.criar_site(sessao, empresa_a, nome="CD Exemplo", abre=time(6), fecha=time(22))
     site_a2 = servico.criar_site(sessao, empresa_a, nome="CD Exemplo 2")
     portaria_a = servico.criar_portaria(sessao, site_a, nome="Portaria principal")
     entrada = servico.criar_faixa(sessao, portaria_a, nome="Entrada 1", sentido="entrada")
