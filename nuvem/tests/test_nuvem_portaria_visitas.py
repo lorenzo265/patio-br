@@ -51,7 +51,7 @@ def site_a(cenario: Demonstracao) -> SiteDaVisita:
 
 @pytest.fixture
 def agendamento(sessao: Session, cenario: Demonstracao, acesso_a: Acesso) -> Agendamento:
-    """Um agendamento do site_a, para 14h–16h em São Paulo."""
+    """Um agendamento do site_a, das 14h às 16h em São Paulo."""
     destino = agendamentos.site_para_agendar(sessao, acesso_a, cenario.site_a.id)
     dados = DadosDoAgendamento(
         codigo_externo="AG-1",
