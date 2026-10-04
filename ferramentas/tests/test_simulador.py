@@ -8,6 +8,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 from typing import Any
 
+import cv2
 import httpx
 import numpy as np
 import pytest
@@ -357,11 +358,19 @@ def test_arquivo_de_passagens_mantem_o_que_ja_vem_preenchido(
     assert passagem["placas"][0]["placa"] == "ABC1234"
 
 
-def test_video_ainda_nao_e_explica_o_caminho(nuvem: NuvemFalsa, tmp_path: Path) -> None:
-    codigo, saida = _rodar(nuvem, tmp_path, "--demonstracao", "--video", "x.mp4")
+def test_video_que_nao_abre_explica(nuvem: NuvemFalsa, tmp_path: Path) -> None:
+    codigo, saida = _rodar(
+        nuvem,
+        tmp_path,
+        "--demonstracao",
+        "--video",
+        str(tmp_path / "nao-existe.mp4"),
+        carregar_modelos=lambda: (DetectorDeTudo(), LeitorFixo()),
+    )
 
-    assert codigo == 2
-    assert "--quadros" in saida
+    assert codigo == 1
+    assert "não abre" in saida
+    assert nuvem.passagens == []
 
 
 class DetectorDeTudo:
@@ -404,12 +413,41 @@ def test_quadros_de_uma_pasta_passam_pelo_agente(nuvem: NuvemFalsa, tmp_path: Pa
         "entrada-1",
         "--camera",
         "frente",
-        carregar_modelos=lambda _pasta: (DetectorDeTudo(), LeitorFixo()),
+        carregar_modelos=lambda: (DetectorDeTudo(), LeitorFixo()),
     )
 
     assert codigo == 0, saida
     assert [[placa["placa"] for placa in p["placas"]] for p in nuvem.passagens] == [["ABC1D23"]]
     assert nuvem.passagens[0]["versao_leitor"] == "v0"
+    assert len(nuvem.fotos) == 1
+
+
+@pytest.mark.integracao  # grava o vídeo no disco
+def test_video_passa_pelo_agente(nuvem: NuvemFalsa, tmp_path: Path) -> None:
+    video = tmp_path / "portaria.avi"
+    gravador = cv2.VideoWriter(str(video), cv2.VideoWriter.fourcc(*"MJPG"), 5.0, (120, 60))
+    for indice in range(8):
+        imagem = np.zeros((60, 120, 3), dtype=np.uint8)
+        if indice < 5:
+            imagem[10:40, 10 + indice * 5 : 60 + indice * 5] = 200  # um veículo passando
+        gravador.write(imagem)
+    gravador.release()
+
+    codigo, saida = _rodar(
+        nuvem,
+        tmp_path,
+        "--demonstracao",
+        "--video",
+        str(video),
+        "--faixa",
+        "entrada-1",
+        "--camera",
+        "frente",
+        carregar_modelos=lambda: (DetectorDeTudo(), LeitorFixo()),
+    )
+
+    assert codigo == 0, saida
+    assert [[placa["placa"] for placa in p["placas"]] for p in nuvem.passagens] == [["ABC1D23"]]
     assert len(nuvem.fotos) == 1
 
 
