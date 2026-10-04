@@ -85,4 +85,6 @@ bibliotecas nativas com outra licença. Conferido abrindo as rodas para Linux x8
 | `pillow` 12.3 | MIT-CMU | nada GPL nem LGPL (libjpeg, libpng, libtiff, libwebp, FreeType pela licença FTL, HarfBuzz, lcms2, OpenJPEG, zstd, brotli, libavif) |
 
 Isso vira o `[ABERTO-13]` do SDD: a regra "GPL e LGPL nunca" esbarra no FFmpeg (PyAV, OpenCV)
-e até na NumPy, que o ONNX Runtime exige.
+e até na NumPy, que o ONNX Runtime exige. Decidido em 04/10 (SDD D-27): LGPL nativa sem
+modificação e carregada dinamicamente entra; GPL só com a exceção de runtime do GCC; FFmpeg só
+sem partes GPL.

@@ -28,9 +28,13 @@ economia em R$. Uma caixa de borda (mini PC) lê as placas; a nuvem decide.
 1. **Só licença permissiva.**
    - Dependências: MIT, BSD, Apache, ISC, PSF ou PostgreSQL. MPL-2.0 só para biblioteca usada
      sem modificação. GPL, LGPL e AGPL nunca (SDD 6.1). A CI checa as dependências Python.
+   - Bibliotecas nativas dentro das rodas (SDD D-27): LGPL só usada sem modificação e carregada
+     dinamicamente; GPL só com a exceção de runtime do GCC; FFmpeg só sem partes GPL (o PyAV do
+     PyPI não entra). A CI não as vê: ao acrescentar uma dependência, confira a roda.
    - Modelos de visão: só código Apache, MIT ou BSD e **pesos treinados por nós** (SDD 4.1).
      O YOLO da Ultralytics (AGPL) não entra. O banco RodoSol-ALPR é só acadêmico: nunca treina
-     o produto (SDD 4.6). A CI não vê modelos; essa checagem é sua.
+     o produto (SDD 4.6). Pesos de terceiros só para comparar modelos e avaliar internamente
+     (SDD D-26). A CI não vê modelos; essa checagem é sua.
    - Arquivos de terceiros do painel (ex.: o HTMX) ficam em `nuvem/src/nuvem/web/estatico/`,
      com licença e hash no `LEIA-ME.md` de lá (SDD 6.1). A CI também não os vê.
 2. **LGPD** (SDD 8.3). Sem reconhecimento facial. Foto guardada é recorte de placa e de

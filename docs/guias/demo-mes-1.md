@@ -114,7 +114,8 @@ O leitor v0 usa pesos de terceiros: **só para avaliação interna** (SDD 4.1; l
 - **Vídeos gravados** com autorização (plano, T19, passo 1): de 10 a 20 passagens de caminhão,
   com aviso de gravação e sem foco em rostos, em `dados/amostras/`, com a ficha de quem
   autorizou. É uma tarefa do Lorenzo.
-- **Ler arquivo de vídeo e câmera (RTSP)**: espera o `[ABERTO-13]` do SDD (as bibliotecas de
-  vídeo trazem partes GPL ou LGPL). Até lá, o caminho é a pasta de quadros acima.
+- **Ler arquivo de vídeo e câmera (RTSP)**: a regra de licença das bibliotecas de vídeo foi
+  decidida em 04/10 (SDD D-27), e a leitura ainda está por fazer. Até lá, o caminho é a pasta
+  de quadros acima.
 - **Acerto do leitor**: o v0 não tem meta de acerto; ele existe para o fluxo funcionar. O
   acerto é trabalho do v1, com pesos nossos (mês 2).
