@@ -1,7 +1,7 @@
 # SDD — patio-br (nome provisório)
 
 **Documento de desenho do software (SDD) do MVP do piloto**
-Versão 0.15 · 2026-10-04 · Situação: aprovado como base; itens em aberto na seção 12
+Versão 0.16 · 2026-10-04 · Situação: aprovado como base; itens em aberto na seção 12
 
 ---
 
@@ -281,7 +281,7 @@ demonstração usa o simulador com a amostra, não o v0.
 
 | Passo | O que faz | Ferramenta (licença) |
 |---|---|---|
-| 1. Captura | puxa o vídeo (RTSP) e só processa quando há veículo na faixa | FFmpeg montado sem partes GPL (D-27) + go2rtc (MIT); o PyAV do PyPI traz x264 e x265 (GPL) e fica de fora |
+| 1. Captura | puxa o vídeo (RTSP) e só processa quando há veículo na faixa | OpenCV sem interface gráfica, com o FFmpeg LGPL da roda (D-29) + go2rtc (MIT); o PyAV do PyPI traz x264 e x265 (GPL) e fica de fora (D-27) |
 | 2. Detecção | acha o veículo e a placa no quadro | D-FINE-N ou YOLOX-Tiny (Apache-2.0) — `[ABERTO-03]` |
 | 3. Rastreamento | segue o mesmo veículo entre quadros | rastreador nosso por sobreposição, no estilo do ByteTrack (D-25); o supervision exige o PyAV (D-27) |
 | 4. Leitura (OCR) | lê os caracteres da placa | modelo leve no estilo do fast-plate-ocr (código MIT), com pesos nossos |
@@ -308,9 +308,13 @@ inverso. A correção é registrada na passagem (confiança menor).
   recorte da placa mais confiável para a foto. Veículo sem placa legível também gera leitura
   (sem placa), e a passagem sai sem placas: a nuvem trata como exceção (seção 3.2).
 - **Captura:** os quadros chegam por uma fonte, a uma taxa configurável (padrão 5 por segundo).
-  Câmera (RTSP) e arquivo de vídeo entram como outra fonte, com um decodificador que siga a
-  D-27; até lá, a fonte é uma pasta de imagens (os quadros de um vídeo, tirados fora da caixa),
-  o que basta para a demonstração.
+  O vídeo é lido pelo OpenCV (D-29). As fontes:
+  - **câmera** (RTSP): a hora de cada quadro é a do relógio da caixa. Se a câmera cai ou não
+    abre, a fonte tenta de novo, esperando 1 s, 2 s, 4 s... até 30 s, e o registro mostra o
+    endereço sem o login e a senha;
+  - **arquivo de vídeo** (ex.: uma gravação da portaria): a hora conta a partir de um início
+    dado, pelo número do quadro e pela taxa do vídeo;
+  - **pasta de imagens** (os quadros de um vídeo, um arquivo por quadro), para testes.
 - **Votação:** fica a placa lida em mais quadros; no empate, a de maior confiança média. A
   confiança final é a média das confianças dos quadros vencedores vezes a fração dos quadros
   que concordam (ex.: 4 de 5 quadros a 0,95 → 0,95 × 0,8 = 0,76). `quadros` na passagem é o
@@ -480,7 +484,7 @@ Pontuação inicial (os pesos e o limite são ajustados com os dados do mês 2 �
 | Banco | PostgreSQL 16; fila de tarefas no próprio PostgreSQL (`[ABERTO-11]`) |
 | Painel | páginas no servidor (Jinja) + **HTMX**; atualização ao vivo por SSE; instalável como **PWA** |
 | Gráficos | biblioteca JavaScript pequena, só onde houver gráfico |
-| Borda | FFmpeg sem partes GPL (D-27), go2rtc, OpenVINO, rastreador próprio (D-25), SQLite (fila local), httpx |
+| Borda | OpenCV sem interface gráfica, com FFmpeg LGPL (D-27 e D-29), go2rtc, OpenVINO, rastreador próprio (D-25), SQLite (fila local), httpx |
 | Treino | PyTorch, Label Studio, exportação ONNX → OpenVINO |
 | Qualidade | ruff, mypy, pytest; checagem de licenças e vulnerabilidades das dependências |
 
@@ -538,7 +542,9 @@ Serve para desenvolver sem câmera, para os testes de ponta a ponta e para simul
 - **Passagens prontas** (`--passagens arquivo.json`): manda passagens escritas à mão, sem visão
   computacional; caixa, site, faixa e horários vêm da ativação e da hora atual quando faltam.
 - **Quadros** (`--quadros pasta`): roda o leitor v0 sobre as imagens de uma pasta, como se fossem
-  uma câmera. O arquivo de vídeo (`--video`) entra com a captura de vídeo (D-27).
+  uma câmera.
+- **Vídeo** (`--video arquivo`): o mesmo, sobre um arquivo de vídeo (ex.: uma gravação da
+  portaria, guardada em `dados/`).
 - **Demonstração** (`--demonstracao`): só no ambiente local, entra como a administração da
   semente, gera o código e ativa a caixa sozinho. Se já há uma caixa ativada e a chave dela
   ainda vale, usa a mesma: o que ficou na fila de uma rodada anterior é dela.
@@ -785,6 +791,7 @@ folga.
 | D-26 | Pesos de terceiros servem só para comparar modelos e para avaliação interna (o leitor v0); o produto usa pesos treinados por nós | decisão de 04/10, que fecha o `[ABERTO-12]`: D-FINE, YOLOX e fast-plate-ocr não declaram licença dos pesos, e PaddleOCR e RapidOCR declaram Apache-2.0 (`docs/validacao/fatos-tecnicos-stack.md`); comparar os de terceiros mostra qual modelo se sai melhor antes de treinar os nossos | usar pesos de terceiros no produto (licença incerta); não usá-los nem para comparar (escolher o modelo às cegas) |
 | D-27 | Bibliotecas nativas dentro das rodas: LGPL aceita quando usada sem modificação e carregada dinamicamente; GPL só com a exceção de runtime do GCC; FFmpeg só montado sem partes GPL | decisão de 04/10, que fecha o `[ABERTO-13]`: é a mesma lógica do MPL-2.0 (biblioteca usada sem modificação); proibir toda LGPL nativa derrubaria a NumPy (`libquadmath`), de que o ONNX Runtime precisa; o PyAV do PyPI traz x264 e x265 (GPL, sem exceção) e continua de fora, e com ele o supervision | proibir toda biblioteca nativa GPL e LGPL (sem NumPy e sem vídeo); aceitar qualquer GPL nativa (contaminaria o programa da caixa) |
 | D-28 | Endereço público da API configurável (`PATIO_URL_PUBLICA`): os endereços que a API devolve à caixa partem dele | atrás de um proxy HTTPS, o pedido chega como `http://`, e a caixa receberia um endereço de envio de foto errado, tentando para sempre; sem a variável (ambiente local), vale o endereço do pedido; fora do ambiente local, só `https://` | confiar nos cabeçalhos do proxy (`--forwarded-allow-ips`), o que depende de como a hospedagem for montada (mês 4) |
+| D-29 | Decodificador de vídeo da caixa: OpenCV sem interface gráfica (`opencv-python-headless`, Apache-2.0) | a roda traz o FFmpeg montado como LGPL 2.1, sem x264 nem x265 (conferido no Linux e no Windows; `docs/validacao/fatos-tecnicos-stack.md`), o que a D-27 aceita; lê arquivo e RTSP e já entrega os quadros em BGR, como a caixa usa | PyAV (a roda traz x264 e x265, GPL); o programa `ffmpeg` à parte (as montagens comuns são GPL; teríamos de montar o nosso); GStreamer (mais peças, e cada plugin com a sua licença) |
 
 ---
 
@@ -803,6 +810,7 @@ folga.
 | ABERTO-09 | Tolerância de janela (padrão 4h após o fim da janela, usada também para "não veio") e momento do alerta de estadia (padrão: 4h depois da chegada) | com o cliente do piloto |
 | ABERTO-10 | Modelo de dados detalhado do modo B | no início da Fase 2 |
 | ABERTO-11 | Implementação da fila de tarefas no PostgreSQL (biblioteca ou tabela própria) | no mês 2, quando o worker entrar com o casamento |
+| ABERTO-14 | OpenSSL 1.1.1w dentro da roda do OpenCV para Linux (o FFmpeg dela foi montado com `--enable-openssl`): licença OpenSSL/SSLeay, no estilo BSD, com cláusula de propaganda (material de divulgação que cite o recurso precisa dar o crédito); a série 1.1 não recebe correções desde 2023. A caixa não usa TLS pelo FFmpeg (RTSP sem TLS, na rede local), e a roda do Windows não traz OpenSSL | com o Lorenzo, antes do merge da leitura de vídeo |
 
 ---
 
@@ -852,3 +860,4 @@ folga.
 | 0.13 | 2026-10-03 | captura e rastreamento (T16): rastreador nosso (D-25), captura por fonte de quadros, leitura sem placa legível (seções 4.2 e 4.3) |
 | 0.14 | 2026-10-03 | agente da caixa e simulador (T18): o que o agente junta, só fotos de placa por enquanto, modos do simulador (seções 6.4 e 7.4) |
 | 0.15 | 2026-10-04 | decisões de 04/10: pesos de terceiros só para comparar e avaliar (D-26, fecha o `[ABERTO-12]`); bibliotecas nativas dentro das rodas (D-27, fecha o `[ABERTO-13]`); endereço público da API (D-28); limite por IP, anti-CSRF e comando da administração antes da produção (seções 3.2, 4.1, 4.2, 6.1, 6.4, 8.2, 11 e 12) |
+| 0.16 | 2026-10-04 | leitura de vídeo na caixa: OpenCV sem interface gráfica (D-29), fontes de câmera e de arquivo, `simulador --video`; novo `[ABERTO-14]`, o OpenSSL dentro da roda do OpenCV (seções 4.2, 6.1, 6.4, 11 e 12) |
