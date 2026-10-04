@@ -46,7 +46,7 @@ services:
     build:
       context: .
       dockerfile: nuvem/Dockerfile
-    environment:
+    environment: &nuvem-ambiente
       PATIO_URL_BANCO: postgresql+pg8000://patio:${POSTGRES_SENHA:-patio-local}@postgres:5432/patio
       # Padrão: a chave só do ambiente local, a mesma do .env.exemplo.
       PATIO_CHAVE_CIFRA: ${PATIO_CHAVE_CIFRA:-_0_jqx-SW46BKdQoB9mZcMouVAft1Qjf8Pf2niPbThI=}
@@ -67,6 +67,19 @@ services:
       interval: 2s
       timeout: 3s
       retries: 30
+
+  # Worker da nuvem (SDD 6.1, D-38): a mesma imagem da API, rodando a fila de tarefas (o
+  # casamento das passagens) e o "não veio". Antes do `tarefas migrar`, ele registra o erro e
+  # tenta de novo a cada 5 segundos.
+  worker:
+    build:
+      context: .
+      dockerfile: nuvem/Dockerfile
+    command: ["python", "-m", "nuvem.worker"]
+    environment: *nuvem-ambiente
+    depends_on:
+      postgres:
+        condition: service_healthy
 
 volumes:
   postgres-dados:

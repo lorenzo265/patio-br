@@ -339,6 +339,24 @@ def ativos_perto(
     )
 
 
+def ativos_que_terminaram(sessao: Session, *, de: datetime, ate: datetime) -> list[Agendamento]:
+    """Os agendamentos ativos, de todos os sites, cuja janela terminou em ``[de, ate)``.
+
+    Para o "não veio" (SDD 5.2), que o worker confere para a plataforma inteira.
+    """
+    return list(
+        sessao.scalars(
+            select(Agendamento)
+            .where(
+                Agendamento.situacao == "ativo",
+                Agendamento.janela_fim >= de,
+                Agendamento.janela_fim < ate,
+            )
+            .order_by(Agendamento.janela_fim, Agendamento.id)
+        )
+    )
+
+
 def listar(
     sessao: Session, acesso: Acesso, site_id: int, *, de: datetime, ate: datetime
 ) -> list[Agendamento]:
