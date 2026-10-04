@@ -7,7 +7,10 @@ Hoje a demonstração usa o **simulador** no papel da caixa, com uma amostra de 
 inventadas (placas inventadas e fotos de placa desenhadas). Com vídeo gravado de verdade, ela
 depende de duas coisas que ainda faltam (ver o fim deste guia).
 
-![A tela da portaria depois da demonstração](demo-mes-1.png)
+Desde o mês 2, a demonstração também **sobe agendamentos** e mostra o **casamento** (SDD 5.3):
+check-in automático, exceção com os candidatos e saída.
+
+![A tela da portaria depois da demonstração, com o casamento](demo-mes-2.png)
 
 ## O que precisa estar instalado
 
@@ -46,29 +49,37 @@ depende de duas coisas que ainda faltam (ver o fim deste guia).
 
    Ela faz, em ordem:
 
-   1. sobe o banco e a API no Docker;
+   1. sobe o banco, a API e o worker no Docker;
    2. aplica as migrações;
    3. grava as duas empresas de demonstração;
-   4. o simulador ativa uma caixa com a administração da semente e manda três passagens.
+   4. o simulador ativa uma caixa com a administração da semente, sobe quatro agendamentos como o
+      gestor (pela planilha, com as janelas em volta da hora atual) e manda cinco passagens;
+   5. o worker casa cada passagem com os agendamentos, em segundo plano.
 
    O fim da saída fica assim:
 
    ```text
-   3 passagens guardadas na fila da caixa
-   3 enviadas; 0 recusadas pela nuvem; 0 na fila
+   4 agendamentos: 4 novos, 0 alterados, 0 iguais
+   5 passagens guardadas na fila da caixa
+   5 enviadas; 0 recusadas pela nuvem; 0 na fila
    veja em http://localhost:18000/portaria (entre com porteiro@empresa-a.example e a senha demonstracao-local)
+   e os agendamentos em http://localhost:18000/agendamentos (entre com gestor@empresa-a.example)
    ok
    ```
 
 5. **Abra a tela da portaria:** <http://localhost:18000/portaria>, com o e-mail
-   `porteiro@empresa-a.example` e a senha `demonstracao-local`. Aparecem as três passagens da
-   amostra:
+   `porteiro@empresa-a.example` e a senha `demonstracao-local`. Aparecem as cinco passagens da
+   amostra, cada uma com o resultado do casamento:
 
-   - um cavalo com reboque (`ABC1D23` + `XYZ9876`);
-   - um cavalo sozinho (`BRA2E19`);
-   - uma passagem sem placa lida (a nuvem a tratará como exceção no mês 2).
+   - um cavalo com reboque (`ABC1D23` + `XYZ9876`): **check-in** no agendamento dele;
+   - um cavalo (`BRA2E19`) com dois agendamentos perto da hora: **exceção**, com os dois
+     candidatos e os pontos (80 e 70) no cartão de cima;
+   - uma passagem sem placa lida: **exceção**;
+   - um cavalo (`CDE3F45`) que faz **check-in** e depois **sai**: a câmera traseira da saída lê a
+     placa do reboque (`FGH6I78`), que o agendamento trazia e a entrada não viu.
 
-   A tela se atualiza sozinha a cada 2 segundos.
+   A tela se atualiza sozinha a cada 2 segundos. Os agendamentos ficam em
+   <http://localhost:18000/agendamentos>, com o e-mail `gestor@empresa-a.example`.
 
 ## Ver passagens chegando com a tela aberta
 
@@ -78,12 +89,16 @@ Com a tela aberta, rode o simulador de novo noutro terminal:
 uv run simulador --passagens amostra    # Windows: .venv\Scripts\python.exe -m simulador --passagens amostra
 ```
 
-Em até uns 2 segundos, mais três passagens aparecem no topo. O simulador usa a caixa que a
-demonstração ativou: a chave fica em `dados/simulador/caixa.json`, fora do Git.
+Em até uns 2 segundos, mais cinco passagens aparecem no topo; sem agendamentos novos, as
+entradas viram exceção. Para repetir também os agendamentos (com códigos novos), use
+`uv run simulador --demonstracao --agendamentos amostra --passagens amostra`. O simulador usa a
+caixa que a demonstração ativou: a chave fica em `dados/simulador/caixa.json`, fora do Git.
 
 Para mandar passagens suas, escreva um arquivo JSON no formato da amostra
 (`ferramentas/src/simulador/amostra.json`) e use `--passagens meu-arquivo.json`. A faixa de
-saída fica assim: `--faixa saida-1`.
+saída fica assim: `--faixa saida-1`, ou `"sentido": "saida"` na própria passagem. Os
+agendamentos seguem o formato de `ferramentas/src/simulador/amostra_agendamentos.json` (janelas
+em minutos a partir de agora).
 
 ## Com um vídeo gravado (leitor v0)
 
