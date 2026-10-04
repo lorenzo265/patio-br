@@ -85,19 +85,21 @@ Para mandar passagens suas, escreva um arquivo JSON no formato da amostra
 (`ferramentas/src/simulador/amostra.json`) e use `--passagens meu-arquivo.json`. A faixa de
 saída fica assim: `--faixa saida-1`.
 
-## Com as imagens de uma câmera (leitor v0)
+## Com um vídeo gravado (leitor v0)
 
-O leitor v0 usa pesos de terceiros: **só para avaliação interna** (SDD 4.1; licenças em
-`docs/validacao/fatos-tecnicos-stack.md`).
+O leitor v0 usa pesos de terceiros: **só para avaliação interna** (SDD 4.1 e D-26; licenças em
+`docs/validacao/fatos-tecnicos-stack.md`). Nas conversas comerciais, use a amostra acima.
 
 1. Baixe os modelos uma vez: `uv run tarefas modelos`. Eles ficam em `modelos/v0`, fora do Git.
-2. Ponha os quadros de um vídeo numa pasta dentro de `dados/` (fora do Git), como imagens
-   numeradas (`quadro-0001.jpg`, `quadro-0002.jpg`...).
-3. Rode o simulador sobre a pasta:
+2. Ponha o vídeo dentro de `dados/` (fora do Git), ex.: `dados/amostras/portaria-1.mp4`.
+3. Rode o simulador sobre o vídeo:
 
    ```bash
-   uv run simulador --quadros dados/amostras/portaria-1 --faixa entrada-1 --camera frente
+   uv run simulador --video dados/amostras/portaria-1.mp4 --faixa entrada-1 --camera frente
+   # Windows: .venv\Scripts\python.exe -m simulador --video dados\amostras\portaria-1.mp4 --faixa entrada-1 --camera frente
    ```
+
+   Os quadros de um vídeo numa pasta, como imagens numeradas, também servem: `--quadros pasta`.
 
 ## Se der errado
 
@@ -114,8 +116,7 @@ O leitor v0 usa pesos de terceiros: **só para avaliação interna** (SDD 4.1; l
 - **Vídeos gravados** com autorização (plano, T19, passo 1): de 10 a 20 passagens de caminhão,
   com aviso de gravação e sem foco em rostos, em `dados/amostras/`, com a ficha de quem
   autorizou. É uma tarefa do Lorenzo.
-- **Ler arquivo de vídeo e câmera (RTSP)**: a regra de licença das bibliotecas de vídeo foi
-  decidida em 04/10 (SDD D-27), e a leitura ainda está por fazer. Até lá, o caminho é a pasta
-  de quadros acima.
+- **O programa da caixa** que lê as câmeras ao vivo (RTSP): a leitura já existe (SDD D-29); falta
+  o programa que ativa a caixa, abre as câmeras da configuração e envia as passagens.
 - **Acerto do leitor**: o v0 não tem meta de acerto; ele existe para o fluxo funcionar. O
   acerto é trabalho do v1, com pesos nossos (mês 2).
