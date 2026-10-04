@@ -37,7 +37,7 @@ uv sync                      # cria o ambiente e instala todos os pacotes do pro
 No dia a dia:
 
 ```bash
-uv run tarefas up            # sobe os bancos (15432 e 15433, o de testes) e a API (18000)
+uv run tarefas up            # sobe os bancos (15432 e 15433, o de testes), a API (18000) e o worker
 uv run tarefas migrar        # aplica as migrações no banco de desenvolvimento
 uv run tarefas semente       # grava os dados de demonstração (duas empresas inventadas)
 uv run tarefas modelos       # baixa os modelos do leitor v0 para modelos/ (fora do Git)
