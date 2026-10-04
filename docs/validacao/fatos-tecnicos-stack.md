@@ -98,7 +98,7 @@ sem partes GPL.
 | Linux x86-64 | FFmpeg (`libavcodec` 62, `libavformat`, `libavutil`, `libswscale`, `libswresample`) | **LGPL 2.1**: as próprias bibliotecas dizem "license: LGPL version 2.1 or later"; montado sem `--enable-gpl` e sem `--enable-nonfree`; nada de x264 nem x265 |
 | Linux x86-64 | `libvpx`, `libaom`, `libavif`, OpenBLAS, `libpng`, `libdrm` | BSD, BSD-2, BSD-2, BSD-3, libpng, MIT |
 | Linux x86-64 | `libgfortran`, `libquadmath` | GPL-3.0 com a exceção de runtime do GCC; LGPL-2.1 (os mesmos da NumPy) |
-| Linux x86-64 | **OpenSSL 1.1.1w** (`libssl`, `libcrypto`), porque o FFmpeg foi montado com `--enable-openssl` | OpenSSL/SSLeay: estilo BSD, com cláusula de propaganda; a série 1.1 não recebe correções desde 2023 (`[ABERTO-14]`) |
+| Linux x86-64 | **OpenSSL 1.1.1w** (`libssl`, `libcrypto`), porque o FFmpeg foi montado com `--enable-openssl` | OpenSSL/SSLeay: estilo BSD, com cláusula de propaganda; a série 1.1 não recebe correções desde 2023 (`[ABERTO-14]`, aceito em 04/10: SDD D-31) |
 | Windows x86-64 | uma DLL só, `opencv_videoio_ffmpeg500_64.dll`, com o FFmpeg dentro | **LGPL 2.1** ("libswscale license: LGPL version 2.1 or later"); nada de x264, x265 nem OpenSSL |
 
 A lista e o texto das licenças vêm na própria roda, em `cv2/LICENSE-3RD-PARTY.txt`.
