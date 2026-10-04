@@ -1,7 +1,7 @@
 # SDD — patio-br (nome provisório)
 
 **Documento de desenho do software (SDD) do MVP do piloto**
-Versão 0.14 · 2026-10-03 · Situação: aprovado como base; itens em aberto na seção 12
+Versão 0.15 · 2026-10-04 · Situação: aprovado como base; itens em aberto na seção 12
 
 ---
 
@@ -213,6 +213,8 @@ dois lados. Mudou o formato → muda a versão do contrato.
   passagem só referencia (D-22):
   - a caixa pede o endereço para cada `ref` (`POST /api/borda/fotos/endereco`) e envia a foto
     com `PUT` nesse endereço, que vale 15 minutos e não precisa da chave (como no S3);
+  - o endereço parte do endereço público da API (`PATIO_URL_PUBLICA`, D-28) ou, sem ele, do
+    endereço do pedido, o que basta no ambiente local;
   - o `ref` é escolhido pela caixa (letras, números, `.`, `_`, `-` e `/`; nenhuma parte termina
     em `.` nem é nome reservado do Windows, como `CON` ou `NUL`), e a foto fica guardada dentro
     da pasta da própria caixa: uma caixa nunca alcança a foto de outra;
@@ -271,15 +273,17 @@ mudam.
 Em produção, só entram **código e modelos com licença Apache-2.0, MIT ou BSD, com pesos
 treinados por nós**. O YOLO da Ultralytics (AGPL-3.0) fica de fora: usá-lo num produto fechado
 exige licença Enterprise, sem preço publicado. Pesos de terceiros com licença incerta podem ser
-usados só em avaliação interna, nunca no produto.
+usados só em avaliação interna, nunca no produto (D-26): para comparar modelos entre si e
+escolher o que treinar, e no leitor v0 da demonstração interna. Nas conversas comerciais, a
+demonstração usa o simulador com a amostra, não o v0.
 
 ### 4.2 O caminho de cada câmera, dentro da caixa
 
 | Passo | O que faz | Ferramenta (licença) |
 |---|---|---|
-| 1. Captura | puxa o vídeo (RTSP) e só processa quando há veículo na faixa | FFmpeg/PyAV + go2rtc (MIT); FFmpeg é LGPL e a roda do PyAV traz partes GPL: `[ABERTO-13]` |
+| 1. Captura | puxa o vídeo (RTSP) e só processa quando há veículo na faixa | FFmpeg montado sem partes GPL (D-27) + go2rtc (MIT); o PyAV do PyPI traz x264 e x265 (GPL) e fica de fora |
 | 2. Detecção | acha o veículo e a placa no quadro | D-FINE-N ou YOLOX-Tiny (Apache-2.0) — `[ABERTO-03]` |
-| 3. Rastreamento | segue o mesmo veículo entre quadros | rastreador nosso por sobreposição, no estilo do ByteTrack (D-25); o supervision exige o PyAV: `[ABERTO-13]` |
+| 3. Rastreamento | segue o mesmo veículo entre quadros | rastreador nosso por sobreposição, no estilo do ByteTrack (D-25); o supervision exige o PyAV (D-27) |
 | 4. Leitura (OCR) | lê os caracteres da placa | modelo leve no estilo do fast-plate-ocr (código MIT), com pesos nossos |
 | 5. Votação | junta as leituras de vários quadros e fica com a mais confiável | código nosso |
 | 6. Formato | valida e corrige pela posição dos caracteres | código nosso |
@@ -304,8 +308,9 @@ inverso. A correção é registrada na passagem (confiança menor).
   recorte da placa mais confiável para a foto. Veículo sem placa legível também gera leitura
   (sem placa), e a passagem sai sem placas: a nuvem trata como exceção (seção 3.2).
 - **Captura:** os quadros chegam por uma fonte, a uma taxa configurável (padrão 5 por segundo).
-  Câmera (RTSP) e arquivo de vídeo esperam o `[ABERTO-13]`; até lá, a fonte é uma pasta de
-  imagens (os quadros de um vídeo, tirados fora da caixa), o que basta para a demonstração.
+  Câmera (RTSP) e arquivo de vídeo entram como outra fonte, com um decodificador que siga a
+  D-27; até lá, a fonte é uma pasta de imagens (os quadros de um vídeo, tirados fora da caixa),
+  o que basta para a demonstração.
 - **Votação:** fica a placa lida em mais quadros; no empate, a de maior confiança média. A
   confiança final é a média das confianças dos quadros vencedores vezes a fração dos quadros
   que concordam (ex.: 4 de 5 quadros a 0,95 → 0,95 × 0,8 = 0,76). `quadros` na passagem é o
@@ -475,11 +480,17 @@ Pontuação inicial (os pesos e o limite são ajustados com os dados do mês 2 �
 | Banco | PostgreSQL 16; fila de tarefas no próprio PostgreSQL (`[ABERTO-11]`) |
 | Painel | páginas no servidor (Jinja) + **HTMX**; atualização ao vivo por SSE; instalável como **PWA** |
 | Gráficos | biblioteca JavaScript pequena, só onde houver gráfico |
-| Borda | PyAV/FFmpeg, go2rtc, OpenVINO, supervision/ByteTrack, SQLite (fila local), httpx |
+| Borda | FFmpeg sem partes GPL (D-27), go2rtc, OpenVINO, rastreador próprio (D-25), SQLite (fila local), httpx |
 | Treino | PyTorch, Label Studio, exportação ONNX → OpenVINO |
 | Qualidade | ruff, mypy, pytest; checagem de licenças e vulnerabilidades das dependências |
 
 Toda dependência precisa de licença permissiva (MIT, BSD, Apache, PostgreSQL, ISC, PSF). MPL-2.0 só é aceita para biblioteca usada sem modificação (ex.: `certifi`). GPL, LGPL e AGPL ficam de fora. A CI checa.
+
+Bibliotecas nativas que vêm dentro das rodas (D-27): LGPL é aceita quando usada sem modificação
+e carregada dinamicamente (ex.: a `libquadmath` da NumPy); GPL só com a exceção de runtime do
+GCC (ex.: a `libgfortran`); o FFmpeg só montado sem partes GPL (sem x264 e x265; por isso o
+PyAV do PyPI fica de fora). A CI não vê bibliotecas nativas: quem acrescenta uma dependência
+confere a roda.
 
 Arquivos de terceiros que o painel serve (o HTMX, licença Zero-Clause BSD) ficam no repositório,
 em `nuvem/src/nuvem/web/estatico/`, com a versão no nome, a licença e o hash conferido, e não
@@ -527,7 +538,7 @@ Serve para desenvolver sem câmera, para os testes de ponta a ponta e para simul
 - **Passagens prontas** (`--passagens arquivo.json`): manda passagens escritas à mão, sem visão
   computacional; caixa, site, faixa e horários vêm da ativação e da hora atual quando faltam.
 - **Quadros** (`--quadros pasta`): roda o leitor v0 sobre as imagens de uma pasta, como se fossem
-  uma câmera. O arquivo de vídeo (`--video`) espera o `[ABERTO-13]`.
+  uma câmera. O arquivo de vídeo (`--video`) entra com a captura de vídeo (D-27).
 - **Demonstração** (`--demonstracao`): só no ambiente local, entra como a administração da
   semente, gera o código e ativa a caixa sozinho. Se já há uma caixa ativada e a chave dela
   ainda vale, usa a mesma: o que ficou na fila de uma rodada anterior é dela.
@@ -668,6 +679,13 @@ Serve para desenvolver sem câmera, para os testes de ponta a ponta e para simul
 - Link da transportadora com código aleatório, revogável, com limite de envios.
 - HTTPS em tudo; banco e fotos cifrados; senhas de câmera cifradas.
 - Dependências checadas a cada build.
+- **Antes da produção (mês 4)**, decidido em 04/10:
+  - limite de login também por endereço IP, junto com a hospedagem (atrás de um proxy, o IP
+    real vem de um cabeçalho que precisa ser de confiança);
+  - código anti-CSRF nos formulários do painel (hoje, o `SameSite=Lax` do cookie e a recusa
+    do login vindo de outro site);
+  - um comando para criar a administração, junto com a verificação em duas etapas (hoje, só a
+    semente cria, e só no ambiente local).
 
 ### 8.3 LGPD
 
@@ -763,7 +781,10 @@ folga.
 | D-22 | Fotos enviadas pela caixa a um endereço temporário; no armazenamento local, o endereço leva um código cifrado (Fernet, com a chave da cifra) que diz a caixa, o `ref` e quando vence | a mesma forma do endereço assinado do S3 (mês 4): a caixa só aprende "peça o endereço e envie"; não precisa de outro segredo | foto dentro da passagem (passagem pesada, reenvio caro); envio pela API com a chave da caixa (no S3 seria outro caminho) |
 | D-23 | A placa lida só pela câmera de trás, sem a da frente, vai com papel `desconhecido` | sem a frente, a placa traseira pode ser de um reboque ou do próprio cavalo sem reboque; a caixa só diz o que viu, e o casamento (mês 2) testa a placa em qualquer papel | papel `reboque` sempre que a leitura vem da traseira (erra no cavalo sem reboque com a frente ilegível e na saída, que só tem câmera traseira) |
 | D-24 | Passagem que a nuvem recusa de vez (403, 409, 422) sai da fila e fica guardada à parte na caixa | reenviar não muda a resposta, e a fila em ordem ficaria travada para sempre atrás dela; guardada à parte, nada se perde e o suporte vê o motivo | só tirar da fila com 201 ou 200 (trava a portaria inteira por uma passagem errada); apagar a recusada (perde a prova) |
-| D-25 | Rastreador nosso, por sobreposição de caixas (no estilo do ByteTrack, sem o filtro de Kalman) | o supervision, que traz o ByteTrack, exige o PyAV, cuja roda traz partes GPL (`[ABERTO-13]`); na portaria o caminhão anda devagar e, a 5 quadros por segundo, a caixa de um quadro cobre a do seguinte | ByteTrack do supervision (preso ao `[ABERTO-13]`); filtro de Kalman (sem ganho a esta velocidade) |
+| D-25 | Rastreador nosso, por sobreposição de caixas (no estilo do ByteTrack, sem o filtro de Kalman) | o supervision, que traz o ByteTrack, exige o PyAV, cuja roda traz partes GPL (D-27); na portaria o caminhão anda devagar e, a 5 quadros por segundo, a caixa de um quadro cobre a do seguinte | ByteTrack do supervision (preso ao PyAV); filtro de Kalman (sem ganho a esta velocidade) |
+| D-26 | Pesos de terceiros servem só para comparar modelos e para avaliação interna (o leitor v0); o produto usa pesos treinados por nós | decisão de 04/10, que fecha o `[ABERTO-12]`: D-FINE, YOLOX e fast-plate-ocr não declaram licença dos pesos, e PaddleOCR e RapidOCR declaram Apache-2.0 (`docs/validacao/fatos-tecnicos-stack.md`); comparar os de terceiros mostra qual modelo se sai melhor antes de treinar os nossos | usar pesos de terceiros no produto (licença incerta); não usá-los nem para comparar (escolher o modelo às cegas) |
+| D-27 | Bibliotecas nativas dentro das rodas: LGPL aceita quando usada sem modificação e carregada dinamicamente; GPL só com a exceção de runtime do GCC; FFmpeg só montado sem partes GPL | decisão de 04/10, que fecha o `[ABERTO-13]`: é a mesma lógica do MPL-2.0 (biblioteca usada sem modificação); proibir toda LGPL nativa derrubaria a NumPy (`libquadmath`), de que o ONNX Runtime precisa; o PyAV do PyPI traz x264 e x265 (GPL, sem exceção) e continua de fora, e com ele o supervision | proibir toda biblioteca nativa GPL e LGPL (sem NumPy e sem vídeo); aceitar qualquer GPL nativa (contaminaria o programa da caixa) |
+| D-28 | Endereço público da API configurável (`PATIO_URL_PUBLICA`): os endereços que a API devolve à caixa partem dele | atrás de um proxy HTTPS, o pedido chega como `http://`, e a caixa receberia um endereço de envio de foto errado, tentando para sempre; sem a variável (ambiente local), vale o endereço do pedido; fora do ambiente local, só `https://` | confiar nos cabeçalhos do proxy (`--forwarded-allow-ips`), o que depende de como a hospedagem for montada (mês 4) |
 
 ---
 
@@ -782,8 +803,6 @@ folga.
 | ABERTO-09 | Tolerância de janela (padrão 4h após o fim da janela, usada também para "não veio") e momento do alerta de estadia (padrão: 4h depois da chegada) | com o cliente do piloto |
 | ABERTO-10 | Modelo de dados detalhado do modo B | no início da Fase 2 |
 | ABERTO-11 | Implementação da fila de tarefas no PostgreSQL (biblioteca ou tabela própria) | no mês 2, quando o worker entrar com o casamento |
-| ABERTO-12 | Licença dos pesos de terceiros usados em avaliação (ex.: fast-plate-ocr) | antes de usá-los, mesmo internamente. Levantado na T13 (`docs/validacao/fatos-tecnicos-stack.md`, 2026-10-03): D-FINE, YOLOX e fast-plate-ocr sem licença declarada dos pesos (só avaliação interna); PaddleOCR e RapidOCR com Apache-2.0 declarada. Falta confirmar para fechar |
-| ABERTO-13 | Bibliotecas nativas GPL e LGPL dentro das rodas: o PyAV do PyPI traz x264 e x265 (GPL); o supervision exige o PyAV; o OpenCV traz o FFmpeg (LGPL) e o RapidOCR exige o OpenCV; até a NumPy traz a libquadmath (LGPL). Proposta: aceitar LGPL nativa usada sem modificação e carregada dinamicamente (como o MPL-2.0), GPL só com a exceção de runtime do GCC, e o FFmpeg só montado sem partes GPL | com o Lorenzo, antes de a caixa ler vídeo (T15, T16 e T18) |
 
 ---
 
@@ -832,3 +851,4 @@ folga.
 | 0.12 | 2026-10-03 | licenças dos pesos do leitor v0 (T13): situação do `[ABERTO-12]`; novo `[ABERTO-13]`, bibliotecas nativas GPL e LGPL dentro das rodas (seções 4.2 e 12) |
 | 0.13 | 2026-10-03 | captura e rastreamento (T16): rastreador nosso (D-25), captura por fonte de quadros, leitura sem placa legível (seções 4.2 e 4.3) |
 | 0.14 | 2026-10-03 | agente da caixa e simulador (T18): o que o agente junta, só fotos de placa por enquanto, modos do simulador (seções 6.4 e 7.4) |
+| 0.15 | 2026-10-04 | decisões de 04/10: pesos de terceiros só para comparar e avaliar (D-26, fecha o `[ABERTO-12]`); bibliotecas nativas dentro das rodas (D-27, fecha o `[ABERTO-13]`); endereço público da API (D-28); limite por IP, anti-CSRF e comando da administração antes da produção (seções 3.2, 4.1, 4.2, 6.1, 6.4, 8.2, 11 e 12) |

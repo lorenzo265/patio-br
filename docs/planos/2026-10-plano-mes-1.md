@@ -510,6 +510,10 @@ Coisas que levam tempo de calendário: começar na **semana 1**.
 
 - `[ABERTO-11]` (fila de tarefas no PostgreSQL) passa para o **mês 2**: o worker só é necessário
   quando entrar o casamento com o agendamento.
+- **04/10, SDD 0.15:** `[ABERTO-12]` e `[ABERTO-13]` decididos (D-26 e D-27). Pesos de terceiros
+  servem só para comparar e avaliar; bibliotecas nativas LGPL entram sem modificação, e o FFmpeg
+  sem partes GPL. Com isso, o que esperava o `[ABERTO-13]` (vídeo e RTSP na caixa, o executável
+  da caixa e o `simulador --video`) deixa de esperar e vira a próxima tarefa.
 
 ---
 

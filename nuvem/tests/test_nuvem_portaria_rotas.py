@@ -1,19 +1,26 @@
 """Rotas da borda para passagens e fotos: respostas que a fila da caixa entende."""
 
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
 
+from nuvem.banco import obter_sessao
+from nuvem.config import Configuracao
 from nuvem.frota.servico import CaixaAtivada
+from nuvem.principal import criar_app
 from nuvem.semente import Demonstracao
+from nuvem.senhas import Senhas
 
 pytestmark = pytest.mark.integracao
 
 JPEG = b"\xff\xd8\xff\xe0" + b"foto-inventada" * 10 + b"\xff\xd9"
+CHAVE_QUALQUER = "e2u1sbXAG2Ri9_0ZHEe1QYdjCBzi-q2Wk1ZkkXBtEyw="
 
 
 def _caixa(app: FastAPI, caixa: CaixaAtivada) -> TestClient:
@@ -141,6 +148,37 @@ def _endereco(app: FastAPI, caixa_a: CaixaAtivada, ref: str = "2026/10/05/p1-pla
     corpo = resposta.json()
     assert corpo["ref"] == ref
     return str(corpo["endereco"])
+
+
+def test_sem_endereco_publico_o_envio_parte_do_endereco_do_pedido(
+    app: FastAPI, cenario: Demonstracao, caixa_a: CaixaAtivada
+) -> None:
+    assert _endereco(app, caixa_a).startswith("http://testserver/api/borda/fotos/envio/")
+
+
+def test_o_envio_parte_do_endereco_publico(
+    url_banco_teste: str,
+    sessao: Session,
+    senhas: Senhas,
+    tmp_path: Path,
+    cenario: Demonstracao,
+    caixa_a: CaixaAtivada,
+) -> None:
+    # Atrás de um proxy HTTPS, o pedido chega como http://; a caixa precisa do endereço público.
+    configuracao = Configuracao(
+        url_banco=url_banco_teste,
+        chave_cifra=CHAVE_QUALQUER,
+        ambiente="producao",
+        url_publica="https://patio-br.example",
+        pasta_fotos=tmp_path,
+        _env_file=None,
+    )
+    app = criar_app(configuracao, senhas=senhas)
+    app.dependency_overrides[obter_sessao] = lambda: sessao
+
+    endereco = _endereco(app, caixa_a)
+
+    assert endereco.startswith("https://patio-br.example/api/borda/fotos/envio/")
 
 
 def test_foto_vai_pelo_endereco_sem_a_chave(

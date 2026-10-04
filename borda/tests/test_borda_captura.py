@@ -57,7 +57,7 @@ def test_fonte_de_memoria_devolve_os_quadros_dados() -> None:
 
 @pytest.mark.integracao
 def test_fonte_de_pasta_le_as_imagens_em_ordem_de_nome(tmp_path: Path) -> None:
-    # Os quadros de um vídeo, tirados fora da caixa, numa pasta (até o [ABERTO-13]).
+    # Os quadros de um vídeo, tirados fora da caixa, numa pasta (até a caixa ler vídeo).
     for indice, vermelho in [(2, 30), (0, 10), (1, 20)]:
         Image.new("RGB", (8, 6), (vermelho, 0, 0)).save(tmp_path / f"quadro-{indice:04d}.png")
     (tmp_path / "LEIA-ME.txt").write_text("não é imagem", encoding="utf-8")

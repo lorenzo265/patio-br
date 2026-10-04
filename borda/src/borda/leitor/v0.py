@@ -4,8 +4,8 @@
 - **Texto:** PP-OCRv5 mobile do PaddleOCR (Apache-2.0): um modelo acha as linhas de texto, outro
   lê cada linha. A regra de formato da placa (``formato``) vem depois, no rastreador.
 
-Tudo roda no ONNX Runtime, com NumPy e Pillow: sem OpenCV, que traz o FFmpeg (SDD
-``[ABERTO-13]``). Os pesos ficam em ``modelos/v0`` (``uv run tarefas modelos``).
+Tudo roda no ONNX Runtime, com NumPy e Pillow, sem OpenCV. Os pesos de terceiros servem só
+para avaliação interna (SDD D-26) e ficam em ``modelos/v0`` (``uv run tarefas modelos``).
 
 Não há meta de acerto no v0: ele existe para o fluxo funcionar; o acerto é trabalho do v1, com
 pesos nossos (mês 2).

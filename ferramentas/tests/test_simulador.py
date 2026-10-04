@@ -357,11 +357,11 @@ def test_arquivo_de_passagens_mantem_o_que_ja_vem_preenchido(
     assert passagem["placas"][0]["placa"] == "ABC1234"
 
 
-def test_video_espera_o_aberto_13(nuvem: NuvemFalsa, tmp_path: Path) -> None:
+def test_video_ainda_nao_e_explica_o_caminho(nuvem: NuvemFalsa, tmp_path: Path) -> None:
     codigo, saida = _rodar(nuvem, tmp_path, "--demonstracao", "--video", "x.mp4")
 
     assert codigo == 2
-    assert "ABERTO-13" in saida
+    assert "--quadros" in saida
 
 
 class DetectorDeTudo:

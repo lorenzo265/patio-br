@@ -14,7 +14,7 @@ Exemplos (com o ambiente local no ar, ``uv run tarefas up``)::
   câmeras) é completado pela ativação e pela hora atual; cada placa leva uma foto desenhada.
 - **Quadros** (``--quadros``): as imagens de uma pasta passam pelo agente da caixa com o leitor
   v0 (``uv run tarefas modelos`` antes), como se fossem uma câmera.
-- **Vídeo** (``--video``): espera o ``[ABERTO-13]`` do SDD.
+- **Vídeo** (``--video``): ainda não; entra com a leitura de vídeo da caixa (SDD D-27).
 
 As passagens passam pela mesma fila da caixa (``dados/simulador/fila.sqlite``): o que a nuvem
 não recebeu fica guardado para a próxima vez.
@@ -115,7 +115,7 @@ def principal(
     try:
         if argumentos.video:
             raise SimuladorError(
-                "arquivo de vídeo ainda não: o decodificador espera o [ABERTO-13] do SDD; "
+                "arquivo de vídeo ainda não: entra com a leitura de vídeo da caixa (SDD D-27); "
                 "tire os quadros do vídeo para uma pasta e use --quadros",
                 codigo=2,
             )
@@ -205,7 +205,7 @@ def _interpretador(nuvem_local: str) -> argparse.ArgumentParser:
     o_que = interpretador.add_mutually_exclusive_group(required=True)
     o_que.add_argument("--passagens", help="arquivo JSON com passagens, ou `amostra`")
     o_que.add_argument("--quadros", help="pasta com as imagens de uma câmera")
-    o_que.add_argument("--video", help="arquivo de vídeo (espera o [ABERTO-13])")
+    o_que.add_argument("--video", help="arquivo de vídeo (ainda não; SDD D-27)")
     interpretador.add_argument("--faixa", help="id ou nome da faixa (ex.: entrada-1)")
     interpretador.add_argument(
         "--camera", default="frente", help="id ou posição da câmera na faixa (padrão: frente)"

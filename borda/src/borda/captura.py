@@ -10,8 +10,8 @@ Fontes de agora:
 - ``FonteDePasta``: as imagens de uma pasta, em ordem de nome (os quadros de um vídeo, tirados
   fora da caixa), para a demonstração.
 
-A câmera (RTSP) e o arquivo de vídeo precisam de um decodificador de vídeo, e os disponíveis
-trazem partes GPL ou LGPL (SDD ``[ABERTO-13]``): entram depois da decisão, como outra fonte.
+A câmera (RTSP) e o arquivo de vídeo precisam de um decodificador de vídeo que siga a regra das
+bibliotecas nativas (SDD D-27: FFmpeg sem partes GPL). Entram como outra fonte.
 """
 
 from collections.abc import Iterable, Iterator, Sequence
