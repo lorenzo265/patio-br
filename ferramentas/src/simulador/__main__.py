@@ -29,7 +29,6 @@ import sys
 import threading
 import unicodedata
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from importlib import resources
 from pathlib import Path
@@ -41,6 +40,15 @@ import httpx
 from PIL import Image, ImageDraw, ImageFont
 
 from borda.agente import Agente, CameraDoAgente, ConfiguracaoDoAgente, FaixaDoAgente, rodar
+from borda.ativacao import (
+    CaixaAtivada,
+    ChaveRecusadaError,
+    CodigoRecusadoError,
+    ativar,
+    baixar_configuracao,
+    guardar_caixa,
+    ler_caixa,
+)
 from borda.captura import (
     FonteAmostrada,
     FonteDeArquivo,
@@ -81,16 +89,6 @@ class SimuladorError(Exception):
     def __init__(self, mensagem: str, codigo: int = 1) -> None:
         super().__init__(mensagem)
         self.codigo = codigo
-
-
-@dataclass(frozen=True)
-class CaixaAtivada:
-    """A caixa que o simulador finge ser."""
-
-    nuvem: str
-    caixa_id: str
-    site_id: str
-    chave: str
 
 
 def principal(
@@ -250,19 +248,16 @@ def _caixa(argumentos: argparse.Namespace, cliente: httpx.Client, raiz: Path) ->
 
 
 def _caixa_guardada(raiz: Path, nuvem: str) -> CaixaAtivada | None:
-    arquivo = raiz / ARQUIVO_DA_CAIXA
-    if not arquivo.is_file():
-        return None
-    guardada = CaixaAtivada(**json.loads(arquivo.read_text(encoding="utf-8")))
-    return guardada if guardada.nuvem == nuvem else None
+    guardada = ler_caixa(raiz / ARQUIVO_DA_CAIXA)
+    return guardada if guardada is not None and guardada.nuvem == nuvem else None
 
 
 def _chave_vale(cliente: httpx.Client, caixa: CaixaAtivada) -> bool:
-    resposta = cliente.get(
-        f"{caixa.nuvem}/api/borda/configuracao",
-        headers={"Authorization": f"Bearer {caixa.chave}"},
-    )
-    return resposta.status_code == httpx.codes.OK
+    try:
+        baixar_configuracao(cliente, caixa)
+    except (ChaveRecusadaError, httpx.HTTPStatusError):
+        return False
+    return True
 
 
 def _codigo_da_demonstracao(cliente: httpx.Client, nuvem: str) -> str:
@@ -283,27 +278,19 @@ def _codigo_da_demonstracao(cliente: httpx.Client, nuvem: str) -> str:
 
 
 def _ativar(cliente: httpx.Client, nuvem: str, codigo: str, raiz: Path) -> CaixaAtivada:
-    resposta = cliente.post(f"{nuvem}/api/borda/ativar", json={"codigo": codigo})
-    if resposta.status_code == httpx.codes.UNAUTHORIZED:
-        raise SimuladorError("código de ativação inválido, já usado ou vencido")
-    resposta.raise_for_status()
-    dados = resposta.json()
-    caixa = CaixaAtivada(nuvem, str(dados["caixa_id"]), str(dados["site_id"]), dados["chave"])
-    arquivo = raiz / ARQUIVO_DA_CAIXA
-    arquivo.parent.mkdir(parents=True, exist_ok=True)
-    arquivo.write_text(json.dumps(caixa.__dict__, indent=2), encoding="utf-8")
+    try:
+        caixa = ativar(cliente, nuvem, codigo)
+    except CodigoRecusadoError as erro:
+        raise SimuladorError(str(erro)) from None
+    guardar_caixa(caixa, raiz / ARQUIVO_DA_CAIXA)
     return caixa
 
 
 def _configuracao(cliente: httpx.Client, caixa: CaixaAtivada) -> ConfiguracaoDoAgente:
-    resposta = cliente.get(
-        f"{caixa.nuvem}/api/borda/configuracao",
-        headers={"Authorization": f"Bearer {caixa.chave}"},
-    )
-    if resposta.status_code == httpx.codes.UNAUTHORIZED:
-        raise SimuladorError("a chave guardada foi revogada: ative de novo com --codigo")
-    resposta.raise_for_status()
-    return ConfiguracaoDoAgente.de_json(resposta.json())
+    try:
+        return baixar_configuracao(cliente, caixa)
+    except ChaveRecusadaError:
+        raise SimuladorError("a chave guardada foi revogada: ative de novo com --codigo") from None
 
 
 # --- Faixa e câmera ------------------------------------------------------------------------

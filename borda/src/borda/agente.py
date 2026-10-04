@@ -6,10 +6,18 @@ caixa) e vai para a fila de envio com a foto de cada placa, em JPEG. A câmera d
 lê placa; a foto dela entra com o borrão de rostos (SDD 8.3), depois.
 
 O remetente (``envio.Remetente``) esvazia a fila em outra linha de execução.
+
+Dois jeitos de rodar: ``rodar`` junta fontes que acabam (arquivos, pastas) pela hora dos
+quadros; ``rodar_ao_vivo`` lê câmeras ao vivo, cada uma na sua linha, até a caixa desligar
+(SDD D-30).
 """
 
 import heapq
 import io
+import logging
+import queue
+import threading
+import time
 from collections.abc import Callable, Iterator, Mapping
 from dataclasses import dataclass
 from datetime import timedelta
@@ -28,6 +36,14 @@ VERSAO_DO_LEITOR = "v0"
 """Vai em cada passagem (``versao_leitor``): o leitor v0, com pesos de terceiros (T15)."""
 
 QUALIDADE_DO_JPEG = 90
+
+ESPERA_DE_QUADROS = 60
+"""Quantos quadros podem esperar o agente ao vivo (cerca de 2 s de 6 câmeras a 5 por segundo)."""
+
+PRAZO_PARA_DESLIGAR = 5.0
+"""Segundos para processar, ao desligar, os quadros que já tinham chegado."""
+
+_registro = logging.getLogger(__name__)
 
 PosicaoDaCamera = Literal["frente", "tras", "contexto"]
 
@@ -216,3 +232,90 @@ def _jpeg(recorte: Quadro) -> bytes:
     saida = io.BytesIO()
     Image.fromarray(recorte[:, :, ::-1].copy()).save(saida, "JPEG", quality=QUALIDADE_DO_JPEG)
     return saida.getvalue()
+
+
+class AgenteAoVivo(Protocol):
+    """O que ``rodar_ao_vivo`` usa do agente."""
+
+    def processar(self, camera_id: str, quadro: QuadroNoTempo) -> object:
+        """Processa um quadro de uma câmera."""
+        ...
+
+    def encerrar(self) -> object:
+        """Encerra o que estava em aberto."""
+        ...
+
+
+def rodar_ao_vivo(
+    agente: AgenteAoVivo,
+    fontes: Mapping[str, FonteDeQuadros],
+    parar: threading.Event,
+    *,
+    espera: int = ESPERA_DE_QUADROS,
+) -> None:
+    """Roda o agente sobre câmeras ao vivo até ``parar`` ser ligado (SDD D-30).
+
+    Cada câmera é lida na própria linha de execução, e os quadros são processados na ordem em que
+    chegam: uma câmera caída não segura as outras. Se o agente fica para trás, os quadros que não
+    cabem na espera são descartados, com registro. Um quadro que dá erro fica registrado e não
+    para a caixa. Ao desligar, processa o que já tinha chegado (por até ``PRAZO_PARA_DESLIGAR``)
+    e encerra os veículos e as composições em aberto.
+    """
+    chegados: queue.Queue[tuple[str, QuadroNoTempo]] = queue.Queue(maxsize=espera)
+    linhas = [
+        threading.Thread(
+            target=_ler_camera,
+            args=(camera_id, fonte, chegados, parar),
+            name=f"camera-{camera_id}",
+            daemon=True,
+        )
+        for camera_id, fonte in fontes.items()
+    ]
+    for linha in linhas:
+        linha.start()
+    while not parar.is_set():
+        try:
+            camera_id, quadro = chegados.get(timeout=0.5)
+        except queue.Empty:
+            continue
+        _processar(agente, camera_id, quadro)
+    prazo = time.monotonic() + PRAZO_PARA_DESLIGAR
+    while time.monotonic() < prazo:
+        try:
+            camera_id, quadro = chegados.get_nowait()
+        except queue.Empty:
+            break
+        _processar(agente, camera_id, quadro)
+    agente.encerrar()
+
+
+def _ler_camera(
+    camera_id: str,
+    fonte: FonteDeQuadros,
+    chegados: "queue.Queue[tuple[str, QuadroNoTempo]]",
+    parar: threading.Event,
+) -> None:
+    descartados = 0
+    try:
+        for quadro in fonte.quadros():
+            if parar.is_set():
+                return
+            try:
+                chegados.put_nowait((camera_id, quadro))
+            except queue.Full:
+                descartados += 1
+                if descartados == 1 or descartados % 500 == 0:
+                    _registro.warning(
+                        "câmera %s: %d quadros descartados (o agente não dá conta)",
+                        camera_id,
+                        descartados,
+                    )
+    except Exception:
+        _registro.exception("a leitura da câmera %s parou com um erro", camera_id)
+
+
+def _processar(agente: AgenteAoVivo, camera_id: str, quadro: QuadroNoTempo) -> None:
+    try:
+        agente.processar(camera_id, quadro)
+    except Exception:
+        _registro.exception("erro num quadro da câmera %s; a caixa segue", camera_id)

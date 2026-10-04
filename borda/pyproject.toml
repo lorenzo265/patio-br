@@ -12,6 +12,9 @@ dependencies = [
     "pillow>=12.3.0",
 ]
 
+[project.scripts]
+caixa = "borda.caixa:main"
+
 [build-system]
 requires = ["hatchling>=1.25"]
 build-backend = "hatchling.build"

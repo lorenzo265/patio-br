@@ -21,7 +21,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Protocol
-from urllib.parse import urlsplit, urlunsplit
+from urllib.parse import quote, urlsplit, urlunsplit
 
 import cv2
 import numpy as np
@@ -233,6 +233,19 @@ def sem_credenciais(endereco: str) -> str:
     if "@" not in partes.netloc:
         return endereco
     servidor = partes.netloc.rsplit("@", 1)[1]
+    return urlunsplit(partes._replace(netloc=servidor))
+
+
+def com_credenciais(endereco: str, login: str, senha: str) -> str:
+    """O endereço da câmera com o login e a senha (codificados: ``@``, ``:`` e ``/`` não quebram
+    o endereço). Credenciais que já estavam no endereço são trocadas.
+
+    Ex.: ``rtsp://10.0.0.5:554/stream1`` vira ``rtsp://leitura:senha@10.0.0.5:554/stream1``.
+    """
+    partes = urlsplit(endereco)
+    servidor = partes.netloc.rsplit("@", 1)[-1]
+    if login or senha:
+        servidor = f"{quote(login, safe='')}:{quote(senha, safe='')}@{servidor}"
     return urlunsplit(partes._replace(netloc=servidor))
 
 
