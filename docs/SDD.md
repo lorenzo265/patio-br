@@ -1,7 +1,7 @@
 # SDD — patio-br (nome provisório)
 
 **Documento de desenho do software (SDD) do MVP do piloto**
-Versão 0.24 · 2026-10-04 · Situação: aprovado como base; itens em aberto na seção 12
+Versão 0.25 · 2026-10-04 · Situação: aprovado como base; itens em aberto na seção 12
 
 ---
 
@@ -481,7 +481,9 @@ passagem sem casamento ─▶ EXCECAO ─porteiro resolve─┘   (ou RECUSADA)
 
 ### 5.3 Casamento da chegada com o agendamento
 
-Candidatos: agendamentos do site em `AGENDADA` com janela no dia (± tolerância).
+Candidatos: agendamentos do site em `AGENDADA` (ativos e ainda sem visita, D-35) cuja janela,
+alargada pela tolerância para antes e para depois (padrão 4h, `[ABERTO-09]`), contém a hora da
+chegada.
 
 Pontuação inicial (os pesos e o limite são ajustados com os dados do mês 2 — `[ABERTO-02]`):
 
@@ -495,8 +497,24 @@ Pontuação inicial (os pesos e o limite são ajustados com os dados do mês 2 �
 
 - **Check-in automático:** um candidato com ≥ 80 pontos e pelo menos 20 pontos à frente do
   segundo.
-- **Exceção:** nenhum candidato acima de 80, ou dois candidatos próximos.
-- **Saída:** a placa do cavalo fecha a visita aberta do mesmo site.
+- **Exceção:** nenhum candidato acima de 80, ou dois candidatos próximos. O motivo vai junto:
+  passagem sem placa; sem candidato (nenhuma placa bate); pontos baixos (o melhor fica abaixo
+  de 80); candidatos próximos (menos de 20 pontos à frente). Os candidatos da exceção são os que
+  bateram alguma placa, com os pontos.
+- **Saída:** uma placa da composição fecha a visita aberta do mesmo site (D-37); havendo mais de
+  uma visita aberta com a placa, fecha a de chegada mais recente. Saída sem visita aberta fica só
+  como passagem.
+- **Placa antiga e Mercosul** (D-36): a placa antiga e a Mercosul que a substituiu (o 5º
+  caractere, de número, vira letra: 0→A, 1→B ... 9→J; `ABC1234` = `ABC1C34`) contam como a mesma
+  placa.
+- **Placa lida só pela traseira** (papel desconhecido, D-23) é testada como cavalo e como
+  reboque.
+- **Composição da visita** (D-17): o cavalo é o do agendamento; cada reboque do agendamento
+  entra como lido, se a câmera o viu, ou inferido, se não viu. Se a câmera viu um reboque que
+  não está no agendamento (reboque trocado), ele entra como lido, e os do agendamento não são
+  inferidos.
+- **A mesma passagem duas vezes** (o trabalho repetido depois de uma falha) não cria outra
+  visita: a passagem de entrada e a de saída são únicas entre as visitas.
 
 ### 5.4 Contas do extrato
 
@@ -867,6 +885,8 @@ folga.
 | D-33 | O mesmo `codigo_externo` da mesma origem, no mesmo site, atualiza o agendamento, e a mudança fica registrada | o gestor reimporta a planilha do dia várias vezes, com correções; recusar a repetida o obrigaria a apagar e criar de novo, e duplicar deixaria dois candidatos iguais no casamento | recusar o código repetido; criar outro agendamento |
 | D-34 | O código do link da transportadora vai no endereço, e não num campo para digitar; o banco guarda só o resumo, e o registro de acesso o esconde | a transportadora abre o link no celular, direto da mensagem, sem copiar nada; o código é longo (sorteado pela nuvem) e o resumo basta para conferir | um código curto para digitar numa página fixa (mais um passo, e curto é fácil de adivinhar) |
 | D-35 | A visita nasce na chegada (ou no prazo do "não veio"), e não junto com o agendamento; o `AGENDADA` é o agendamento ativo sem visita | o módulo de agendamento não precisa conhecer a portaria (seção 3.3); mudar ou cancelar um agendamento antes da chegada não mexe em visita nenhuma; toda entrada vira visita na hora, e a exceção já tem onde guardar os eventos e a foto | criar a visita em `AGENDADA` junto com o agendamento (o agendamento cria e cancela visitas, e o cancelamento precisaria de um estado fora do diagrama) |
+| D-36 | No casamento, a placa antiga e a Mercosul que a substituiu contam como a mesma | a troca para a Mercosul manteve a placa de cada veículo, trocando só o 5º caractere por uma letra; a agenda do cliente e o cadastro da transportadora ainda trazem muita placa antiga, e a câmera lê a nova | contar como troca fácil (40 pontos; o check-in automático dependeria da janela) |
+| D-37 | Na saída, qualquer placa da composição fecha a visita, e não só a do cavalo | a câmera da saída é traseira e, num caminhão com reboque, vê a placa do último reboque, não a do cavalo | só a placa do cavalo (a saída quase nunca fecharia a visita de uma carreta) |
 
 ---
 
@@ -946,3 +966,4 @@ folga.
 | 0.22 | 2026-10-04 | importação de planilha (T29): colunas do modelo, valores, arquivo e relatório por linha; openpyxl e defusedxml na stack (seções 3.4 e 6.1) |
 | 0.23 | 2026-10-04 | tela de agendamentos (T30): lista do dia ou da semana, cancelamento e revogação de links (seção 6.2) |
 | 0.24 | 2026-10-04 | visita, eventos e exceções (T31): a visita nasce na chegada (D-35), exceção na própria visita, eventos que o banco não deixa alterar (seções 5.1, 5.2, 5.5 e 11) |
+| 0.25 | 2026-10-04 | casamento (T32): candidatos com a tolerância, motivos da exceção, placa antiga e Mercosul (D-36), saída por qualquer placa da composição (D-37), composição lida ou inferida, passagem repetida (seções 5.3 e 11) |
