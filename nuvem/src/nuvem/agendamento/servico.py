@@ -14,7 +14,7 @@ As funções gravam com ``flush``; o ``commit`` é de quem chama.
 """
 
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from typing import Any, Literal
 
@@ -315,6 +315,28 @@ def obter_por_codigo(
     if agendamento is None:
         raise NaoEncontradoError(f"agendamento {codigo_externo} ({origem})")
     return agendamento
+
+
+def ativos_perto(
+    sessao: Session, *, empresa_id: int, site_id: int, momento: datetime, folga: timedelta
+) -> list[Agendamento]:
+    """Os agendamentos ativos de um site cuja janela, alargada pela folga, contém o momento.
+
+    Para o casamento (SDD 5.3): quem chama já sabe o site, pela passagem da caixa.
+    """
+    return list(
+        sessao.scalars(
+            select(Agendamento)
+            .where(
+                Agendamento.empresa_id == empresa_id,
+                Agendamento.site_id == site_id,
+                Agendamento.situacao == "ativo",
+                Agendamento.janela_inicio <= momento + folga,
+                Agendamento.janela_fim >= momento - folga,
+            )
+            .order_by(Agendamento.id)
+        )
+    )
 
 
 def listar(
