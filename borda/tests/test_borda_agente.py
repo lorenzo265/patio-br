@@ -1,6 +1,8 @@
 """Agente da caixa (SDD 7.4): junta rastreamento, composição e fila numa passagem por veículo."""
 
 import io
+import logging
+import threading
 from collections.abc import Iterator
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -10,7 +12,7 @@ import numpy as np
 import pytest
 from PIL import Image
 
-from borda.agente import Agente, CameraDoAgente, ConfiguracaoDoAgente, rodar
+from borda.agente import Agente, CameraDoAgente, ConfiguracaoDoAgente, rodar, rodar_ao_vivo
 from borda.captura import FonteDeMemoria, QuadroNoTempo
 from borda.composicao import LeituraDeVeiculo
 from borda.envio import FilaDeEnvio
@@ -265,3 +267,137 @@ def test_camera_que_nao_esta_na_configuracao_e_recusada(
 
     with pytest.raises(KeyError, match="99"):
         agente.processar("99", _quadro(0))
+
+
+# --- Ao vivo (D-30) ------------------------------------------------------------------------------
+
+
+class AgenteQueAnota:
+    """Anota os quadros que recebe; liga ``parar`` depois de ``ate`` quadros."""
+
+    def __init__(
+        self,
+        parar: threading.Event,
+        ate: int,
+        *,
+        falhar_no: int | None = None,
+        segurar_o_primeiro: threading.Event | None = None,
+    ) -> None:
+        self.parar = parar
+        self.ate = ate
+        self.falhar_no = falhar_no
+        self.segurar_o_primeiro = segurar_o_primeiro
+        self.recebidos: list[str] = []
+        self.encerrado = 0
+
+    def processar(self, camera_id: str, quadro: QuadroNoTempo) -> list[object]:
+        if self.segurar_o_primeiro is not None and not self.recebidos:
+            self.segurar_o_primeiro.wait(5)
+        self.recebidos.append(camera_id)
+        if len(self.recebidos) >= self.ate:
+            self.parar.set()
+        if self.falhar_no == len(self.recebidos):
+            raise RuntimeError("um quadro estragado")
+        return []
+
+    def encerrar(self) -> list[object]:
+        self.encerrado += 1
+        return []
+
+
+class CameraCaida:
+    """Não entrega nada até a caixa desligar (está esperando para reabrir)."""
+
+    def __init__(self, parar: threading.Event) -> None:
+        self.parar = parar
+
+    def quadros(self) -> Iterator[QuadroNoTempo]:
+        self.parar.wait()
+        yield from ()
+
+
+class CameraQueDesliga:
+    """Entrega os quadros e liga ``parar`` logo depois (a caixa recebeu o sinal de término)."""
+
+    def __init__(
+        self, quantos: int, parar: threading.Event, depois: threading.Event | None = None
+    ) -> None:
+        self.quantos = quantos
+        self.parar = parar
+        self.depois = depois
+
+    def quadros(self) -> Iterator[QuadroNoTempo]:
+        for indice in range(self.quantos):
+            yield _quadro(indice)
+        if self.depois is not None:
+            self.depois.set()
+        self.parar.set()
+
+
+def _ao_vivo(agente: AgenteQueAnota, fontes: dict[str, Any], **extras: Any) -> None:
+    # Numa linha à parte, com prazo: se o código travar, o teste falha em vez de ficar parado.
+    linha = threading.Thread(
+        target=rodar_ao_vivo, args=(agente, fontes, agente.parar), kwargs=extras
+    )
+    linha.start()
+    linha.join(timeout=10)
+    assert not linha.is_alive(), "rodar_ao_vivo não terminou"
+
+
+def test_ao_vivo_processa_os_quadros_de_todas_as_cameras_e_encerra() -> None:
+    parar = threading.Event()
+    agente = AgenteQueAnota(parar, ate=6)
+    fontes = {
+        "21": FonteDeMemoria([_quadro(i) for i in range(3)]),
+        "22": FonteDeMemoria([_quadro(i) for i in range(3)]),
+    }
+
+    _ao_vivo(agente, fontes)
+
+    assert sorted(agente.recebidos) == ["21"] * 3 + ["22"] * 3
+    assert agente.encerrado == 1
+
+
+def test_ao_vivo_uma_camera_caida_nao_segura_as_outras() -> None:
+    parar = threading.Event()
+    agente = AgenteQueAnota(parar, ate=3)
+
+    _ao_vivo(
+        agente, {"21": CameraCaida(parar), "22": FonteDeMemoria([_quadro(i) for i in range(3)])}
+    )
+
+    assert agente.recebidos == ["22"] * 3
+
+
+def test_ao_vivo_um_quadro_com_erro_nao_para_a_caixa(caplog: pytest.LogCaptureFixture) -> None:
+    parar = threading.Event()
+    agente = AgenteQueAnota(parar, ate=3, falhar_no=1)
+
+    with caplog.at_level(logging.ERROR):
+        _ao_vivo(agente, {"21": FonteDeMemoria([_quadro(i) for i in range(3)])})
+
+    assert agente.recebidos == ["21"] * 3
+    assert "quadro estragado" in caplog.text
+
+
+def test_ao_desligar_processa_o_que_ja_tinha_chegado() -> None:
+    parar = threading.Event()
+    agente = AgenteQueAnota(parar, ate=1000)
+
+    _ao_vivo(agente, {"21": CameraQueDesliga(5, parar)})
+
+    assert agente.recebidos == ["21"] * 5
+    assert agente.encerrado == 1
+
+
+def test_ao_vivo_descarta_o_que_nao_cabe_na_espera(caplog: pytest.LogCaptureFixture) -> None:
+    # O agente fica preso no primeiro quadro enquanto a câmera manda os outros.
+    parar = threading.Event()
+    camera_terminou = threading.Event()
+    agente = AgenteQueAnota(parar, ate=1000, segurar_o_primeiro=camera_terminou)
+
+    with caplog.at_level(logging.WARNING):
+        _ao_vivo(agente, {"21": CameraQueDesliga(20, parar, depois=camera_terminou)}, espera=2)
+
+    assert len(agente.recebidos) < 20
+    assert "descartad" in caplog.text

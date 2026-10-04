@@ -23,6 +23,7 @@ from borda.captura import (
     QuadroNoTempo,
     VideoIlegivelError,
     amostrar,
+    com_credenciais,
     sem_credenciais,
 )
 from borda.leitor.interface import Quadro
@@ -255,3 +256,21 @@ def test_registro_da_camera_nao_mostra_a_senha(caplog: pytest.LogCaptureFixture)
 )
 def test_sem_credenciais(endereco: str, sem: str) -> None:
     assert sem_credenciais(endereco) == sem
+
+
+def test_com_credenciais_poe_o_login_e_a_senha_codificados() -> None:
+    # Caracteres como @, : e / na senha não podem quebrar o endereço.
+    endereco = com_credenciais("rtsp://10.0.0.5:554/stream1", "leitura", "p@ss:w/rd%")
+
+    assert endereco == "rtsp://leitura:p%40ss%3Aw%2Frd%25@10.0.0.5:554/stream1"
+    assert sem_credenciais(endereco) == "rtsp://10.0.0.5:554/stream1"
+
+
+def test_com_credenciais_troca_as_que_ja_estavam_no_endereco() -> None:
+    endereco = com_credenciais("rtsp://antigo:velha@10.0.0.5/s", "leitura", "nova")
+
+    assert endereco == "rtsp://leitura:nova@10.0.0.5/s"
+
+
+def test_com_credenciais_sem_login_deixa_o_endereco_como_esta() -> None:
+    assert com_credenciais("rtsp://10.0.0.5/s", "", "") == "rtsp://10.0.0.5/s"
