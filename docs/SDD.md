@@ -1,7 +1,7 @@
 # SDD — patio-br (nome provisório)
 
 **Documento de desenho do software (SDD) do MVP do piloto**
-Versão 0.18 · 2026-10-04 · Situação: aprovado como base; itens em aberto na seção 12
+Versão 0.19 · 2026-10-04 · Situação: aprovado como base; itens em aberto na seção 12
 
 ---
 
@@ -825,6 +825,9 @@ folga.
 | ABERTO-09 | Tolerância de janela (padrão 4h após o fim da janela, usada também para "não veio") e momento do alerta de estadia (padrão: 4h depois da chegada) | com o cliente do piloto |
 | ABERTO-10 | Modelo de dados detalhado do modo B | no início da Fase 2 |
 | ABERTO-11 | Implementação da fila de tarefas no PostgreSQL (biblioteca ou tabela própria) | no mês 2, quando o worker entrar com o casamento |
+| ABERTO-15 | Gravar para treinar sem guardar rostos: o detector do leitor aprende com quadros inteiros, e a base de treino só pode ter recortes de placa (seções 4.6 e 8.3). Proposta: cada câmera de placa ganha uma região de gravação (abaixo do para-brisa), e a caixa só guarda o que está nela | com o Lorenzo, antes de gravar no site parceiro (mês 2, `docs/planos/2026-11-plano-mes-2.md`) |
+| ABERTO-16 | Ambiente de treino: o PyTorch com GPU traz bibliotecas da NVIDIA com licença proprietária, que a regra da seção 6.1 não aceita. Proposta: o treino roda num ambiente à parte, fora do `uv.lock` do projeto, só na máquina de GPU alugada; nada dele vai para a caixa nem para a nuvem | com o Lorenzo, antes do primeiro treino (mês 2) |
+| ABERTO-17 | Teste técnico com o leitor comercial (seção 4.5): mandar as imagens da régua ao Plate Recognizer é passar dado de terceiros a outro operador, talvez fora do Brasil. Proposta: perguntar ao advogado e ao site parceiro; se não puder, usar o programa local do Plate Recognizer ou comparar só com o v0 e com o registro manual da portaria | com o Lorenzo e o advogado, antes do teste técnico (mês 2) |
 
 ---
 
@@ -877,3 +880,4 @@ folga.
 | 0.16 | 2026-10-04 | leitura de vídeo na caixa: OpenCV sem interface gráfica (D-29), fontes de câmera e de arquivo, `simulador --video`; novo `[ABERTO-14]`, o OpenSSL dentro da roda do OpenCV (seções 4.2, 6.1, 6.4, 11 e 12) |
 | 0.17 | 2026-10-04 | programa da caixa: ativação, configuração, câmeras RTSP, agente e remetente; câmeras ao vivo lidas em paralelo (D-30; seções 7.4 e 11) |
 | 0.18 | 2026-10-04 | decisão de 04/10 sobre o OpenSSL dentro do OpenCV (D-31, fecha o `[ABERTO-14]`); créditos de terceiros da caixa em `borda/AVISOS-DE-TERCEIROS.md` (seções 6.1, 11 e 12) |
+| 0.19 | 2026-10-04 | plano do mês 2 criado (`docs/planos/2026-11-plano-mes-2.md`); novos `[ABERTO-15]` (gravar sem rostos), `[ABERTO-16]` (ambiente de treino) e `[ABERTO-17]` (leitor comercial no teste técnico) (seção 12) |
