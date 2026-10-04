@@ -1,7 +1,7 @@
 """Recebimento de passagens (SDD 3.2 e 5.5): reenvio seguro, só do site da caixa, como veio."""
 
-from datetime import UTC, datetime, timedelta
-from typing import Any
+from collections.abc import Callable
+from datetime import UTC, datetime
 from uuid import uuid4
 
 import pytest
@@ -23,33 +23,6 @@ pytestmark = pytest.mark.integracao
 AGORA = datetime(2026, 10, 5, 8, 0, tzinfo=UTC)
 
 
-def passagem_do_site_a(cenario: Demonstracao, caixa: CaixaAtivada, **mudancas: Any) -> Passagem:
-    """Uma passagem válida da entrada do site_a, com uma placa e uma foto."""
-    dados: dict[str, Any] = {
-        "versao_contrato": 1,
-        "id": str(uuid4()),
-        "caixa_id": str(caixa.caixa_id),
-        "site_id": str(cenario.site_a.id),
-        "faixa_id": str(cenario.faixa_a.id),
-        "sentido": "entrada",
-        "inicio": AGORA.isoformat(),
-        "fim": (AGORA + timedelta(seconds=8)).isoformat(),
-        "placas": [
-            {
-                "placa": "ABC1D23",
-                "papel": "cavalo",
-                "confianca": 0.97,
-                "camera_id": str(cenario.camera_a.id),
-                "quadros": 6,
-            }
-        ],
-        "fotos": [{"tipo": "placa", "camera_id": str(cenario.camera_a.id), "ref": "p/1.jpg"}],
-        "versao_leitor": "0.1.0",
-    }
-    dados.update(mudancas)
-    return Passagem.model_validate(dados)
-
-
 @pytest.fixture
 def caixa(sessao: Session, caixa_a: CaixaAtivada) -> AcessoDaCaixa:
     identificada = frota.caixa_da_chave(sessao, caixa_a.chave)
@@ -62,19 +35,27 @@ def _quantas(sessao: Session) -> int:
 
 
 def test_passagem_nova_e_guardada(
-    sessao: Session, cenario: Demonstracao, caixa_a: CaixaAtivada, caixa: AcessoDaCaixa
+    sessao: Session,
+    cenario: Demonstracao,
+    caixa_a: CaixaAtivada,
+    caixa: AcessoDaCaixa,
+    fazer_passagem: Callable[..., Passagem],
 ) -> None:
-    passagem = passagem_do_site_a(cenario, caixa_a)
+    passagem = fazer_passagem()
 
     assert servico.receber_passagem(sessao, caixa, passagem, agora=AGORA) is True
     assert _quantas(sessao) == 1
 
 
 def test_mesma_passagem_de_novo_nao_cria_outra(
-    sessao: Session, cenario: Demonstracao, caixa_a: CaixaAtivada, caixa: AcessoDaCaixa
+    sessao: Session,
+    cenario: Demonstracao,
+    caixa_a: CaixaAtivada,
+    caixa: AcessoDaCaixa,
+    fazer_passagem: Callable[..., Passagem],
 ) -> None:
     # Reenvio seguro (SDD 5.5): a caixa reenvia quando não sabe se a nuvem recebeu.
-    passagem = passagem_do_site_a(cenario, caixa_a)
+    passagem = fazer_passagem()
     servico.receber_passagem(sessao, caixa, passagem, agora=AGORA)
 
     assert servico.receber_passagem(sessao, caixa, passagem, agora=AGORA) is False
@@ -82,10 +63,14 @@ def test_mesma_passagem_de_novo_nao_cria_outra(
 
 
 def test_passagem_guardada_como_veio(
-    sessao: Session, cenario: Demonstracao, caixa_a: CaixaAtivada, caixa: AcessoDaCaixa
+    sessao: Session,
+    cenario: Demonstracao,
+    caixa_a: CaixaAtivada,
+    caixa: AcessoDaCaixa,
+    fazer_passagem: Callable[..., Passagem],
 ) -> None:
     # A passagem é prova: placas, fotos e horários ficam exatamente como a caixa mandou.
-    passagem = passagem_do_site_a(cenario, caixa_a)
+    passagem = fazer_passagem()
     servico.receber_passagem(sessao, caixa, passagem, agora=AGORA)
 
     guardada = sessao.get(PassagemRecebida, passagem.id)
@@ -97,27 +82,39 @@ def test_passagem_guardada_como_veio(
 
 
 def test_passagem_de_outro_site_e_recusada(
-    sessao: Session, cenario: Demonstracao, caixa_a: CaixaAtivada, caixa: AcessoDaCaixa
+    sessao: Session,
+    cenario: Demonstracao,
+    caixa_a: CaixaAtivada,
+    caixa: AcessoDaCaixa,
+    fazer_passagem: Callable[..., Passagem],
 ) -> None:
-    passagem = passagem_do_site_a(cenario, caixa_a, site_id=str(cenario.site_b.id))
+    passagem = fazer_passagem(site_id=str(cenario.site_b.id))
 
     with pytest.raises(servico.PassagemDeOutroSiteError):
         servico.receber_passagem(sessao, caixa, passagem, agora=AGORA)
 
 
 def test_passagem_com_o_numero_de_outra_caixa_e_recusada(
-    sessao: Session, cenario: Demonstracao, caixa_a: CaixaAtivada, caixa: AcessoDaCaixa
+    sessao: Session,
+    cenario: Demonstracao,
+    caixa_a: CaixaAtivada,
+    caixa: AcessoDaCaixa,
+    fazer_passagem: Callable[..., Passagem],
 ) -> None:
-    passagem = passagem_do_site_a(cenario, caixa_a, caixa_id=str(caixa_a.caixa_id + 1))
+    passagem = fazer_passagem(caixa_id=str(caixa_a.caixa_id + 1))
 
     with pytest.raises(servico.PassagemDeOutroSiteError):
         servico.receber_passagem(sessao, caixa, passagem, agora=AGORA)
 
 
 def test_id_que_ja_e_de_outra_caixa_e_recusado(
-    sessao: Session, cenario: Demonstracao, caixa_a: CaixaAtivada, caixa: AcessoDaCaixa
+    sessao: Session,
+    cenario: Demonstracao,
+    caixa_a: CaixaAtivada,
+    caixa: AcessoDaCaixa,
+    fazer_passagem: Callable[..., Passagem],
 ) -> None:
-    passagem = passagem_do_site_a(cenario, caixa_a)
+    passagem = fazer_passagem()
     servico.receber_passagem(sessao, caixa, passagem, agora=AGORA)
     gerado = frota.gerar_codigo_de_ativacao(
         sessao, cenario.site_a.id, administrador_id=cenario.administrador.id, agora=AGORA
@@ -125,9 +122,7 @@ def test_id_que_ja_e_de_outra_caixa_e_recusado(
     outra_ativada = frota.ativar(sessao, gerado.codigo, agora=AGORA)
     outra = frota.caixa_da_chave(sessao, outra_ativada.chave)
     assert outra is not None
-    mesma_id = passagem_do_site_a(
-        cenario, outra_ativada, id=str(passagem.id), caixa_id=str(outra.caixa_id)
-    )
+    mesma_id = fazer_passagem(id=str(passagem.id), caixa_id=str(outra.caixa_id))
 
     with pytest.raises(servico.IdDeOutraCaixaError):
         servico.receber_passagem(sessao, outra, mesma_id, agora=AGORA)
@@ -142,33 +137,49 @@ def _recusa(
 
 
 def test_faixa_de_outro_site_da_mesma_empresa_e_recusada(
-    sessao: Session, cenario: Demonstracao, caixa_a: CaixaAtivada, caixa: AcessoDaCaixa
+    sessao: Session,
+    cenario: Demonstracao,
+    caixa_a: CaixaAtivada,
+    caixa: AcessoDaCaixa,
+    fazer_passagem: Callable[..., Passagem],
 ) -> None:
     portaria = cadastro.criar_portaria(sessao, cenario.site_a2, nome="Portaria 2")
     outra = cadastro.criar_faixa(sessao, portaria, nome="Entrada 2", sentido="entrada")
-    passagem = passagem_do_site_a(cenario, caixa_a, faixa_id=str(outra.id))
+    passagem = fazer_passagem(faixa_id=str(outra.id))
 
     assert _recusa(sessao, caixa, passagem).loc == ("faixa_id",)
 
 
 def test_faixa_que_nao_e_numero_e_recusada(
-    sessao: Session, cenario: Demonstracao, caixa_a: CaixaAtivada, caixa: AcessoDaCaixa
+    sessao: Session,
+    cenario: Demonstracao,
+    caixa_a: CaixaAtivada,
+    caixa: AcessoDaCaixa,
+    fazer_passagem: Callable[..., Passagem],
 ) -> None:
-    passagem = passagem_do_site_a(cenario, caixa_a, faixa_id="entrada-1")
+    passagem = fazer_passagem(faixa_id="entrada-1")
 
     assert _recusa(sessao, caixa, passagem).loc == ("faixa_id",)
 
 
 def test_sentido_diferente_do_da_faixa_e_recusado(
-    sessao: Session, cenario: Demonstracao, caixa_a: CaixaAtivada, caixa: AcessoDaCaixa
+    sessao: Session,
+    cenario: Demonstracao,
+    caixa_a: CaixaAtivada,
+    caixa: AcessoDaCaixa,
+    fazer_passagem: Callable[..., Passagem],
 ) -> None:
-    passagem = passagem_do_site_a(cenario, caixa_a, sentido="saida")
+    passagem = fazer_passagem(sentido="saida")
 
     assert _recusa(sessao, caixa, passagem).loc == ("sentido",)
 
 
 def test_camera_de_outra_empresa_na_placa_e_recusada(
-    sessao: Session, cenario: Demonstracao, caixa_a: CaixaAtivada, caixa: AcessoDaCaixa
+    sessao: Session,
+    cenario: Demonstracao,
+    caixa_a: CaixaAtivada,
+    caixa: AcessoDaCaixa,
+    fazer_passagem: Callable[..., Passagem],
 ) -> None:
     placa = {
         "placa": "ABC1234",
@@ -177,37 +188,49 @@ def test_camera_de_outra_empresa_na_placa_e_recusada(
         "camera_id": str(cenario.camera_b.id),
         "quadros": 3,
     }
-    passagem = passagem_do_site_a(cenario, caixa_a, placas=[placa])
+    passagem = fazer_passagem(placas=[placa])
 
     assert _recusa(sessao, caixa, passagem).loc == ("placas", 0, "camera_id")
 
 
 def test_camera_de_outra_empresa_na_foto_e_recusada(
-    sessao: Session, cenario: Demonstracao, caixa_a: CaixaAtivada, caixa: AcessoDaCaixa
+    sessao: Session,
+    cenario: Demonstracao,
+    caixa_a: CaixaAtivada,
+    caixa: AcessoDaCaixa,
+    fazer_passagem: Callable[..., Passagem],
 ) -> None:
     fotos = [
         {"tipo": "placa", "camera_id": str(cenario.camera_a.id), "ref": "p/1.jpg"},
         {"tipo": "contexto", "camera_id": str(cenario.camera_b.id), "ref": "p/2.jpg"},
     ]
-    passagem = passagem_do_site_a(cenario, caixa_a, fotos=fotos)
+    passagem = fazer_passagem(fotos=fotos)
 
     assert _recusa(sessao, caixa, passagem).loc == ("fotos", 1, "camera_id")
 
 
 def test_ref_de_foto_fora_da_regra_e_recusado(
-    sessao: Session, cenario: Demonstracao, caixa_a: CaixaAtivada, caixa: AcessoDaCaixa
+    sessao: Session,
+    cenario: Demonstracao,
+    caixa_a: CaixaAtivada,
+    caixa: AcessoDaCaixa,
+    fazer_passagem: Callable[..., Passagem],
 ) -> None:
     fotos = [{"tipo": "placa", "camera_id": str(cenario.camera_a.id), "ref": "../fora.jpg"}]
-    passagem = passagem_do_site_a(cenario, caixa_a, fotos=fotos)
+    passagem = fazer_passagem(fotos=fotos)
 
     assert _recusa(sessao, caixa, passagem).loc == ("fotos", 0, "ref")
 
 
 def test_passagem_sem_placas_tambem_e_guardada(
-    sessao: Session, cenario: Demonstracao, caixa_a: CaixaAtivada, caixa: AcessoDaCaixa
+    sessao: Session,
+    cenario: Demonstracao,
+    caixa_a: CaixaAtivada,
+    caixa: AcessoDaCaixa,
+    fazer_passagem: Callable[..., Passagem],
 ) -> None:
     # Nenhuma placa lida: a nuvem guarda e, no mês 2, trata como exceção (SDD 3.2).
-    passagem = passagem_do_site_a(cenario, caixa_a, placas=[])
+    passagem = fazer_passagem(placas=[])
 
     assert servico.receber_passagem(sessao, caixa, passagem, agora=AGORA) is True
 

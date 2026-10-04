@@ -50,7 +50,8 @@ no ar, `http://localhost:18000/saude` responde `{"ok": true}` quando a API alcan
 Depois do `migrar` e da `semente`, entre no painel em `http://localhost:18000/entrar` com
 `gestor@empresa-a.example` e a senha `demonstracao-local` (a mesma para todas as pessoas da
 demonstração; os e-mails estão em `nuvem/src/nuvem/semente.py`). A administração (nós) entra
-com `admin@patio-br.example`.
+com `admin@patio-br.example`. Com o porteiro (`porteiro@empresa-a.example`), a tela
+`http://localhost:18000/portaria` mostra as passagens que chegam, atualizada a cada 2 segundos.
 
 Quando um PR acrescenta variável ao `.env.exemplo`, copie-o de novo para `.env`.
 

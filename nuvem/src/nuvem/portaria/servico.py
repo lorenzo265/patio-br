@@ -1,23 +1,31 @@
-"""Regras da portaria: receber as passagens da borda (SDD 3.2 e 5.5).
+"""Regras da portaria: receber as passagens da borda e mostrá-las (SDD 3.2 e 5.5).
 
 - Reenvio seguro: o mesmo ``id`` de novo, da mesma caixa, não cria outra passagem.
 - A caixa só manda passagens do site dela, com faixas e câmeras desse site.
 - A passagem fica guardada como veio; nada aqui a altera depois.
+- Quem lê (a tela da portaria) passa o ``Acesso``: só vê os sites dele, da empresa dele.
 
 As funções gravam com ``flush``; o ``commit`` é de quem chama.
 """
 
 from datetime import datetime
+from uuid import UUID
 
+from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from contratos.passagem import Passagem
-from nuvem.armazenamento import RefInvalidoError, validar_ref
+from nuvem.armazenamento import Armazenamento, RefInvalidoError, validar_ref
 from nuvem.cadastro import servico as cadastro
+from nuvem.cadastro.acesso import Acesso
 from nuvem.cadastro.servico import FaixaDoSite
+from nuvem.erros import NaoEncontradoError
 from nuvem.frota.servico import AcessoDaCaixa
 from nuvem.portaria.modelos import PassagemRecebida
+
+LIMITE_DA_TELA = 50
+"""Quantas passagens a tela da portaria mostra (as últimas)."""
 
 Local = tuple[str | int, ...]
 """Onde está o campo recusado dentro da passagem (ex.: ``("placas", 0, "camera_id")``)."""
@@ -81,6 +89,58 @@ def receber_passagem(
         return False
     sessao.flush()
     return True
+
+
+def ultimas_passagens(
+    sessao: Session, acesso: Acesso, site_id: int, *, limite: int = LIMITE_DA_TELA
+) -> list[PassagemRecebida]:
+    """As últimas passagens de um site que o usuário vê, das mais novas para as mais antigas.
+
+    Raises:
+        NaoEncontradoError: se o site não existir ou não for visível para este usuário.
+    """
+    site = cadastro.obter_site(sessao, acesso, site_id)
+    return list(
+        sessao.scalars(
+            select(PassagemRecebida)
+            .where(PassagemRecebida.empresa_id == acesso.empresa_id)
+            .where(PassagemRecebida.site_id == site.id)
+            .order_by(PassagemRecebida.inicio.desc())
+            .limit(limite)
+        )
+    )
+
+
+def foto_da_passagem(
+    sessao: Session,
+    acesso: Acesso,
+    armazenamento: Armazenamento,
+    passagem_id: UUID,
+    indice: int,
+) -> bytes:
+    """A foto número ``indice`` de uma passagem que o usuário vê.
+
+    Raises:
+        NaoEncontradoError: se a passagem não for visível para o usuário, não tiver essa foto,
+            ou a foto ainda não tiver chegado.
+    """
+    passagem = sessao.scalar(
+        select(PassagemRecebida).where(
+            PassagemRecebida.id == passagem_id,
+            PassagemRecebida.empresa_id == acesso.empresa_id,
+            PassagemRecebida.site_id.in_(acesso.sites),
+        )
+    )
+    nao_encontrada = NaoEncontradoError(f"foto {indice} da passagem {passagem_id}")
+    if passagem is None:
+        raise nao_encontrada
+    fotos = passagem.como_veio["fotos"]
+    if not 0 <= indice < len(fotos):
+        raise nao_encontrada
+    conteudo = armazenamento.ler(passagem.caixa_id, fotos[indice]["ref"])
+    if conteudo is None:
+        raise nao_encontrada
+    return conteudo
 
 
 def _ja_chegou(sessao: Session, caixa: AcessoDaCaixa, passagem: Passagem) -> bool:

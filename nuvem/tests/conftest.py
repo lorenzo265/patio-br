@@ -6,8 +6,10 @@ testado faça commit: nada que um teste grava sobra para o próximo.
 """
 
 from collections.abc import Callable, Iterator
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from typing import Any
+from uuid import uuid4
 
 import pytest
 from alembic import command
@@ -22,12 +24,14 @@ from sqlalchemy import Connection, create_engine, make_url, text
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import Session
 
+from contratos.passagem import Passagem
 from nuvem.banco import obter_sessao
 from nuvem.cadastro.acesso import Acesso, acesso_do_usuario
 from nuvem.cifra import Cifra, obter_cifra
 from nuvem.config import Configuracao
 from nuvem.frota import servico as frota
 from nuvem.frota.servico import CaixaAtivada
+from nuvem.portaria import servico as portaria
 from nuvem.principal import criar_app
 from nuvem.semente import SENHA_DA_DEMONSTRACAO, Demonstracao, semear
 from nuvem.senhas import Senhas
@@ -122,6 +126,60 @@ def caixa_a(sessao: Session, cenario: Demonstracao) -> CaixaAtivada:
         sessao, cenario.site_a.id, administrador_id=cenario.administrador.id, agora=agora
     )
     return frota.ativar(sessao, gerado.codigo, agora=agora)
+
+
+HORA_DA_PASSAGEM = datetime(2026, 10, 5, 17, 2, 11, tzinfo=UTC)
+"""14:02:11 em São Paulo, o fuso dos sites da demonstração."""
+
+
+@pytest.fixture
+def fazer_passagem(cenario: Demonstracao, caixa_a: CaixaAtivada) -> Callable[..., Passagem]:
+    """Monta uma passagem válida da entrada do site_a (uma placa, uma foto); muda o que pedir."""
+
+    def _fazer(**mudancas: Any) -> Passagem:
+        inicio = mudancas.pop("inicio", HORA_DA_PASSAGEM)
+        camera = str(cenario.camera_a.id)
+        dados: dict[str, Any] = {
+            "versao_contrato": 1,
+            "id": str(uuid4()),
+            "caixa_id": str(caixa_a.caixa_id),
+            "site_id": str(cenario.site_a.id),
+            "faixa_id": str(cenario.faixa_a.id),
+            "sentido": "entrada",
+            "inicio": inicio.isoformat(),
+            "fim": (inicio + timedelta(seconds=8)).isoformat(),
+            "placas": [
+                {
+                    "placa": "ABC1D23",
+                    "papel": "cavalo",
+                    "confianca": 0.97,
+                    "camera_id": camera,
+                    "quadros": 6,
+                }
+            ],
+            "fotos": [{"tipo": "placa", "camera_id": camera, "ref": "p/1.jpg"}],
+            "versao_leitor": "0.1.0",
+        }
+        dados.update(mudancas)
+        return Passagem.model_validate(dados)
+
+    return _fazer
+
+
+@pytest.fixture
+def registrar_passagem(
+    sessao: Session, caixa_a: CaixaAtivada, fazer_passagem: Callable[..., Passagem]
+) -> Callable[..., Passagem]:
+    """Grava uma passagem da caixa_a, como se ela tivesse chegado agora; devolve a passagem."""
+    caixa = frota.caixa_da_chave(sessao, caixa_a.chave)
+    assert caixa is not None
+
+    def _registrar(**mudancas: Any) -> Passagem:
+        passagem = fazer_passagem(**mudancas)
+        portaria.receber_passagem(sessao, caixa, passagem, agora=datetime.now(UTC))
+        return passagem
+
+    return _registrar
 
 
 @pytest.fixture
