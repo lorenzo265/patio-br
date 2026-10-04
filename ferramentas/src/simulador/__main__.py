@@ -5,6 +5,7 @@ Exemplos (com o ambiente local no ar, ``uv run tarefas up``)::
     uv run simulador --demonstracao --passagens amostra
     uv run simulador --codigo XXXX-XXXX-XXXX --passagens minhas-passagens.json
     uv run simulador --quadros dados/amostras/portaria-1 --faixa entrada-1 --camera frente
+    uv run simulador --video dados/amostras/portaria-1.mp4 --faixa entrada-1 --camera frente
 
 - **Ativação:** ``--codigo`` usa um código gerado pela administração; ``--demonstracao`` (só no
   ambiente local) entra como a administração da semente e gera o código sozinho. A chave fica
@@ -14,7 +15,7 @@ Exemplos (com o ambiente local no ar, ``uv run tarefas up``)::
   câmeras) é completado pela ativação e pela hora atual; cada placa leva uma foto desenhada.
 - **Quadros** (``--quadros``): as imagens de uma pasta passam pelo agente da caixa com o leitor
   v0 (``uv run tarefas modelos`` antes), como se fossem uma câmera.
-- **Vídeo** (``--video``): ainda não; entra com a leitura de vídeo da caixa (SDD D-27).
+- **Vídeo** (``--video``): o mesmo, sobre um arquivo de vídeo (ex.: uma gravação da portaria).
 
 As passagens passam pela mesma fila da caixa (``dados/simulador/fila.sqlite``): o que a nuvem
 não recebeu fica guardado para a próxima vez.
@@ -40,7 +41,13 @@ import httpx
 from PIL import Image, ImageDraw, ImageFont
 
 from borda.agente import Agente, CameraDoAgente, ConfiguracaoDoAgente, FaixaDoAgente, rodar
-from borda.captura import FonteAmostrada, FonteDePasta
+from borda.captura import (
+    FonteAmostrada,
+    FonteDeArquivo,
+    FonteDePasta,
+    FonteDeQuadros,
+    VideoIlegivelError,
+)
 from borda.composicao import Posicao
 from borda.envio import FilaDeEnvio, Nuvem, Remetente
 from borda.leitor.interface import LeitorDePlacas
@@ -65,7 +72,7 @@ HOSTS_LOCAIS = frozenset({"localhost", "127.0.0.1", "::1"})
 PORTA_PADRAO_DA_API = "18000"
 """A mesma do ``.env.exemplo`` e do docker compose."""
 
-CarregarModelos = Callable[[Path], tuple[DetectorDeVeiculos, LeitorDePlacas]]
+CarregarModelos = Callable[[], tuple[DetectorDeVeiculos, LeitorDePlacas]]
 
 
 class SimuladorError(Exception):
@@ -113,12 +120,6 @@ def principal(
     agora = agora or datetime.now(UTC)
     cliente = cliente or cliente_para(argumentos.nuvem)
     try:
-        if argumentos.video:
-            raise SimuladorError(
-                "arquivo de vídeo ainda não: entra com a leitura de vídeo da caixa (SDD D-27); "
-                "tire os quadros do vídeo para uma pasta e use --quadros",
-                codigo=2,
-            )
         caixa = _caixa(argumentos, cliente, raiz)
         configuracao = _configuracao(cliente, caixa)
         faixa = _escolher_faixa(configuracao, argumentos.faixa)
@@ -130,13 +131,11 @@ def principal(
                 )
             else:
                 camera = _escolher_camera(configuracao, faixa, argumentos.camera)
-                guardadas = _rodar_quadros(
-                    Path(argumentos.quadros),
+                guardadas = _rodar_fonte(
+                    _fonte(argumentos, agora),
                     configuracao,
                     camera,
                     fila,
-                    agora,
-                    argumentos.por_segundo,
                     carregar_modelos or _carregar_v0(raiz),
                 )
             print(f"{guardadas} passagens guardadas na fila da caixa", file=saida)
@@ -205,7 +204,7 @@ def _interpretador(nuvem_local: str) -> argparse.ArgumentParser:
     o_que = interpretador.add_mutually_exclusive_group(required=True)
     o_que.add_argument("--passagens", help="arquivo JSON com passagens, ou `amostra`")
     o_que.add_argument("--quadros", help="pasta com as imagens de uma câmera")
-    o_que.add_argument("--video", help="arquivo de vídeo (ainda não; SDD D-27)")
+    o_que.add_argument("--video", help="arquivo de vídeo (ex.: uma gravação da portaria)")
     interpretador.add_argument("--faixa", help="id ou nome da faixa (ex.: entrada-1)")
     interpretador.add_argument(
         "--camera", default="frente", help="id ou posição da câmera na faixa (padrão: frente)"
@@ -430,7 +429,7 @@ def _foto_desenhada(placa: str) -> bytes:
 
 
 def _carregar_v0(raiz: Path) -> CarregarModelos:
-    def carregar(_pasta: Path) -> tuple[DetectorDeVeiculos, LeitorDePlacas]:
+    def carregar() -> tuple[DetectorDeVeiculos, LeitorDePlacas]:
         from borda.leitor.v0 import carregar_v0  # só aqui: carrega o ONNX Runtime
 
         try:
@@ -441,18 +440,24 @@ def _carregar_v0(raiz: Path) -> CarregarModelos:
     return carregar
 
 
-def _rodar_quadros(
-    pasta: Path,
+def _fonte(argumentos: argparse.Namespace, agora: datetime) -> FonteDeQuadros:
+    # A pasta e o vídeo começam agora; a amostragem deixa 5 quadros por segundo (SDD 4.4).
+    if argumentos.quadros:
+        pasta = Path(argumentos.quadros)
+        if not pasta.is_dir():
+            raise SimuladorError(f"a pasta {pasta} não existe")
+        return FonteAmostrada(FonteDePasta(pasta, inicio=agora, por_segundo=argumentos.por_segundo))
+    return FonteAmostrada(FonteDeArquivo(Path(argumentos.video), inicio=agora))
+
+
+def _rodar_fonte(
+    fonte: FonteDeQuadros,
     configuracao: ConfiguracaoDoAgente,
     camera: CameraDoAgente,
     fila: FilaDeEnvio,
-    agora: datetime,
-    por_segundo: float,
     carregar_modelos: CarregarModelos,
 ) -> int:
-    if not pasta.is_dir():
-        raise SimuladorError(f"a pasta {pasta} não existe")
-    detector, leitor = carregar_modelos(pasta)
+    detector, leitor = carregar_modelos()
 
     def criar(da_configuracao: CameraDoAgente) -> Rastreador:
         posicao: Posicao = "frente" if da_configuracao.posicao == "frente" else "tras"
@@ -471,8 +476,10 @@ def _rodar_quadros(
         cameras=(camera,),
     )
     agente = Agente(so_esta, fila, criar_rastreador=criar)
-    fonte = FonteAmostrada(FonteDePasta(pasta, inicio=agora, por_segundo=por_segundo))
-    return len(rodar(agente, {camera.id: fonte}))
+    try:
+        return len(rodar(agente, {camera.id: fonte}))
+    except VideoIlegivelError as erro:
+        raise SimuladorError(str(erro)) from None
 
 
 # --- Envio ---------------------------------------------------------------------------------

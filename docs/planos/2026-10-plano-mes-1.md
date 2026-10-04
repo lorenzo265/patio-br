@@ -514,6 +514,9 @@ Coisas que levam tempo de calendário: começar na **semana 1**.
   servem só para comparar e avaliar; bibliotecas nativas LGPL entram sem modificação, e o FFmpeg
   sem partes GPL. Com isso, o que esperava o `[ABERTO-13]` (vídeo e RTSP na caixa, o executável
   da caixa e o `simulador --video`) deixa de esperar e vira a próxima tarefa.
+- **04/10, SDD 0.16:** a caixa lê vídeo pelo OpenCV sem interface gráfica (D-29): câmera (RTSP)
+  e arquivo, e o `simulador --video`. Novo `[ABERTO-14]`: o OpenSSL 1.1.1w dentro da roda do
+  OpenCV para Linux. O programa da caixa (ativação, câmeras RTSP e envio) vem na tarefa seguinte.
 
 ---
 
