@@ -1,20 +1,25 @@
-"""Tabelas do cadastro (SDD 5.1): a estrutura física do cliente e os usuários.
+"""Tabelas do cadastro (SDD 5.1): a estrutura física do cliente, os usuários e o login.
 
 Toda tabela de dados do cliente tem ``empresa_id``. Cada tabela filha aponta para o pai por
 uma chave estrangeira composta, (pai, empresa): o banco recusa, por exemplo, uma portaria da
 empresa B num site da empresa A, mesmo que o código erre (SDD 5.5).
+
+A administração (nós) fica fora das empresas, numa tabela própria (SDD D-19).
 """
 
+from datetime import datetime
 from typing import Literal, get_args
 
 from sqlalchemy import (
     CheckConstraint,
+    DateTime,
     Enum,
     ForeignKey,
     ForeignKeyConstraint,
     PrimaryKeyConstraint,
     String,
     UniqueConstraint,
+    true,
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -23,7 +28,7 @@ from nuvem.banco import Base
 Sentido = Literal["entrada", "saida"]
 Posicao = Literal["frente", "tras", "contexto"]
 Papel = Literal["porteiro", "patio", "gestor"]
-"""Papéis dos usuários do cliente; o da administração (nós) entra com o login, na T09."""
+"""Papéis dos usuários do cliente. A administração (nós) não é usuário de cliente (D-19)."""
 
 FUSO_PADRAO = "America/Sao_Paulo"
 
@@ -123,7 +128,7 @@ class Doca(Base):
 
 
 class Usuario(Base):
-    """Uma pessoa do cliente que usa o painel. Senha e PIN entram com o login, na T09."""
+    """Uma pessoa do cliente que usa o painel."""
 
     __tablename__ = "usuario"
     __table_args__ = (_pode_ser_pai(),)
@@ -133,6 +138,12 @@ class Usuario(Base):
     nome: Mapped[str]
     email: Mapped[str] = mapped_column(unique=True)
     papel: Mapped[Papel] = mapped_column(_texto_de(Papel, "papel"))
+    senha_resumo: Mapped[str | None]
+    """Resumo argon2 da senha; vazio = ainda sem senha, e quem não tem senha não entra."""
+    pin_resumo: Mapped[str | None]
+    """Resumo argon2 do PIN de 6 números, só do porteiro (troca de porteiro no tablet)."""
+    ativo: Mapped[bool] = mapped_column(default=True, server_default=true())
+    """Desativado não entra, e as sessões que ele já tinha deixam de valer."""
 
 
 class UsuarioSite(Base):
@@ -148,3 +159,55 @@ class UsuarioSite(Base):
     usuario_id: Mapped[int]
     site_id: Mapped[int]
     empresa_id: Mapped[int]
+
+
+class Administrador(Base):
+    """Uma pessoa da administração da plataforma (nós), fora de qualquer empresa (D-19)."""
+
+    __tablename__ = "administrador"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    nome: Mapped[str]
+    email: Mapped[str] = mapped_column(unique=True)
+    senha_resumo: Mapped[str]
+    ativo: Mapped[bool] = mapped_column(default=True, server_default=true())
+
+
+class SessaoLogin(Base):
+    """Uma sessão aberta no painel (D-20): de um usuário do cliente ou da administração.
+
+    O navegador guarda o código; aqui fica só o resumo dele. A sessão do usuário aponta para
+    ele pela dupla (usuário, empresa), como toda tabela filha do cliente.
+    """
+
+    __tablename__ = "sessao_login"
+    __table_args__ = (
+        _do_pai_na_mesma_empresa("usuario"),
+        CheckConstraint(
+            "(usuario_id IS NOT NULL AND empresa_id IS NOT NULL AND administrador_id IS NULL)"
+            " OR (usuario_id IS NULL AND empresa_id IS NULL AND administrador_id IS NOT NULL)",
+            name="de_uma_pessoa_so",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    codigo_resumo: Mapped[str] = mapped_column(String(64), unique=True)
+    """SHA-256 do código do cookie (o código é aleatório e longo; não precisa de argon2)."""
+    usuario_id: Mapped[int | None]
+    empresa_id: Mapped[int | None]
+    administrador_id: Mapped[int | None] = mapped_column(ForeignKey("administrador.id"))
+    criada_em: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    expira_em: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class TentativaLogin(Base):
+    """Um erro de senha ou de PIN, para o limite de tentativas (SDD 8.2).
+
+    Guarda só o resumo do alvo (o e-mail digitado, ou o porteiro do PIN), nunca o e-mail.
+    """
+
+    __tablename__ = "tentativa_login"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    alvo_resumo: Mapped[str] = mapped_column(String(64), index=True)
+    momento: Mapped[datetime] = mapped_column(DateTime(timezone=True))
