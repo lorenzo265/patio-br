@@ -1,7 +1,7 @@
 # SDD — patio-br (nome provisório)
 
 **Documento de desenho do software (SDD) do MVP do piloto**
-Versão 0.21 · 2026-10-04 · Situação: aprovado como base; itens em aberto na seção 12
+Versão 0.22 · 2026-10-04 · Situação: aprovado como base; itens em aberto na seção 12
 
 ---
 
@@ -274,6 +274,24 @@ transportadora vê na confirmação. A janela é escolhida no fuso do site, num 
 horário de operação, começando no futuro e no máximo 60 dias à frente. O código, o limite e a
 validade do link estão na seção 8.2.
 
+A **planilha** (`planilha`) é a que o gestor sobe, em CSV ou XLSX, a partir do modelo que o
+painel oferece:
+
+- **Colunas do modelo:** código, dia, início, fim, tipo, placa do cavalo, reboque 1 a 3,
+  motorista, celular, toneladas e chave da NF-e. As seis primeiras são obrigatórias; a ordem não
+  importa, maiúsculas e acentos também não, e colunas a mais são ignoradas. Alguns nomes comuns
+  valem pelo do modelo (ex.: "data" por "dia", "placa" por "placa do cavalo").
+- **Valores:** dia em `dd/mm/aaaa` (ou a data do próprio XLSX), horas em `hh:mm`, no fuso do
+  site. Diferente do link, a planilha não confere o horário de operação nem se a janela já
+  passou: é o dado do próprio cliente, e a planilha do dia é corrigida e reimportada ao longo
+  dele.
+- **Arquivo:** CSV em UTF-8 ou no padrão do Excel no Brasil (Windows-1252, separado por `;`), ou
+  a primeira aba do XLSX; até 5 MB e 5.000 linhas. O XLSX é lido com proteção contra arquivos
+  feitos para atacar o leitor (XML malicioso e compactação que explode de tamanho).
+- **Relatório por linha:** as linhas certas entram, e as erradas voltam com o número da linha e
+  o motivo (ex.: "linha 7: placa do cavalo: placa inválida: 'ABC12'"). Um problema no arquivo
+  inteiro (formato, tamanho, colunas obrigatórias) recusa tudo, sem gravar nada.
+
 ### 3.5 Fases futuras (já previstas)
 
 | Fase | Módulos |
@@ -503,7 +521,7 @@ Pontuação inicial (os pesos e o limite são ajustados com os dados do mês 2 �
 | Camada | Escolha |
 |---|---|
 | Linguagem | **Python 3.12** em tudo (borda, nuvem, treino) |
-| Backend | FastAPI, SQLAlchemy 2 com o driver pg8000, Alembic (migrações), Pydantic 2 |
+| Backend | FastAPI, SQLAlchemy 2 com o driver pg8000, Alembic (migrações), Pydantic 2; openpyxl (MIT) com defusedxml (PSF) para a planilha |
 | Banco | PostgreSQL 16; fila de tarefas no próprio PostgreSQL (`[ABERTO-11]`) |
 | Painel | páginas no servidor (Jinja) + **HTMX**; atualização ao vivo por SSE; instalável como **PWA** |
 | Gráficos | biblioteca JavaScript pequena, só onde houver gráfico |
@@ -915,3 +933,4 @@ folga.
 | 0.19 | 2026-10-04 | plano do mês 2 criado (`docs/planos/2026-11-plano-mes-2.md`); novos `[ABERTO-15]` (gravar sem rostos), `[ABERTO-16]` (ambiente de treino) e `[ABERTO-17]` (leitor comercial no teste técnico) (seção 12) |
 | 0.20 | 2026-10-04 | agendamentos (T27): regras comuns aos conectores, situação própria do agendamento (D-32), reenvio que atualiza (D-33) e o registro das mudanças (seções 3.4, 5.1 e 11) |
 | 0.21 | 2026-10-04 | link da transportadora (T28): o código no endereço (D-34), validade, limite, horário de operação do site e as regras da janela pelo link (seções 3.4, 5.1, 8.2 e 11) |
+| 0.22 | 2026-10-04 | importação de planilha (T29): colunas do modelo, valores, arquivo e relatório por linha; openpyxl e defusedxml na stack (seções 3.4 e 6.1) |
