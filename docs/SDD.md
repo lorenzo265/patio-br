@@ -1,7 +1,7 @@
 # SDD — patio-br (nome provisório)
 
 **Documento de desenho do software (SDD) do MVP do piloto**
-Versão 0.12 · 2026-10-03 · Situação: aprovado como base; itens em aberto na seção 12
+Versão 0.13 · 2026-10-03 · Situação: aprovado como base; itens em aberto na seção 12
 
 ---
 
@@ -279,7 +279,7 @@ usados só em avaliação interna, nunca no produto.
 |---|---|---|
 | 1. Captura | puxa o vídeo (RTSP) e só processa quando há veículo na faixa | FFmpeg/PyAV + go2rtc (MIT); FFmpeg é LGPL e a roda do PyAV traz partes GPL: `[ABERTO-13]` |
 | 2. Detecção | acha o veículo e a placa no quadro | D-FINE-N ou YOLOX-Tiny (Apache-2.0) — `[ABERTO-03]` |
-| 3. Rastreamento | segue o mesmo veículo entre quadros | ByteTrack + supervision (MIT); o supervision exige o PyAV: `[ABERTO-13]` |
+| 3. Rastreamento | segue o mesmo veículo entre quadros | rastreador nosso por sobreposição, no estilo do ByteTrack (D-25); o supervision exige o PyAV: `[ABERTO-13]` |
 | 4. Leitura (OCR) | lê os caracteres da placa | modelo leve no estilo do fast-plate-ocr (código MIT), com pesos nossos |
 | 5. Votação | junta as leituras de vários quadros e fica com a mais confiável | código nosso |
 | 6. Formato | valida e corrige pela posição dos caracteres | código nosso |
@@ -297,6 +297,15 @@ inverso. A correção é registrada na passagem (confiança menor).
   caracteres, ou com um caractere que não cabe na posição e não tem correção, é descartado: o
   leitor nunca inventa nem apaga caractere. Cada caractere corrigido multiplica a confiança por
   0,9. A 5ª posição aceita letra e número (antiga e Mercosul) e nunca é corrigida.
+- **Rastreamento** (D-25): cada câmera tem um rastreador. O detector acha os veículos no quadro;
+  cada veículo segue a caixa do quadro anterior que mais se sobrepõe a ele (primeiro as
+  detecções de confiança alta, depois as de baixa, como no ByteTrack). Quando o veículo some por
+  alguns quadros, as leituras dele passam pela votação e viram uma leitura do veículo, com o
+  recorte da placa mais confiável para a foto. Veículo sem placa legível também gera leitura
+  (sem placa), e a passagem sai sem placas: a nuvem trata como exceção (seção 3.2).
+- **Captura:** os quadros chegam por uma fonte, a uma taxa configurável (padrão 5 por segundo).
+  Câmera (RTSP) e arquivo de vídeo esperam o `[ABERTO-13]`; até lá, a fonte é uma pasta de
+  imagens (os quadros de um vídeo, tirados fora da caixa), o que basta para a demonstração.
 - **Votação:** fica a placa lida em mais quadros; no empate, a de maior confiança média. A
   confiança final é a média das confianças dos quadros vencedores vezes a fração dos quadros
   que concordam (ex.: 4 de 5 quadros a 0,95 → 0,95 × 0,8 = 0,76). `quadros` na passagem é o
@@ -318,7 +327,10 @@ inverso. A correção é registrada na passagem (confiança menor).
     composição se fecha só com o cavalo;
   - a leitura de trás **sem** nenhuma da frente na janela sai com papel **desconhecido**: sem a
     frente, não dá para saber se é um reboque ou o próprio cavalo (D-23);
-  - a leitura da frente que chega ao fim da janela sem a de trás sai sozinha, como cavalo.
+  - a leitura da frente que chega ao fim da janela sem a de trás sai sozinha, como cavalo;
+  - leitura sem placa legível entra nas mesmas regras, mas não vira placa: a frente ilegível com
+    a traseira lida deixa a traseira com papel desconhecido; sem placa nenhuma, a passagem sai
+    vazia.
 
 ### 4.4 Onde roda
 
@@ -735,6 +747,7 @@ folga.
 | D-22 | Fotos enviadas pela caixa a um endereço temporário; no armazenamento local, o endereço leva um código cifrado (Fernet, com a chave da cifra) que diz a caixa, o `ref` e quando vence | a mesma forma do endereço assinado do S3 (mês 4): a caixa só aprende "peça o endereço e envie"; não precisa de outro segredo | foto dentro da passagem (passagem pesada, reenvio caro); envio pela API com a chave da caixa (no S3 seria outro caminho) |
 | D-23 | A placa lida só pela câmera de trás, sem a da frente, vai com papel `desconhecido` | sem a frente, a placa traseira pode ser de um reboque ou do próprio cavalo sem reboque; a caixa só diz o que viu, e o casamento (mês 2) testa a placa em qualquer papel | papel `reboque` sempre que a leitura vem da traseira (erra no cavalo sem reboque com a frente ilegível e na saída, que só tem câmera traseira) |
 | D-24 | Passagem que a nuvem recusa de vez (403, 409, 422) sai da fila e fica guardada à parte na caixa | reenviar não muda a resposta, e a fila em ordem ficaria travada para sempre atrás dela; guardada à parte, nada se perde e o suporte vê o motivo | só tirar da fila com 201 ou 200 (trava a portaria inteira por uma passagem errada); apagar a recusada (perde a prova) |
+| D-25 | Rastreador nosso, por sobreposição de caixas (no estilo do ByteTrack, sem o filtro de Kalman) | o supervision, que traz o ByteTrack, exige o PyAV, cuja roda traz partes GPL (`[ABERTO-13]`); na portaria o caminhão anda devagar e, a 5 quadros por segundo, a caixa de um quadro cobre a do seguinte | ByteTrack do supervision (preso ao `[ABERTO-13]`); filtro de Kalman (sem ganho a esta velocidade) |
 
 ---
 
@@ -801,3 +814,4 @@ folga.
 | 0.10 | 2026-10-03 | regras puras do leitor (T14): formato, votação e composição na caixa; leitura só da traseira com papel desconhecido (D-23; seções 4.2 e 4.3) |
 | 0.11 | 2026-10-03 | fila de envio da caixa (T17): ordem, espera crescente e recusa definitiva guardada à parte (D-24; seção 7.4) |
 | 0.12 | 2026-10-03 | licenças dos pesos do leitor v0 (T13): situação do `[ABERTO-12]`; novo `[ABERTO-13]`, bibliotecas nativas GPL e LGPL dentro das rodas (seções 4.2 e 12) |
+| 0.13 | 2026-10-03 | captura e rastreamento (T16): rastreador nosso (D-25), captura por fonte de quadros, leitura sem placa legível (seções 4.2 e 4.3) |

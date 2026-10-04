@@ -1,7 +1,9 @@
 """Composição na caixa (SDD 4.3, D-23): junta cavalo (frente) e reboque (trás) de cada faixa."""
 
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 
+import numpy as np
 import pytest
 
 from borda.composicao import Composicao, Compositor, LeituraDeVeiculo, Posicao
@@ -11,7 +13,7 @@ JANELA = timedelta(seconds=30)
 
 
 def _leitura(
-    placa: str,
+    placa: str | None,
     posicao: Posicao,
     segundos: float,
     *,
@@ -150,3 +152,48 @@ def test_esvaziar_devolve_o_que_ainda_esperava(compositor: Compositor) -> None:
     compositor.receber(_leitura("ABC1D23", "frente", 0))
 
     assert [_papeis(c) for c in compositor.esvaziar()] == [[("ABC1D23", "cavalo")]]
+
+
+# --- Leitura sem placa legível -------------------------------------------------------------
+
+
+def test_frente_ilegivel_com_traseira_lida_deixa_a_traseira_desconhecida(
+    compositor: Compositor,
+) -> None:
+    # Viu-se um veículo na frente, mas sem placa: a traseira pode ser reboque ou o cavalo.
+    compositor.receber(_leitura(None, "frente", 0))
+
+    prontas = compositor.receber(_leitura("XYZ9876", "tras", 10))
+
+    assert [_papeis(c) for c in prontas] == [[("XYZ9876", "desconhecido")]]
+    assert prontas[0].inicio == T0
+
+
+def test_frente_lida_com_traseira_ilegivel_fecha_so_com_o_cavalo(compositor: Compositor) -> None:
+    compositor.receber(_leitura("ABC1D23", "frente", 0))
+
+    prontas = compositor.receber(_leitura(None, "tras", 10))
+
+    assert [_papeis(c) for c in prontas] == [[("ABC1D23", "cavalo")]]
+
+
+def test_frente_sem_placa_nenhuma_vira_passagem_vazia(compositor: Compositor) -> None:
+    # A nuvem recebe a passagem sem placas e trata como exceção (SDD 3.2).
+    compositor.receber(_leitura(None, "frente", 0))
+
+    assert [c.placas for c in compositor.vencer(T0 + timedelta(minutes=1))] == [()]
+
+
+def test_traseira_sem_placa_e_sem_frente_vira_passagem_vazia(compositor: Compositor) -> None:
+    assert [c.placas for c in compositor.receber(_leitura(None, "tras", 0))] == [()]
+
+
+def test_recortes_acompanham_as_placas(compositor: Compositor) -> None:
+    recorte = np.full((12, 40, 3), 7, dtype=np.uint8)
+    compositor.receber(replace(_leitura("ABC1D23", "frente", 0), recorte=recorte))
+
+    pronta = compositor.receber(_leitura("XYZ9876", "tras", 10))[0]
+
+    assert len(pronta.recortes) == len(pronta.placas) == 2
+    assert pronta.recortes[0] is recorte
+    assert pronta.recortes[1] is None

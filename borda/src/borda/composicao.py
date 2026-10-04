@@ -8,17 +8,21 @@ do último reboque, ou a do próprio cavalo quando ele passa sem reboque. As reg
   se fecha ali; as mais antigas que ainda esperavam saem sozinhas (veio um veículo depois);
 - leitura de trás igual à da frente: é o mesmo veículo, sem reboque; fecha só com o cavalo;
 - leitura de trás sem frente na janela: sai na hora, com papel ``desconhecido``;
-- leitura da frente sem a de trás no fim da janela: sai sozinha, como cavalo.
+- leitura da frente sem a de trás no fim da janela: sai sozinha, como cavalo;
+- leitura sem placa legível (o veículo foi visto, a placa não) segue as mesmas regras, mas não
+  vira placa: a frente ilegível deixa a traseira com papel ``desconhecido``, e sem placa
+  nenhuma a composição sai vazia (a nuvem trata como exceção).
 
 O tempo é o das leituras (relógio da caixa): ``vencer`` recebe a hora atual e devolve o que já
 passou da janela.
 """
 
 from collections import defaultdict
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Literal
 
+from borda.leitor.interface import Quadro
 from contratos.passagem import Papel, PlacaLida
 
 Posicao = Literal["frente", "tras"]
@@ -33,13 +37,16 @@ class LeituraDeVeiculo:
     faixa_id: str
     camera_id: str
     posicao: Posicao
-    placa: str
+    placa: str | None
+    """A placa votada, ou ``None`` se o veículo passou sem placa legível."""
     confianca: float
     quadros: int
     inicio: datetime
     """Quando o veículo apareceu na câmera."""
     fim: datetime
     """Quando saiu dela."""
+    recorte: Quadro | None = field(default=None, compare=False, repr=False)
+    """O recorte da placa mais confiável, para a foto da passagem."""
 
 
 @dataclass(frozen=True)
@@ -50,6 +57,8 @@ class Composicao:
     inicio: datetime
     fim: datetime
     placas: tuple[PlacaLida, ...]
+    recortes: tuple[Quadro | None, ...] = field(default=(), compare=False, repr=False)
+    """O recorte de cada placa, na mesma ordem de ``placas`` (``None`` se não houver)."""
 
 
 class Compositor:
@@ -72,7 +81,9 @@ class Compositor:
         if leitura.posicao == "frente":
             esperando.append(leitura)
             return prontas
-        mesma_placa = next((f for f in esperando if f.placa == leitura.placa), None)
+        mesma_placa = next(
+            (f for f in esperando if leitura.placa and f.placa == leitura.placa), None
+        )
         if mesma_placa is not None:
             # A traseira do próprio cavalo: o veículo passou sem reboque.
             esperando.remove(mesma_placa)
@@ -82,6 +93,10 @@ class Compositor:
         *antigas, cavalo = esperando
         esperando.clear()
         sozinhas = [_compor(antiga) for antiga in antigas]
+        if cavalo.placa is None:
+            # A frente não se leu: a traseira pode ser reboque ou o próprio cavalo.
+            juntas = _compor(leitura, papel="desconhecido", inicio=cavalo.inicio)
+            return [*prontas, *sozinhas, juntas]
         return [*prontas, *sozinhas, _compor(cavalo, reboque=leitura)]
 
     def vencer(self, agora: datetime) -> list[Composicao]:
@@ -110,21 +125,24 @@ def _compor(
     *,
     papel: Papel = "cavalo",
     reboque: LeituraDeVeiculo | None = None,
+    inicio: datetime | None = None,
     fim: datetime | None = None,
 ) -> Composicao:
     leituras = [(principal, papel)] + ([(reboque, "reboque")] if reboque is not None else [])
+    legiveis = [(leitura.placa, leitura, p) for leitura, p in leituras if leitura.placa is not None]
     return Composicao(
         faixa_id=principal.faixa_id,
-        inicio=min(leitura.inicio for leitura, _ in leituras),
+        inicio=min([leitura.inicio for leitura, _ in leituras] + ([inicio] if inicio else [])),
         fim=fim or max(leitura.fim for leitura, _ in leituras),
         placas=tuple(
             PlacaLida(
-                placa=leitura.placa,
+                placa=placa,
                 papel=papel_da_leitura,
                 confianca=leitura.confianca,
                 camera_id=leitura.camera_id,
                 quadros=leitura.quadros,
             )
-            for leitura, papel_da_leitura in leituras
+            for placa, leitura, papel_da_leitura in legiveis
         ),
+        recortes=tuple(leitura.recorte for _, leitura, _ in legiveis),
     )

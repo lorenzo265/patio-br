@@ -353,17 +353,25 @@ cavalo, cavalo sem reboque).
 verificada na T13.
 
 **Caminho:**
-1. Detector de veículos D-FINE-N pré-treinado (classes carro, caminhão, ônibus) em ONNX
-   Runtime.
-2. Recorte do veículo → detecção e leitura de texto (PaddleOCR/RapidOCR em ONNX).
-3. Filtro pelo formato de placa (T14).
+1. Detector de veículos ~~D-FINE-N~~ → **YOLOX-Tiny** pré-treinado (classes carro, moto,
+   caminhão, ônibus) em ONNX Runtime. Desvio: o YOLOX publica o ONNX pronto; o D-FINE só tem
+   `.pth` e pediria o PyTorch para exportar. Os dois têm pesos sem licença declarada (T13): só
+   avaliação interna. A escolha do detector do v1 continua no `[ABERTO-03]`.
+2. Recorte do veículo → detecção e leitura de texto (PaddleOCR ~~/RapidOCR~~ em ONNX).
+   Desvio: o RapidOCR exige o OpenCV (`[ABERTO-13]`); o v0 usa os ONNX oficiais do PaddleOCR
+   (PP-OCRv5 mobile, Apache-2.0) direto no ONNX Runtime, com o pré e o pós-processamento em
+   NumPy e Pillow.
+3. Filtro pelo formato de placa (T14), no rastreador (T16).
+4. A mais: `uv run tarefas modelos` baixa os pesos para `modelos/v0` com o SHA-256 conferido.
+   Dependências novas: `onnxruntime` (MIT) na borda; `httpx` (BSD) e `pyyaml` (MIT) no `ml`.
 
 **Arquivos:** `borda/src/borda/leitor/v0.py`, `ml/src/ml/baixar_modelos.py` (baixa os pesos
 para `modelos/`, confere o checksum; nada de pesos no Git).
 
 **Verificar:** num punhado de imagens de teste rotuladas à mão (em `dados/`, fora do Git), o v0
 lê a placa na maioria. **Não há meta de acerto no v0**: ele existe para o fluxo funcionar; o
-acerto é trabalho do v1 no mês 2.
+acerto é trabalho do v1 no mês 2. Sem imagens reais ainda: a conferência com as fotos do
+Lorenzo fica pendente; por enquanto, o v0 lê uma placa inventada, desenhada no teste.
 
 **Commit:** `feat(borda): leitor v0 com modelos pré-treinados`
 
@@ -375,12 +383,21 @@ veículo numa leitura única.
 **Arquivos:** `borda/src/borda/captura.py`, `borda/src/borda/rastreio.py`, testes.
 
 **Regras:**
-- `captura.py`: lê de arquivo ou RTSP com PyAV, a uma taxa configurável (padrão 5 quadros/s).
-- `rastreio.py`: ByteTrack (biblioteca supervision) segue cada veículo; quando o veículo sai da
-  imagem, junta as leituras (votação) e gera uma placa lida.
+- `captura.py`: lê de arquivo ou RTSP com ~~PyAV~~, a uma taxa configurável (padrão 5
+  quadros/s). Desvio: a roda do PyAV traz partes GPL (x264/x265) e o OpenCV traz o FFmpeg LGPL
+  (SDD `[ABERTO-13]`, achado na T13). A captura ficou atrás de uma interface (`FonteDeQuadros`),
+  com a amostragem e duas fontes: em memória e uma pasta de imagens (os quadros de um vídeo,
+  tirados fora da caixa), que basta para a demonstração. Arquivo de vídeo e RTSP → depois da
+  decisão do `[ABERTO-13]`. Dependência nova: `pillow` (MIT-CMU), que lê as imagens e grava o
+  JPEG das fotos.
+- `rastreio.py`: ~~ByteTrack (biblioteca supervision)~~ → rastreador nosso, por sobreposição,
+  no estilo do ByteTrack (SDD D-25), porque o supervision exige o PyAV; segue cada veículo;
+  quando o veículo sai da imagem, junta as leituras (votação) e gera uma placa lida, com o
+  recorte para a foto. Veículo sem placa legível gera leitura sem placa (passagem vazia).
 
 **Verificar:** um teste com um vídeo curto sintético (gerado no próprio teste, sem dado real)
-produz exatamente uma leitura por veículo.
+produz exatamente uma leitura por veículo. O "vídeo" são quadros desenhados em memória: sem
+decodificador de vídeo até o `[ABERTO-13]`.
 
 **Commit:** `feat(borda): captura de vídeo e rastreamento`
 

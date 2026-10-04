@@ -6,7 +6,9 @@ requires-python = ">=3.12,<3.13"
 dependencies = [
     "httpx>=0.28.1",
     "numpy>=2.5.3",
+    "onnxruntime>=1.30.0",
     "patio-contratos",
+    "pillow>=12.3.0",
 ]
 
 [build-system]

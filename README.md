@@ -39,6 +39,7 @@ No dia a dia:
 uv run tarefas up            # sobe os bancos (15432 e 15433, o de testes) e a API (18000)
 uv run tarefas migrar        # aplica as migrações no banco de desenvolvimento
 uv run tarefas semente       # grava os dados de demonstração (duas empresas inventadas)
+uv run tarefas modelos       # baixa os modelos do leitor v0 para modelos/ (fora do Git)
 uv run tarefas check         # estilo, formato, tipos e testes (o mesmo que a CI vai rodar)
 uv run tarefas test -k placa # só os testes; o que vier depois de `test` vai para o pytest
 uv run tarefas down          # derruba; os dados do banco de desenvolvimento ficam guardados
