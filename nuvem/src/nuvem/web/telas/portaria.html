@@ -9,6 +9,11 @@
 {% if outros_sites %}
 <p>Outros sites: {% for outro in outros_sites %}<a href="/portaria?site={{ outro.id }}">{{ outro.nome }}</a>{% if not loop.last %} · {% endif %}{% endfor %}</p>
 {% endif %}
+<h2>Exceções</h2>
+<div id="excecoes" hx-get="/portaria/excecoes?site={{ site.id }}" hx-trigger="load, every 2s">
+  <p>Carregando as exceções…</p>
+</div>
+<h2>Passagens</h2>
 <div id="passagens" hx-get="/portaria/passagens?site={{ site.id }}" hx-trigger="load, every 2s">
   <p>Carregando as passagens…</p>
 </div>
