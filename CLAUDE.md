@@ -64,6 +64,7 @@ uv run tarefas up            # sobe os bancos (desenvolvimento e testes) e a API
 uv run tarefas migrar        # aplica as migrações no banco de desenvolvimento
 uv run tarefas semente       # grava os dados de demonstração (duas empresas inventadas)
 uv run tarefas modelos       # baixa os pesos do leitor v0 para modelos/ (SHA-256 conferido)
+uv run tarefas demo          # a demonstração do mês 1 (docs/guias/demo-mes-1.md)
 uv run tarefas check         # estilo, formato, tipos e testes (o mesmo que a CI roda)
 uv run tarefas test -k placa # só os testes; o resto vai para o pytest
 uv run tarefas down          # derruba, mantendo os dados

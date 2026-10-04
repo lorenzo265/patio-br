@@ -78,9 +78,11 @@ class NuvemFalsa:
         self.chaves_usadas: set[str] = set()
         self.chaves_revogadas: set[str] = set()
         self.entrou_como: str | None = None
+        self.enderecos: set[str] = set()
 
     def __call__(self, pedido: httpx.Request) -> httpx.Response:
         caminho = pedido.url.path
+        self.enderecos.add(f"{pedido.url.host}:{pedido.url.port}")
         autorizacao = pedido.headers.get("authorization", "")
         if autorizacao:
             self.chaves_usadas.add(autorizacao.removeprefix("Bearer "))
@@ -103,7 +105,8 @@ class NuvemFalsa:
             return httpx.Response(200, json=CONFIGURACAO)
         if caminho == "/api/borda/fotos/endereco":
             ref = json.loads(pedido.content)["ref"]
-            return httpx.Response(200, json={"ref": ref, "endereco": f"{NUVEM}/envio/{ref}"})
+            endereco = str(pedido.url.copy_with(path=f"/envio/{ref}"))  # a própria nuvem
+            return httpx.Response(200, json={"ref": ref, "endereco": endereco})
         if caminho.startswith("/envio/"):
             self.fotos[caminho.removeprefix("/envio/")] = pedido.content
             return httpx.Response(201)
@@ -230,6 +233,47 @@ def test_nuvem_local_nao_passa_pelo_proxy_do_sistema(monkeypatch: pytest.MonkeyP
 def test_nuvem_de_verdade_usa_o_proxy_do_sistema() -> None:
     # Numa rede que só sai pelo proxy, a nuvem de homologação ou produção precisa dele.
     assert cliente_para("https://patio.exemplo.com.br").trust_env
+
+
+def _rodar_sem_nuvem(nuvem: NuvemFalsa, raiz: Path) -> int:
+    return principal(
+        ["--demonstracao", "--passagens", "amostra"],
+        cliente=httpx.Client(transport=httpx.MockTransport(nuvem)),
+        raiz=raiz,
+        agora=AGORA,
+        saida=io.StringIO(),
+    )
+
+
+def test_sem_nuvem_usa_a_porta_da_api_do_ambiente(
+    nuvem: NuvemFalsa, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Como no docker compose: a variável do ambiente vale mais que o .env.
+    monkeypatch.setenv("API_PORTA", "18555")
+    (tmp_path / ".env").write_text("API_PORTA=18666\n", encoding="utf-8")
+
+    assert _rodar_sem_nuvem(nuvem, tmp_path) == 0
+    assert nuvem.enderecos == {"localhost:18555"}
+
+
+def test_sem_nuvem_usa_a_porta_da_api_do_env(
+    nuvem: NuvemFalsa, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Quem trocou a porta no .env (a 18000 estava ocupada) não fala com outro programa.
+    monkeypatch.delenv("API_PORTA", raising=False)
+    (tmp_path / ".env").write_text("# a API\nAPI_PORTA=18666\n", encoding="utf-8")
+
+    assert _rodar_sem_nuvem(nuvem, tmp_path) == 0
+    assert nuvem.enderecos == {"localhost:18666"}
+
+
+def test_sem_nuvem_nem_porta_usa_a_18000(
+    nuvem: NuvemFalsa, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.delenv("API_PORTA", raising=False)
+
+    assert _rodar_sem_nuvem(nuvem, tmp_path) == 0
+    assert nuvem.enderecos == {"localhost:18000"}
 
 
 def test_codigo_de_ativacao_dado_na_linha_de_comando(nuvem: NuvemFalsa, tmp_path: Path) -> None:
