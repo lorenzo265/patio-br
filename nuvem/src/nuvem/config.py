@@ -8,7 +8,7 @@ Valor obrigatório ausente impede a nuvem de iniciar: melhor parar na hora do qu
 from pathlib import Path
 from typing import Literal
 
-from pydantic import SecretStr, ValidationError, field_validator
+from pydantic import HttpUrl, SecretStr, ValidationError, ValidationInfo, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from nuvem.cifra import Cifra
@@ -49,6 +49,15 @@ class Configuracao(BaseSettings):
     Relativa à pasta onde a nuvem roda; no Docker, ``/app/dados/fotos``, num volume.
     """
 
+    url_publica: HttpUrl | None = None
+    """O endereço pelo qual as caixas alcançam a API, sem caminho (SDD D-28).
+
+    Ex.: ``https://patio-br.example``. Os endereços que a API devolve à caixa (o de envio das
+    fotos) partem dele. Sem ele, partem do endereço do pedido, o que basta no ambiente local;
+    atrás de um proxy HTTPS, o pedido chega como ``http://``, e a caixa receberia um endereço
+    errado. Fora do ambiente local, só ``https://``.
+    """
+
     @property
     def cookie_seguro(self) -> bool:
         """Se o cookie da sessão só pode andar por HTTPS (``Secure``)."""
@@ -59,6 +68,26 @@ class Configuracao(BaseSettings):
     def _chave_valida(cls, chave: SecretStr) -> SecretStr:
         Cifra(chave)  # recusa já na partida uma chave que não serviria
         return chave
+
+    @field_validator("url_publica", mode="before")
+    @classmethod
+    def _vazia_e_sem_endereco(cls, url: object) -> object:
+        return None if url == "" else url
+
+    @field_validator("url_publica")
+    @classmethod
+    def _url_publica_valida(cls, url: HttpUrl | None, info: ValidationInfo) -> HttpUrl | None:
+        if url is None:
+            return None
+        if url.path not in (None, "/") or url.query or url.fragment:
+            # Os endereços devolvidos à caixa têm caminho próprio (/api/...): um caminho aqui
+            # se perderia sem aviso.
+            raise ValueError(
+                "só esquema, servidor e porta, sem caminho (ex.: https://patio-br.example)"
+            )
+        if info.data.get("ambiente", "producao") != "local" and url.scheme != "https":
+            raise ValueError("fora do ambiente local, o endereço público precisa ser https://")
+        return url
 
 
 class ConfiguracaoInvalidaError(Exception):

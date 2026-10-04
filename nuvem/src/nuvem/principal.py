@@ -65,6 +65,7 @@ def criar_app(configuracao: Configuracao | None = None, senhas: Senhas | None = 
     app.state.cifra = Cifra(configuracao.chave_cifra)
     app.state.armazenamento = ArmazenamentoLocal(configuracao.pasta_fotos, app.state.cifra)
     app.state.cookie_seguro = configuracao.cookie_seguro
+    app.state.url_publica = str(configuracao.url_publica) if configuracao.url_publica else None
     app.add_api_route("/saude", saude, methods=["GET"])
     app.add_exception_handler(NaoEncontradoError, _nao_encontrado)
     app.add_exception_handler(NaoIdentificadoError, _nao_identificado)

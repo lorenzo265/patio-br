@@ -102,10 +102,12 @@ def endereco_de_foto(
 ) -> EnderecoDeEnvio:
     """Devolve o endereço temporário para a caixa enviar uma foto."""
     endereco = armazenamento.endereco_de_envio(caixa.caixa_id, pedido.ref, agora=momento)
+    # O armazenamento local devolve um caminho desta API; o S3, um endereço completo. O caminho
+    # parte do endereço público (D-28): atrás de um proxy HTTPS, o do pedido viria com http://.
+    base = request.app.state.url_publica or str(request.base_url)
     return EnderecoDeEnvio(
         ref=pedido.ref,
-        # O armazenamento local devolve um caminho desta API; o S3, um endereço completo.
-        endereco=urljoin(str(request.base_url), endereco),
+        endereco=urljoin(base, endereco),
         expira_em=momento + fotos.VALIDADE_DO_ENDERECO,
     )
 
