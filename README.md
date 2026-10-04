@@ -61,7 +61,7 @@ Copy-Item .env.exemplo .env
 
 - `--frozen` instala exatamente o `uv.lock`, sem reescrevê-lo (o uv da máquina pode ser de
   outra versão que a do projeto).
-- Use sempre `.venv\Scripts\python.exe -m <comando>` (`tarefas`, `simulador`): os
+- Use sempre `.venv\Scripts\python.exe -m <comando>` (`tarefas`, `simulador`, `borda.caixa`): os
   executáveis `uv run tarefas` e `.venv\Scripts\tarefas.exe` também são bloqueados.
 - Se a saída for longa, veja só o fim: `... -m tarefas check 2>&1 | Select-Object -Last 30`.
 
@@ -85,6 +85,20 @@ A demonstração do mês 1 inteira, do zero, num comando só: `uv run tarefas de
 em [`docs/guias/demo-mes-1.md`](docs/guias/demo-mes-1.md)).
 
 Quando um PR acrescenta variável ao `.env.exemplo`, copie-o de novo para `.env`.
+
+### A caixa de borda
+
+Na caixa (o mini PC da portaria), o programa `caixa` lê as câmeras e manda as passagens:
+
+```bash
+uv run tarefas modelos                                   # os modelos do leitor v0, uma vez
+uv run caixa ativar --nuvem https://<a nuvem> --codigo XXXX-XXXX-XXXX
+uv run caixa rodar                                       # até Ctrl+C ou o sinal de término
+```
+
+O código de ativação é gerado pela administração para o site (vale 24 horas, uso único). A
+chave fica em `dados/caixa/caixa.json` e a fila em `dados/caixa/fila.sqlite`, fora do Git.
+Detalhes no SDD, seção 7.4.
 
 A CI (`.github/workflows/ci.yml`) roda em cada PR e na `main`: o mesmo `tarefas check` (com o
 banco de testes), a checagem de licenças das dependências, a de falhas de segurança conhecidas

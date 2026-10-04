@@ -116,7 +116,7 @@ O leitor v0 usa pesos de terceiros: **só para avaliação interna** (SDD 4.1 e 
 - **Vídeos gravados** com autorização (plano, T19, passo 1): de 10 a 20 passagens de caminhão,
   com aviso de gravação e sem foco em rostos, em `dados/amostras/`, com a ficha de quem
   autorizou. É uma tarefa do Lorenzo.
-- **O programa da caixa** que lê as câmeras ao vivo (RTSP): a leitura já existe (SDD D-29); falta
-  o programa que ativa a caixa, abre as câmeras da configuração e envia as passagens.
+- **A caixa na portaria**: o programa `caixa` já ativa, lê as câmeras ao vivo (RTSP) e envia
+  (README, "A caixa de borda"); falta montá-lo no mini PC N150, com câmeras de verdade.
 - **Acerto do leitor**: o v0 não tem meta de acerto; ele existe para o fluxo funcionar. O
   acerto é trabalho do v1, com pesos nossos (mês 2).
