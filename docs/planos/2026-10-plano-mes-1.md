@@ -520,6 +520,8 @@ Coisas que levam tempo de calendário: começar na **semana 1**.
 - **04/10, SDD 0.17:** o programa da caixa (`caixa ativar` e `caixa rodar`): ativação, câmeras
   RTSP da configuração, agente e envio (D-30). Saúde, atualização e o contêiner da caixa seguem
   no mês 3, como no cronograma.
+- **04/10, SDD 0.18:** `[ABERTO-14]` decidido (D-31): o OpenSSL que vem no OpenCV para Linux é
+  aceito, com o crédito em `borda/AVISOS-DE-TERCEIROS.md`.
 
 ---
 
