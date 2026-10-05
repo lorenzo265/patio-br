@@ -104,6 +104,12 @@ O dia de demonstração ([[D-49]]): `uv run tarefas demonstracao` cria a "Distri
 "Dia de demonstração": a manhã aparece pronta e, nos 5 minutos seguintes, os caminhões chegam e o
 líder automático trabalha.
 
+O link de demonstração por empresa ([[D-52]] e [[D-54]]): entre como a administração
+(`admin@patio-br.example`) e abra "Links de demonstração"; o endereço gerado aparece uma vez só.
+Quem abre o link e aperta "Entrar" ganha uma empresa só dela, com um mês de histórico (na
+primeira vez, leva uns 15 segundos), e uma faixa no topo troca o papel. O worker apaga a empresa
+quando o link vence ou é revogado.
+
 Quando um PR acrescenta variável ao `.env.exemplo`, copie-o de novo para `.env`.
 
 ### A caixa de borda

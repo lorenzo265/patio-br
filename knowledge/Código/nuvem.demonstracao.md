@@ -111,6 +111,39 @@ Tudo vem de um ``random.Random``: a mesma semente dá o mesmo dia.
 - **`placa_inventada`**: Uma placa Mercosul (ABC1D23) que ainda não foi usada; ela entra em ``usadas``.
 - **`toneladas_inventadas`**: De 8 a 32 toneladas; de vez em quando, sem (o extrato conta quantas ficaram sem).
 
+### `nuvem.demonstracao.link`
+
+`nuvem/src/nuvem/demonstracao/link.py`
+
+O link de demonstração por empresa visitada ([[T48]], [[D-52]] e [[D-54]]).
+
+- **Gerar:** a administração dá o nome da empresa visitada; o código é aleatório e longo, vai
+  no endereço e aparece uma vez só. O banco guarda só o resumo. Vale 7 dias.
+- **Entrar:** na primeira vez, cria a empresa de demonstração (cerca de 15 segundos); quem volta
+  entra na mesma, com os dias que faltavam até ontem já no histórico. Entra como gestor, sem
+  senha: as pessoas da empresa do link têm senha sorteada, que ninguém sabe.
+- **Trocar de papel:** gestor, porteiro ou líder de pátio da mesma empresa, sem senha. Só os
+  ambientes da demonstração têm a rota (o serviço não sabe do ambiente; a tela confere).
+- **Apagar:** a empresa do link vencido ou revogado é apagada inteira, com as fotos e as linhas
+  de prova. O gatilho ``so_acrescenta`` só deixa apagar a prova de uma empresa que nasceu de um
+  link, e só quando a transação avisa qual (``patio.apagar_empresa``).
+
+Vencido, revogado ou inventado dá ``NaoEncontradoError`` (404, sem dizer qual). As funções
+gravam com ``flush``; o ``commit`` é de quem chama.
+
+- **`INTERVALO_DA_FAXINA`** = `timedelta(hours=1)`: O worker apaga as empresas vencidas no máximo uma vez por hora.
+- **`DOMINIO_DOS_EMAILS`** = `'demonstracao.example'`: Os e-mails das pessoas da empresa do link: ``gestor@link12.demonstracao.example``.
+- **`LinkGerado`** (classe): O link novo e o código dele (que só aparece agora, para a administração mandar).
+- **`gerar_link`**: Gera um link de demonstração para uma empresa visitada.
+- **`listar_links`**: Todos os links de demonstração, do mais novo ao mais antigo.
+- **`revogar_link`**: Revoga o link: ele deixa de valer, e as pessoas da empresa dele saem na hora.
+- **`vale`**: Se o link ainda abre: não venceu e não foi revogado.
+- **`abrir_link`**: O link do código, para a página mostrar para quem é.
+- **`entrar_pelo_link`**: Entra na empresa de demonstração do link como gestor; cria a empresa na primeira vez.
+- **`trocar_de_papel`**: Passa a sessão para a primeira pessoa do papel, da mesma empresa, num site em comum.
+- **`apagar_vencidas`**: Apaga as empresas dos links vencidos ou revogados, inteiras, com as fotos.
+- **`Faxina`** (classe): Apaga as empresas vencidas no máximo uma vez por intervalo (o worker chama a cada volta).
+
 ### `nuvem.demonstracao.local`
 
 `nuvem/src/nuvem/demonstracao/local.py`
@@ -139,6 +172,7 @@ A tabela do dia de demonstração ([[D-49]]): o roteiro das chegadas ao vivo e o
 
 - `nuvem/tests/test_nuvem_demonstracao.py`: A empresa e o dia de demonstração com o banco ([[T45]], [[D-49]]).
 - `nuvem/tests/test_nuvem_demonstracao_historico.py`: Os dias inventados da demonstração ([[T45]], [[D-49]]), sem banco: chegadas, docas e ritmos.
+- `nuvem/tests/test_nuvem_demonstracao_link.py`: O link de demonstração por empresa ([[T48]], [[D-52]] e [[D-54]]): gerar, entrar, trocar e apagar.
 
 ---
 
