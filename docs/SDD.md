@@ -1,7 +1,7 @@
 # SDD — patio-br (nome provisório)
 
 **Documento de desenho do software (SDD) do MVP do piloto**
-Versão 0.28 · 2026-10-05 · Situação: aprovado como base; itens em aberto na seção 12
+Versão 0.29 · 2026-10-05 · Situação: aprovado como base; itens em aberto na seção 12
 
 ---
 
@@ -60,6 +60,11 @@ Um sistema de pátio com três pilares:
 Sites com **portaria 24 horas e cerca de 80 caminhões por dia ou mais**: CDs de varejo e
 atacado, indústrias, operadores logísticos e terminais. Operações pequenas não são o alvo
 (a validação mostrou que o hardware e a instalação não se pagam nelas).
+
+**Depois do piloto aprovado** (D-43), o recebimento e o estoque (seção 3.5) abrem o produto
+para qualquer empresa que recebe mercadoria, como supermercados e lojas grandes. Esses módulos
+funcionam só com o sistema, sem câmera; onde houver câmera, ela liga a mercadoria ao caminhão
+que a trouxe.
 
 ### 1.4 Os dois modos de operação
 
@@ -128,6 +133,9 @@ extrato mensal, trilha de prova, frota de borda, base de treino, API e webhooks.
 | Conferência de carga e lacre por câmera | outro problema de visão computacional | Fase 3 |
 | Segurança (perímetro, identidade do motorista, risco da transportadora) | escopo grande | Fase 3 |
 | Conectores TOTVS, SAP, Senior | variam por cliente | sob demanda |
+| Recebimento: conferir na doca o que chegou contra a NF-e (falta, sobra, avaria) e mandar o relatório ao fornecedor | o pátio precisa ser aprovado antes (D-43) | depois do piloto aprovado |
+| Estoque: onde cada mercadoria está, com busca e visão 3D do armazém | o pátio precisa ser aprovado antes (D-43) | depois do piloto aprovado |
+| Cuidado de cargas e controle de entregas | escopo a definir (`[ABERTO-20]`) | depois do piloto aprovado |
 | Leitura de CNH e CRLV | não é exigida por norma em CD privado | Fase 2+ |
 | Reconhecimento facial | risco LGPD (dado biométrico) | não por padrão, em nenhuma fase |
 | App nativo e cobrança automática | o PWA resolve; poucos clientes no início | depois do piloto |
@@ -298,10 +306,12 @@ painel oferece:
 |---|---|
 | Fase 2 | mapa do pátio e missões de manobra (modo B); câmeras nas docas e sugestão de doca; leitura de CNH/CRLV |
 | Fase 3 | conferência de carga e lacre; segurança (perímetro, identidade, risco) |
+| Depois do piloto aprovado (D-43) | **recebimento** pela NF-e, na doca; **estoque** com endereços, busca e visão 3D do armazém; **cuidado de cargas e controle de entregas** |
 | Sob demanda | conectores de ERP |
 
 Cada módulo futuro "escuta" os mesmos eventos de passagem e visita. A borda e o contrato não
-mudam.
+mudam. O recebimento e o estoque também funcionam sem câmera: partem do agendamento e da NF-e,
+e a visita, quando existe, diz qual caminhão trouxe a mercadoria.
 
 ---
 
@@ -411,9 +421,11 @@ Trocar de motor não muda nada fora da caixa.
 Os bancos públicos brasileiros com placas reais (RodoSol-ALPR e UFPR-ALPR) só permitem uso
 acadêmico (`docs/validacao/fontes-de-placas.md`). Por isso:
 
-1. **Primeiras placas** (`[ABERTO-18]`): 3 a 5 mil placas rotuladas no Label Studio, pelo
-   Lorenzo. A gravação no site parceiro ficou para depois (decisão de 05/10). Onde houver
-   gravação, as câmeras gravam só a região de gravação (D-39), com aviso LGPD, sem operar.
+1. **Primeiras placas:** o treino começa com placas sintéticas e bases abertas (D-44). As placas
+   reais (cerca de 1.000 para a régua e as de treino) vêm do `[ABERTO-18]` e são rotuladas no
+   Label Studio, pelo Lorenzo. A gravação no site parceiro ficou para depois (decisão de 05/10).
+   Onde houver gravação, as câmeras gravam só a região de gravação (D-39), com aviso LGPD, sem
+   operar.
 2. **Depois:** cada conferência do porteiro (D-42) vira um rótulo novo (módulo `treino`), após
    revisão na tela de rotulagem, se o contrato do cliente autorizar (seção 8.3).
 3. **Treino:** PyTorch em GPU alugada por hora, num ambiente à parte (D-40), só quando há dados
@@ -850,6 +862,9 @@ folga.
 completo antes de levá-lo ao site. A gravação e o teste técnico saem do mês 2, e as primeiras
 placas vêm de outra fonte (`[ABERTO-18]`). O cronograma é refeito com o próximo plano.
 
+**Depois de março:** se a decisão for seguir, começa o desenho do recebimento, do estoque e
+do cuidado de cargas (D-43).
+
 **Decisão do teste técnico (mês 2):**
 
 | Resultado (composição casando com agendamento) | Ação |
@@ -915,6 +930,8 @@ placas vêm de outra fonte (`[ABERTO-18]`). O cronograma é refeito com o próxi
 | D-40 | O treino roda num **ambiente à parte**, fora do `uv.lock` do projeto, só na máquina de GPU alugada; os modelos saem em ONNX, e o código de treino segue a regra de licença | decisão de 05/10, que fecha o `[ABERTO-16]`: o PyTorch com GPU traz bibliotecas da NVIDIA com licença proprietária, que a seção 6.1 não aceita; nada delas vai para a caixa nem para a nuvem | treinar no ambiente do projeto (a checagem de licenças da CI recusaria) |
 | D-41 | Leitor comercial: mandar imagens à nuvem dele só com o sim do advogado e do site; sem esse sim, o programa local dele ou a comparação só com o v0 e o registro manual. O que ele lê nunca vira rótulo nem entra no treino | decisão de 05/10, que fecha o `[ABERTO-17]`: as imagens são dados do site, e a nuvem dele pode ficar fora do Brasil; os termos de uso do Plate Recognizer (03/02/2025, item 1.7) proíbem usar o serviço para treinar modelos ou criar dados rotulados (`docs/validacao/fontes-de-placas.md`) | usá-lo para pré-rotular as placas (proibido pelos termos) |
 | D-42 | O porteiro **confere a placa** de qualquer passagem, e não só a das exceções: a tela mostra o recorte ao lado da leitura, e ele confirma ou digita a placa certa. A conferência é um registro novo (a leitura e a foto não mudam, seção 5.5), e a última vale. Ela não muda a visita: o "corrigir" da fila de exceções, que casa de novo, vem com a resolução das exceções (mês 3) | pedido do Lorenzo em 05/10: compara a leitura com a placa certa no dia a dia e gera rótulos para o treino (seção 4.6), inclusive dos acertos | conferir só nas exceções (poucos rótulos, e só dos erros) |
+| D-43 | Recebimento, estoque (com busca e visão 3D do armazém) e cuidado de cargas e controle de entregas **entram no projeto como módulos para depois do piloto aprovado**, e não agora. Funcionam só com o sistema, sem câmera; onde houver câmera, ela ajuda | decisão do Lorenzo em 05/10: o recebimento é a ponte natural entre quem chega e o que chega, e liga o cliente aos fornecedores que já agendam pela nossa ferramenta; no estoque, a aposta é que muitas empresas estão insatisfeitas com o sistema que usam, e um produto muito fácil de usar abre espaço (a validar); esperar o pátio aprovado mantém o foco do piloto | começar já (tira o foco do piloto); deixar de fora (perde a ponte com os fornecedores) |
+| D-44 | O treino do leitor começa com **placas sintéticas e bases abertas**: placas Mercosul geradas por programa, a base Artificial Mercosur (CC BY 4.0) e, para o detector, bases abertas de fora (Open Images, CCPD), guardando só a região da placa (D-39) | decisão do Lorenzo em 05/10, pela opção 1 do `[ABERTO-18]`: não usa dado pessoal e começa já; um estudo de 2025 com placas brasileiras acertou 94,5% com só 10% das placas reais e muitas sintéticas, contra 18% sem as sintéticas | esperar as placas reais (o treino parado até o site parceiro) |
 
 ---
 
@@ -932,7 +949,9 @@ placas vêm de outra fonte (`[ABERTO-18]`). O cronograma é refeito com o próxi
 | ABERTO-08 | Guia de posicionamento das câmeras por tipo de portaria | no kit de bancada e no site parceiro (meses 1–2) |
 | ABERTO-09 | Tolerância de janela (padrão 4h após o fim da janela, usada também para "não veio") e momento do alerta de estadia (padrão: 4h depois da chegada) | com o cliente do piloto |
 | ABERTO-10 | Modelo de dados detalhado do modo B | no início da Fase 2 |
-| ABERTO-18 | Primeiras 3 a 5 mil placas para treinar, com o site parceiro adiado (seção 4.6). Proposta: começar já com placas sintéticas e bases abertas (sem dado pessoal) e, com o sim do advogado, gravar em 1 a 3 portões de conhecidos (`docs/validacao/fontes-de-placas.md`) | com o Lorenzo e o advogado, antes do treino |
+| ABERTO-18 | Placas reais para o leitor, com o site parceiro adiado (seção 4.6). O treino começa com placas sintéticas e bases abertas (D-44). Falta decidir: a régua fixa com cerca de 1.000 placas reais (proposta: fotografar a frota própria parada de transportadoras e locadoras, com carta de autorização) e a coleta própria para treinar (proposta: gravar em 1 a 3 portões de conhecidos, com o sim do advogado) (`docs/validacao/fontes-de-placas.md`) | com o Lorenzo e o advogado, antes da régua e do treino com placas reais |
+| ABERTO-19 | Recebimento: de onde vêm os itens da NF-e (o XML que o fornecedor manda, o certificado digital do cliente ou outro caminho) e como o resultado volta ao sistema do cliente (`docs/validacao/recebimento-e-estoque.md`) | no desenho do módulo, depois do piloto aprovado |
+| ABERTO-20 | Estoque e cuidado de cargas: estoque próprio (endereços, saldo, busca, visão 3D) ou ligado ao sistema do cliente; o que entra em "cuidado de cargas e controle de entregas" e se inclui a conferência de carga e lacre da Fase 3 | no desenho dos módulos, depois do piloto aprovado |
 
 ---
 
@@ -960,6 +979,9 @@ placas vêm de outra fonte (`[ABERTO-18]`). O cronograma é refeito com o próxi
 | **SSE** | forma de o servidor empurrar novidades para a tela sem recarregar |
 | **RTSP** | protocolo pelo qual a câmera IP envia o vídeo |
 | **OCR** | leitura dos caracteres numa imagem |
+| **NF-e** | nota fiscal eletrônica; a chave de 44 números identifica cada nota |
+| **Recebimento** | conferir o que chegou contra o que foi pedido ou faturado, item por item |
+| **WMS** | sistema de gestão de armazém: onde cada mercadoria está e o que entra e sai |
 | **Resumo (hash)** | transformação de mão única: dá para conferir se uma senha ou código bate, mas não para recuperá-lo. Senhas e PINs usam o argon2, feito para ser lento de adivinhar |
 | **Cookie** | pequeno dado que o site guarda no navegador e que volta a cada pedido; aqui, só o código da sessão de login |
 
@@ -997,3 +1019,4 @@ placas vêm de outra fonte (`[ABERTO-18]`). O cronograma é refeito com o próxi
 | 0.26 | 2026-10-04 | fila de tarefas e worker (T33): tabela nossa com `SKIP LOCKED` (D-38, fecha o `[ABERTO-11]` pela recomendação do plano), espera crescente, "não veio" a cada 5 minutos (seções 6.1, 11 e 12) |
 | 0.27 | 2026-10-04 | simulador com agendamentos (T35): `--agendamentos`, passagem pelo sentido, resultado do casamento na tela da portaria (seções 6.2 e 6.4) |
 | 0.28 | 2026-10-05 | decisões de 05/10: região de gravação (D-39), ambiente de treino (D-40) e leitor comercial (D-41), que fecham os `[ABERTO-15]` a `[ABERTO-17]`; D-38 confirmada; conferência da placa pelo porteiro (D-42); site parceiro adiado e as primeiras placas em aberto (`[ABERTO-18]`) (seções 4.5, 4.6, 5.1, 6.2, 8.3, 10, 11, 12 e 13) |
+| 0.29 | 2026-10-05 | recebimento, estoque e cuidado de cargas como módulos para depois do piloto aprovado, sem exigir câmera (D-43); novos `[ABERTO-19]` e `[ABERTO-20]`; o treino começa com placas sintéticas (D-44), e as placas reais para testar entram no `[ABERTO-18]` (seções 1.3, 2.3, 3.5, 10, 11, 12 e 13) |

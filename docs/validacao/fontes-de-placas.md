@@ -87,3 +87,61 @@ em 05/10; os outros vêm da pesquisa e precisam de nova leitura antes de qualque
    com termo escrito e aviso, guardando só a região de gravação (D-39). É o plano B do
    cronograma (SDD 10, "site parceiro demora"). Risco: LGPD; precisa do sim do advogado antes.
 3. **Comprar:** descartado.
+
+## Placas reais só para testar (pesquisa da tarde de 05/10)
+
+Pergunta do Lorenzo: dá para **testar** o leitor (não treinar) com placas reais? O teste é a
+régua fixa (SDD 4.7): nunca entra no treino e fica em `dados/`, fora do Git.
+
+- **Bases acadêmicas:** não servem sem permissão escrita dos autores. A RodoSol-ALPR (conferido)
+  é "for academic research only [...] for non-commercial purposes", e o pedido exige e-mail de
+  universidade. A UFPR-ALPR, a UFPR-SR-Plates e a LPLC têm termos iguais. Uma empresa testando
+  o próprio produto faz uso comercial, mesmo que interno. Os termos permitem pedir a permissão
+  ("expressed permission of the authors"); não achamos precedente de licença para empresa.
+  Contato da RodoSol no repositório: https://github.com/raysonlaroca/rodosol-alpr-dataset
+- **Fotos Creative Commons** (Wikimedia Commons, Flickr): poucas centenas de placas legíveis
+  (estimativa), quase todas cinzas. A licença da foto não cobre a LGPD: quem publicou foi o
+  fotógrafo, não o dono do veículo; sobra o legítimo interesse, com relatório revisado pelo
+  advogado.
+- **Imagens de rua** (Mapillary, Street View, KartaView): as placas são borradas, e os termos do
+  Google proíbem usar o conteúdo para testar modelos.
+- **Dados públicos e bases de Kaggle ou Hugging Face:** nada com origem e licença confiáveis.
+- **Frota de empresa:** a LGPD protege só pessoa natural. A placa de um caminhão de LTDA ou S.A.
+  não é dado pessoal da empresa; as exceções são o MEI, o empresário individual e o caminhão de
+  agregado ou autônomo (912 mil dos 2,77 milhões de veículos de carga do RNTRC, ago/2025), e o
+  motorista, se aparecer. Uma carta de uma página do representante legal autoriza fotografar a
+  frota própria parada (só a frota própria, local, datas, finalidade, uso interno, prazo de
+  guarda e contato).
+- **Carros de conhecidos:** consentimento por escrito, para uma finalidade definida e revogável
+  (LGPD, art. 8º); um termo de uma página basta.
+- **Fotos de carros na rua, ao acaso:** fotografar em lugar público não é proibido, mas, como é
+  para a empresa, a LGPD vale (a exceção do art. 4º é só para uso particular e sem fim
+  econômico). Sem consentimento, a base seria o legítimo interesse, com relatório escrito e o
+  sim do advogado; o dono do carro não espera virar dado de treino. Se o advogado aprovar:
+  carros parados, nenhuma pessoa na foto, só o recorte da placa (D-39), sem a localização da foto
+  (apagar os dados de GPS) nem a hora, e o original apagado depois do recorte. Uma base de
+  placas que vaze serve para clonar placas.
+
+**Tamanho do teste** (intervalo de 95% para um acerto de 97%):
+
+| Placas | Margem | Intervalo |
+|---|---|---|
+| 300 | ±1,9 ponto | 95,1–98,9% |
+| 500 | ±1,5 ponto | 95,5–98,5% |
+| 1.000 | ±1,1 ponto | 95,9–98,1% |
+| 2.000 | ±0,75 ponto | 96,3–97,7% |
+
+Para mostrar, com 80% de chance, que um leitor de 97% é melhor que 95%, são cerca de 815
+placas; com 90%, cerca de 1.040. Meta: **cerca de 1.000 placas distintas** (cada veículo uma
+vez). Para comparar dois leitores, usar as mesmas placas nos dois.
+
+**Caminhos, do mais limpo ao mais incerto:**
+
+1. **Fotografar a frota própria parada** de 3 a 6 transportadoras ou locadoras, com a carta de
+   autorização, guardando só o recorte da placa e a região abaixo do para-brisa (D-39). Cerca
+   de 2 a 3 semanas. Risco: a foto parada é mais fácil que a portaria (luz, ângulo, movimento).
+   Advogado: só para revisar a carta.
+2. **Gravar no portão de um parceiro** (a coleta própria do `[ABERTO-18]`). Risco: veículos de
+   terceiros. Advogado: antes de gravar.
+3. **Pedir aos autores da RodoSol-ALPR** permissão escrita para avaliar no conjunto de teste
+   deles (placas cinzas e Mercosul). Um e-mail; prazo e resposta incertos.
