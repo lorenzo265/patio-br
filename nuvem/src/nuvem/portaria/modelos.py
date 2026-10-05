@@ -54,7 +54,8 @@ EstadoDaVisita = Literal["NA_FILA", "EXCECAO", "NAO_VEIO", "SAIU"]
 TipoDeEvento = Literal["check_in", "excecao", "nao_veio", "saiu_sem_atendimento"]
 """O que aconteceu com a visita; cada tipo leva a um estado (``visitas.TRANSICOES``)."""
 
-MotivoDaExcecao = Literal["sem_candidato", "candidatos_proximos", "sem_placa"]
+MotivoDaExcecao = Literal["sem_placa", "sem_candidato", "pontos_baixos", "candidatos_proximos"]
+"""Por que a chegada não casou (SDD 5.3)."""
 SituacaoDaExcecao = Literal["aberta", "resolvida"]
 
 
@@ -69,6 +70,9 @@ class Visita(Base):
         do_pai_na_mesma_empresa("passagem", coluna="passagem_entrada_id"),
         do_pai_na_mesma_empresa("passagem", coluna="passagem_saida_id"),
         UniqueConstraint("agendamento_id"),
+        # A mesma passagem de novo não cria outra visita nem fecha outra (SDD 5.3).
+        UniqueConstraint("passagem_entrada_id"),
+        UniqueConstraint("passagem_saida_id"),
         CheckConstraint("(estado = 'NAO_VEIO') = (chegou_em IS NULL)", name="chegada"),
         CheckConstraint("(estado = 'SAIU') = (saiu_em IS NOT NULL)", name="saida"),
         CheckConstraint(
