@@ -1,0 +1,42 @@
+[
+  {
+    "codigo": "1",
+    "cavalo": "ABC1D23",
+    "reboques": ["XYZ9876"],
+    "de_minutos": -60,
+    "ate_minutos": 60,
+    "tipo": "descarga",
+    "motorista": "Motorista Demonstração 1",
+    "toneladas": "32,5"
+  },
+  {
+    "codigo": "2",
+    "cavalo": "BRA2E19",
+    "reboques": [],
+    "de_minutos": -30,
+    "ate_minutos": 90,
+    "tipo": "carga",
+    "motorista": "Motorista Demonstração 2",
+    "toneladas": "20"
+  },
+  {
+    "codigo": "3",
+    "cavalo": "BRA2E19",
+    "reboques": [],
+    "de_minutos": 90,
+    "ate_minutos": 210,
+    "tipo": "carga",
+    "motorista": "Motorista Demonstração 3",
+    "toneladas": "18"
+  },
+  {
+    "codigo": "4",
+    "cavalo": "CDE3F45",
+    "reboques": ["FGH6I78"],
+    "de_minutos": -45,
+    "ate_minutos": 75,
+    "tipo": "descarga",
+    "motorista": "Motorista Demonstração 4",
+    "toneladas": "27"
+  }
+]

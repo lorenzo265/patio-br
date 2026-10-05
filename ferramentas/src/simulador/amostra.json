@@ -12,5 +12,16 @@
   },
   {
     "placas": []
+  },
+  {
+    "placas": [
+      {"placa": "CDE3F45", "papel": "cavalo", "confianca": 0.95, "quadros": 6}
+    ]
+  },
+  {
+    "sentido": "saida",
+    "placas": [
+      {"placa": "FGH6I78", "papel": "desconhecido", "confianca": 0.9, "quadros": 4}
+    ]
   }
 ]

@@ -13,6 +13,7 @@
 As funções gravam com ``flush``; o ``commit`` é de quem chama.
 """
 
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
@@ -378,6 +379,20 @@ def listar(
             .order_by(Agendamento.janela_inicio, Agendamento.id)
         )
     )
+
+
+def codigos_externos(
+    sessao: Session, acesso: Acesso, agendamento_ids: Sequence[int]
+) -> dict[int, str]:
+    """O código externo de cada agendamento (dos sites que o usuário vê), por id."""
+    linhas = sessao.execute(
+        select(Agendamento.id, Agendamento.codigo_externo).where(
+            Agendamento.empresa_id == acesso.empresa_id,
+            Agendamento.site_id.in_(acesso.sites),
+            Agendamento.id.in_(agendamento_ids),
+        )
+    )
+    return {agendamento_id: codigo for agendamento_id, codigo in linhas}
 
 
 def mudancas(sessao: Session, acesso: Acesso, agendamento_id: int) -> list[MudancaAgendamento]:

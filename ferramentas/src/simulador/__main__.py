@@ -3,6 +3,7 @@
 Exemplos (com o ambiente local no ar, ``uv run tarefas up``)::
 
     uv run simulador --demonstracao --passagens amostra
+    uv run simulador --demonstracao --agendamentos amostra --passagens amostra
     uv run simulador --codigo XXXX-XXXX-XXXX --passagens minhas-passagens.json
     uv run simulador --quadros dados/amostras/portaria-1 --faixa entrada-1 --camera frente
     uv run simulador --video dados/amostras/portaria-1.mp4 --faixa entrada-1 --camera frente
@@ -13,6 +14,12 @@ Exemplos (com o ambiente local no ar, ``uv run tarefas up``)::
 - **Passagens prontas** (``--passagens``): um arquivo JSON com uma lista de passagens (ou
   ``amostra``, a do simulador). O que faltar (id, caixa, site, faixa, sentido, horários,
   câmeras) é completado pela ativação e pela hora atual; cada placa leva uma foto desenhada.
+  Uma passagem que diz só o sentido (``"sentido": "saida"``) vai pela primeira faixa dele.
+- **Agendamentos** (``--agendamentos``, só com ``--demonstracao``): um arquivo JSON (ou
+  ``amostra``) com as janelas em minutos a partir de agora; o simulador entra como o gestor da
+  semente e os sobe pela planilha, com códigos novos a cada rodada. A amostra de agendamentos
+  combina com a de passagens: duas chegadas casam, uma vira exceção com dois candidatos, uma
+  não tem placa e uma sai.
 - **Quadros** (``--quadros``): as imagens de uma pasta passam pelo agente da caixa com o leitor
   v0 (``uv run tarefas modelos`` antes), como se fossem uma câmera.
 - **Vídeo** (``--video``): o mesmo, sobre um arquivo de vídeo (ex.: uma gravação da portaria).
@@ -35,6 +42,7 @@ from pathlib import Path
 from typing import Any, TextIO
 from urllib.parse import urlsplit
 from uuid import uuid4
+from zoneinfo import ZoneInfo
 
 import httpx
 from PIL import Image, ImageDraw, ImageFont
@@ -67,6 +75,7 @@ ARQUIVO_DA_FILA = Path("dados") / "simulador" / "fila.sqlite"
 PASTA_DOS_MODELOS = Path("modelos") / "v0"
 
 EMAIL_DA_ADMINISTRACAO = "admin@patio-br.example"
+GESTOR_DA_DEMONSTRACAO = "gestor@empresa-a.example"
 SENHA_DA_DEMONSTRACAO = "demonstracao-local"
 SITE_DA_DEMONSTRACAO = "CD Exemplo"
 """Os mesmos da semente da nuvem (``nuvem/src/nuvem/semente.py``); um teste confere."""
@@ -118,8 +127,15 @@ def principal(
     agora = agora or datetime.now(UTC)
     cliente = cliente or cliente_para(argumentos.nuvem)
     try:
+        if argumentos.agendamentos and not argumentos.demonstracao:
+            raise SimuladorError(
+                "--agendamentos só vale com --demonstracao (entra como o gestor da semente)",
+                codigo=2,
+            )
         caixa = _caixa(argumentos, cliente, raiz)
         configuracao = _configuracao(cliente, caixa)
+        if argumentos.agendamentos:
+            _subir_agendamentos(argumentos.agendamentos, cliente, caixa.nuvem, agora, saida)
         faixa = _escolher_faixa(configuracao, argumentos.faixa)
         fila = FilaDeEnvio(raiz / ARQUIVO_DA_FILA)
         try:
@@ -142,6 +158,12 @@ def principal(
                 print(
                     f"veja em {caixa.nuvem}/portaria (entre com porteiro@empresa-a.example e a "
                     f"senha {SENHA_DA_DEMONSTRACAO})",
+                    file=saida,
+                )
+            if argumentos.agendamentos:
+                print(
+                    f"e os agendamentos em {caixa.nuvem}/agendamentos (entre com "
+                    f"{GESTOR_DA_DEMONSTRACAO})",
                     file=saida,
                 )
         finally:
@@ -203,6 +225,10 @@ def _interpretador(nuvem_local: str) -> argparse.ArgumentParser:
     o_que.add_argument("--passagens", help="arquivo JSON com passagens, ou `amostra`")
     o_que.add_argument("--quadros", help="pasta com as imagens de uma câmera")
     o_que.add_argument("--video", help="arquivo de vídeo (ex.: uma gravação da portaria)")
+    interpretador.add_argument(
+        "--agendamentos",
+        help="arquivo JSON com agendamentos, ou `amostra` (só com --demonstracao)",
+    )
     interpretador.add_argument("--faixa", help="id ou nome da faixa (ex.: entrada-1)")
     interpretador.add_argument(
         "--camera", default="frente", help="id ou posição da câmera na faixa (padrão: frente)"
@@ -293,6 +319,88 @@ def _configuracao(cliente: httpx.Client, caixa: CaixaAtivada) -> ConfiguracaoDoA
         raise SimuladorError("a chave guardada foi revogada: ative de novo com --codigo") from None
 
 
+# --- Agendamentos (T35) --------------------------------------------------------------------
+
+COLUNAS_DA_PLANILHA = (
+    "código", "dia", "início", "fim", "tipo", "placa do cavalo", "reboque 1", "reboque 2",
+    "reboque 3", "motorista", "celular", "toneladas", "chave da NF-e",
+)  # fmt: skip
+"""As colunas do modelo da planilha da nuvem (``nuvem.agendamento.planilha``); um teste confere."""
+
+
+def _subir_agendamentos(
+    origem: str, cliente: httpx.Client, nuvem: str, agora: datetime, saida: TextIO
+) -> None:
+    if origem == "amostra":
+        arquivo = resources.files("simulador").joinpath("amostra_agendamentos.json")
+        texto = arquivo.read_text(encoding="utf-8")
+    else:
+        texto = Path(origem).read_text(encoding="utf-8")
+    escritos: list[dict[str, Any]] = json.loads(texto)
+    cliente.post(
+        f"{nuvem}/entrar",
+        data={"email": GESTOR_DA_DEMONSTRACAO, "senha": SENHA_DA_DEMONSTRACAO},
+        follow_redirects=False,
+    )
+    sites = cliente.get(f"{nuvem}/api/cadastro/sites")
+    if sites.status_code != httpx.codes.OK:
+        raise SimuladorError("o gestor da demonstração não entrou: rode `tarefas semente`")
+    site = next((s for s in sites.json() if s["nome"] == SITE_DA_DEMONSTRACAO), None)
+    if site is None:
+        raise SimuladorError(f"o site {SITE_DA_DEMONSTRACAO!r} não existe: rode `tarefas semente`")
+    planilha = _planilha(escritos, ZoneInfo(site["fuso"]), agora)
+    resposta = cliente.post(
+        f"{nuvem}/api/agendamentos/planilha",
+        params={"site_id": site["id"]},
+        files={"arquivo": ("agendamentos-da-demonstracao.csv", planilha.encode(), "text/csv")},
+    )
+    if resposta.status_code == httpx.codes.UNPROCESSABLE_ENTITY:
+        raise SimuladorError(f"a nuvem recusou os agendamentos: {resposta.json()['detail']}")
+    resposta.raise_for_status()
+    relatorio = resposta.json()
+    print(
+        f"{len(escritos)} agendamentos: {relatorio['criados']} novos, "
+        f"{relatorio['alterados']} alterados, {relatorio['iguais']} iguais",
+        file=saida,
+    )
+    for recusado in relatorio["recusados"]:
+        print(f"  recusado, {recusado['onde']}: {recusado['motivo']}", file=saida)
+
+
+def _planilha(escritos: Sequence[dict[str, Any]], fuso: ZoneInfo, agora: datetime) -> str:
+    """O CSV da planilha, com as janelas a partir de agora, no fuso do site, e códigos novos."""
+    rodada = agora.astimezone(fuso)
+    linhas = [";".join(COLUNAS_DA_PLANILHA)]
+    for escrito in escritos:
+        inicio = _no_minuto(agora + timedelta(minutes=escrito["de_minutos"]), fuso)
+        fim = _no_minuto(agora + timedelta(minutes=escrito["ate_minutos"]), fuso)
+        # Uma janela só não passa da meia-noite (SDD 3.4): para no fim do dia.
+        fim_do_dia = fim.date() != inicio.date()
+        reboques = [*escrito.get("reboques", []), "", "", ""][:3]
+        linhas.append(
+            ";".join(
+                [
+                    f"DEMO-{rodada:%Y%m%d-%H%M%S}-{escrito['codigo']}",
+                    f"{inicio:%d/%m/%Y}",
+                    f"{inicio:%H:%M}",
+                    "23:59" if fim_do_dia else f"{fim:%H:%M}",
+                    escrito["tipo"],
+                    escrito["cavalo"],
+                    *reboques,
+                    escrito.get("motorista", ""),
+                    "",  # sem celular: mesmo inventado, um número pode ser de alguém
+                    escrito.get("toneladas", ""),
+                    "",
+                ]
+            )
+        )
+    return "\n".join(linhas) + "\n"
+
+
+def _no_minuto(momento: datetime, fuso: ZoneInfo) -> datetime:
+    return momento.astimezone(fuso).replace(second=0, microsecond=0)
+
+
 # --- Faixa e câmera ------------------------------------------------------------------------
 
 
@@ -369,6 +477,8 @@ def _completar(
     inicio: datetime,
 ) -> tuple[Passagem, dict[str, bytes]]:
     dados = dict(escrita)
+    if "faixa_id" not in dados and "sentido" in dados:
+        faixa = _faixa_do_sentido(configuracao, dados["sentido"])
     passagem_id = str(dados.setdefault("id", str(uuid4())))
     dados.setdefault("versao_contrato", 1)
     dados.setdefault("caixa_id", configuracao.caixa_id)
@@ -392,6 +502,13 @@ def _completar(
             fotos[ref] = _foto_desenhada(placa["placa"])
             dados["fotos"].append({"tipo": "placa", "camera_id": placa["camera_id"], "ref": ref})
     return Passagem.model_validate(dados), fotos
+
+
+def _faixa_do_sentido(configuracao: ConfiguracaoDoAgente, sentido: str) -> FaixaDoAgente:
+    faixa = next((f for f in configuracao.faixas if f.sentido == sentido), None)
+    if faixa is None:
+        raise SimuladorError(f"o site não tem faixa de {sentido}")
+    return faixa
 
 
 def _foto_desenhada(placa: str) -> bytes:

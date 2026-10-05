@@ -464,3 +464,17 @@ def test_importar_recusa_o_mesmo_codigo_duas_vezes_na_mesma_entrada(
         [Recusado(onde="linha 3", motivo="o código AG-7 já apareceu em linha 2")],
     )
     assert servico.obter_por_codigo(sessao, site_a, "planilha", "AG-7").toneladas == Decimal("32.5")
+
+
+def test_codigos_externos_so_dos_sites_de_quem_pede(
+    sessao: Session, cenario: Demonstracao, site_a: SiteDoAgendamento, acesso_a: Acesso
+) -> None:
+    do_a = _gravar(sessao, site_a, codigo_externo="DO-A").agendamento
+    site_a2 = SiteDoAgendamento(
+        empresa_id=cenario.empresa_a.id, site_id=cenario.site_a2.id, usuario_id=None
+    )
+    do_a2 = _gravar(sessao, site_a2, codigo_externo="DO-A2").agendamento
+
+    codigos = servico.codigos_externos(sessao, acesso_a, [do_a.id, do_a2.id])
+
+    assert codigos == {do_a.id: "DO-A"}

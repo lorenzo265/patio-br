@@ -16,7 +16,7 @@ O worker roda em outro processo (``python -m nuvem.worker``).
 import logging
 import threading
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from datetime import datetime, timedelta
 from typing import Any, Literal
 from uuid import UUID
@@ -139,6 +139,18 @@ def pegar_proxima(sessao: Session, *, agora: datetime) -> TarefaDeFundo | None:
         .limit(1)
         .with_for_update(skip_locked=True)
     ).one_or_none()
+
+
+def situacao_das_tarefas(
+    sessao: Session, tipo: TipoDeTarefa, chaves: Sequence[str]
+) -> dict[str, SituacaoDaTarefa]:
+    """A situação da tarefa de cada chave (ex.: o "casar" de cada passagem), por chave."""
+    linhas = sessao.execute(
+        select(TarefaDeFundo.chave, TarefaDeFundo.situacao).where(
+            TarefaDeFundo.tipo == tipo, TarefaDeFundo.chave.in_(chaves)
+        )
+    )
+    return {chave: situacao for chave, situacao in linhas}
 
 
 def espera(tentativas: int) -> timedelta:

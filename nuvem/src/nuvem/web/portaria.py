@@ -56,7 +56,9 @@ def lista_de_passagens(
     passagens = portaria.ultimas_passagens(sessao, acesso, site)
     fuso = ZoneInfo(cadastro.obter_site(sessao, acesso, site).fuso)
     faixas = cadastro.nomes_das_faixas(sessao, acesso, site)
-    linhas = [_linha(passagem, fuso, faixas) for passagem in passagens]
+    resultados = portaria.resultados(sessao, acesso, passagens)
+    linhas = [_linha(passagem, fuso, faixas) | {"resultado": resultados[passagem.id]}
+              for passagem in passagens]  # fmt: skip
     return tela(request, "portaria_passagens.html", {"passagens": linhas})
 
 
