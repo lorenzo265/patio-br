@@ -384,8 +384,8 @@ contrato do cliente autorizar (SDD 4.6 e 8.3).
   digitada é a correção.
 - A passagem de outra empresa, ou de um site que o usuário não vê, responde "não encontrado".
 - Não muda a visita nem o casamento: isso vem com a resolução das exceções, no mês 3.
-- A conferência abre num painel fora da lista que se atualiza a cada 2 segundos, para a
-  atualização não apagar o que o porteiro digita.
+- A conferência abre numa página própria, fora da lista que se atualiza a cada 2 segundos,
+  para a atualização não apagar o que o porteiro digita.
 
 **Commit:** `feat(portaria): conferência da placa pelo porteiro`
 
