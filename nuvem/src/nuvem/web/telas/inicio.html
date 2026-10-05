@@ -3,7 +3,11 @@
 <h1>Olá, {{ nome }}</h1>
 {% if administracao %}
 <p>Administração da plataforma.</p>
+{% if ve_os_links_de_demonstracao %}
+<p><a href="/administracao/demonstracao">Links de demonstração</a></p>
+{% endif %}
 {% else %}
+<p>Empresa: {{ empresa }}</p>
 <p>Papel: {{ papel }}</p>
 <p>Sites: {{ sites | join(", ") }}</p>
 {% if pode_trocar_porteiro %}

@@ -66,14 +66,18 @@ A empresa de demonstração ([[D-49]]): um site completo, inventado, com um mês
 - **Linha de base de exemplo:** um mês inventado "antes do sistema" (o ritmo ``ANTES``), medido
   pelas contas do extrato; fica marcada como exemplo ([[D-48]]).
 - **Celulares:** do DDD 23, que não existe; nenhum número pode ser de alguém.
+- **Completar o histórico** ([[D-54]]): quem volta à empresa dias depois ganha os dias que faltam até
+  ontem, para o painel não ter buraco.
 
 As funções gravam com ``flush``; o ``commit`` é de quem chama.
 
 - **`CAMINHOES_POR_DIA`** = `55`: Em média; cada dia varia até 8 para mais ou para menos.
+- **`DIAS_OLHADOS_PARA_COMPLETAR`** = `60`: O histórico só se completa depois do primeiro dia que já tem, nesta janela para trás.
 - **`PARAMETROS`**: Três pontos de portaria 24 horas, um a menos depois, pelo menor custo da seção 1.1 do SDD.
 - **`EmpresaDeDemonstracao`** (classe): O que foi criado: quem entra e a caixa que manda as passagens.
 - **`Lugar`** (classe): O site e quem faz cada coisa, para gravar as jornadas.
 - **`criar`**: Cria uma empresa de demonstração inteira, com os ``dias`` passados de histórico.
+- **`completar_historico`**: Grava os dias que faltam no histórico dos sites do usuário, até ontem ([[D-54]]).
 - **`dia_inventado`**: Os caminhões de um dia do CD Demonstração, com o sistema.
 - **`gravar_jornadas`**: Grava o agendamento de cada jornada e, das que já chegaram até ``agora``, a visita, até onde ela foi (a etapa que ainda não aconteceu fica de fora).
 - **`celular_inventado`**: Um celular do DDD 23, que não existe (o Rio usa 21, 22 e 24).
@@ -164,9 +168,11 @@ administração dela gera o código da caixa). Roda uma vez: se a empresa já ex
 
 `nuvem/src/nuvem/demonstracao/modelos.py`
 
-A tabela do dia de demonstração ([[D-49]]): o roteiro das chegadas ao vivo e onde ele está.
+As tabelas da demonstração: o dia ([[D-49]]), com o roteiro das chegadas ao vivo e onde ele
+está, e o link de demonstração por empresa visitada ([[D-52]] e [[D-54]]).
 
 - **`DiaDeDemonstracao`** (classe): Um "começar o dia" de um site de demonstração.
+- **`LinkDemonstracao`** (classe): Um link de demonstração para uma empresa visitada ([[D-52]] e [[D-54]]).
 
 ## Testes
 

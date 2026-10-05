@@ -66,15 +66,29 @@ acesso troca o código por ``***`` (``EsconderCodigoDoLink``).
 
 `nuvem/src/nuvem/web/demonstracao.py`
 
-A tela do dia de demonstração ([[T45]], [[D-49]]): começar o dia e acompanhar.
+As telas da demonstração: o dia ([[T45]], [[D-49]]) e o link por empresa ([[T48]], [[D-52]] e [[D-54]]).
 
-Só existe nos ambientes ``local`` e ``demonstracao`` (fora deles, 404) e só para o gestor. A tela
-se atualiza sozinha (HTMX) e leva às telas onde o dia acontece: portaria, pátio, mensagens e
-painel.
+Só existem nos ambientes ``local`` e ``demonstracao`` (fora deles, 404).
+
+- **O dia:** só o gestor começa e acompanha; a tela se atualiza sozinha e leva às telas onde o
+  dia acontece: portaria, pátio, mensagens e painel.
+- **O link:** a página (``GET``) só mostra para quem é e o botão "Entrar"; o botão (``POST``)
+  cria a empresa, na primeira vez, e entra como gestor. O pré-visualizador do WhatsApp abre a
+  página e não cria nada.
+- **A faixa de papel:** quem é do cliente troca de papel sem senha (gestor, porteiro, líder de
+  pátio); o motorista é a tela das mensagens.
+- **A administração** gera e revoga os links; o endereço aparece uma vez só.
 
 - **`so_com_demonstracao`**: Fora dos ambientes da demonstração, as rotas não existem (404).
+- **`DESTINO_DO_PAPEL`**: Para onde a faixa leva depois de trocar de papel.
 - **`andamento`**: O dia de demonstração de um site do gestor: o botão de começar ou o andamento.
 - **`comecar`**: Começa o dia de demonstração do site.
+- **`pagina_do_link`**: Para quem é a demonstração e o botão de entrar; não cria nada.
+- **`entrar_pelo_link`**: Entra na empresa de demonstração do link como gestor (cria a empresa na primeira vez).
+- **`trocar_de_papel`**: A faixa da demonstração: passa a sessão para a pessoa do papel, na mesma empresa.
+- **`lista_de_links`**: Os links de demonstração e o formulário de gerar um novo.
+- **`gerar_link`**: Gera um link para uma empresa visitada e mostra o endereço, uma vez só.
+- **`revogar_link`**: Revoga o link: ele deixa de valer, e as pessoas da empresa dele saem na hora.
 
 ### `nuvem.web.em_breve`
 
@@ -208,6 +222,7 @@ cookie, recusa o envio que o navegador marca como vindo de outro site (``Sec-Fet
 - **`inicio`**: A tela inicial de quem entrou.
 - **`tela_de_trocar_porteiro`**: Os porteiros que podem assumir o tablet, e o campo do PIN.
 - **`trocar_porteiro`**: Passa a sessão para o porteiro escolhido, se o PIN dele conferir.
+- **`ir_com_a_sessao`**: Leva a ``destino`` com o cookie da sessão aberta (o código só vai no cookie).
 
 ## Testes
 

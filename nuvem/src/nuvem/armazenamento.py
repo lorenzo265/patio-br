@@ -16,6 +16,7 @@ Cada caixa tem a sua pasta: o ``ref`` que a caixa escolhe nunca alcança a foto 
 import json
 import os
 import re
+import shutil
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Protocol
@@ -125,6 +126,10 @@ class Armazenamento(Protocol):
         """
         ...
 
+    def apagar_da_caixa(self, caixa_id: int) -> None:
+        """Apaga todas as fotos de uma caixa (a da empresa de demonstração apagada, D-54)."""
+        ...
+
 
 class ArmazenamentoLocal:
     """Fotos numa pasta do disco; o endereço de envio aponta para a própria API."""
@@ -179,6 +184,10 @@ class ArmazenamentoLocal:
         if not conteudo.startswith(_INICIO_DO_JPEG):
             raise FotoNaoJpegError("a foto precisa ser JPEG")
         return self._gravar_sem_trocar(self._caminho(caixa_id, ref), conteudo)
+
+    def apagar_da_caixa(self, caixa_id: int) -> None:
+        """Apaga a pasta das fotos da caixa (se ela existir)."""
+        shutil.rmtree(self._pasta / f"caixa-{caixa_id}", ignore_errors=True)
 
     def _caminho(self, caixa_id: int, ref: str) -> Path:
         validar_ref(ref)

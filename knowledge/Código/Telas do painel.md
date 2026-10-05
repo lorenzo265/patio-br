@@ -13,15 +13,15 @@ Os arquivos Jinja de `nuvem/src/nuvem/web/telas/`, a função que mostra cada um
 
 | Tela | Mostrada por | Estende | Inclui |
 |---|---|---|---|
-| `administracao_demonstracao.html` |  | `base.html` |  |
+| `administracao_demonstracao.html` | `nuvem.web.demonstracao._tela_dos_links` | `base.html` |  |
 | `agendamentos.html` | `nuvem.web.agendamentos._tela` | `base.html` |  |
 | `agendar.html` | `nuvem.web.agendar._formulario` | `base.html` |  |
 | `agendar_aviso.html` | `nuvem.web.agendar._aviso` | `base.html` |  |
 | `agendar_feito.html` | `nuvem.web.agendar.feito` | `base.html` |  |
-| `aviso.html` | `nuvem.principal._nao_encontrado`, `nuvem.principal._sem_permissao`, `nuvem.web.agendamentos._tela`, `nuvem.web.demonstracao._aviso`, `nuvem.web.demonstracao.andamento`, `nuvem.web.extrato._nao_comecou`, `nuvem.web.extrato.extrato_do_mes`, `nuvem.web.extrato.painel`, `nuvem.web.extrato.planilha`, `nuvem.web.mensagens.conversas`, `nuvem.web.patio._mudou`, `nuvem.web.patio.tela_do_patio`, `nuvem.web.portaria.tela_da_portaria` | `base.html` |  |
+| `aviso.html` | `nuvem.principal._nao_encontrado`, `nuvem.principal._sem_permissao`, `nuvem.web.agendamentos._tela`, `nuvem.web.demonstracao._aviso`, `nuvem.web.demonstracao._link_fora`, `nuvem.web.demonstracao.andamento`, `nuvem.web.demonstracao.entrar_pelo_link`, `nuvem.web.extrato._nao_comecou`, `nuvem.web.extrato.extrato_do_mes`, `nuvem.web.extrato.painel`, `nuvem.web.extrato.planilha`, `nuvem.web.mensagens.conversas`, `nuvem.web.patio._mudou`, `nuvem.web.patio.tela_do_patio`, `nuvem.web.portaria.tela_da_portaria` | `base.html` |  |
 | `base.html` |  |  |  |
 | `demonstracao.html` | `nuvem.web.demonstracao.andamento` | `base.html` |  |
-| `demonstracao_link.html` |  | `base.html` |  |
+| `demonstracao_link.html` | `nuvem.web.demonstracao.pagina_do_link` | `base.html` |  |
 | `entrar.html` | `nuvem.web.rotas.entrar`, `nuvem.web.rotas.tela_de_entrar` | `base.html` |  |
 | `estoque.html` | `nuvem.web.em_breve.estoque` | `base.html` |  |
 | `extrato.html` | `nuvem.web.extrato.extrato_do_mes` | `base.html` |  |
