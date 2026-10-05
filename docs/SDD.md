@@ -1,7 +1,7 @@
 # SDD — patio-br (nome provisório)
 
 **Documento de desenho do software (SDD) do MVP do piloto**
-Versão 0.36 · 2026-10-05 · Situação: aprovado como base; itens em aberto na seção 12
+Versão 0.37 · 2026-10-05 · Situação: aprovado como base; itens em aberto na seção 12
 
 ---
 
@@ -660,7 +660,9 @@ patio-br/
     migracoes/   Alembic
   ml/            treino, avaliação (régua e teste técnico), exportação de modelos
   infra/         docker-compose, deploy, preparação da caixa de borda
-  ferramentas/   simulador de portaria, planilhas de exemplo
+  ferramentas/   simulador de portaria, planilhas de exemplo, comandos (tarefas)
+  knowledge/     vault do Obsidian: a documentação em notas ligadas, gerada de docs/
+                 e do código (D-53)
 ```
 
 Cada módulo da nuvem tem a mesma forma: `modelos.py` (tabelas), `servico.py` (regras),
@@ -985,6 +987,7 @@ do cuidado de cargas (D-43).
 | D-50 | **Fontes com a licença SIL OFL 1.1** entram no painel quando usadas sem modificação, como o MPL-2.0: os arquivos ficam em `nuvem/src/nuvem/web/estatico/`, com a licença e o hash no `LEIA-ME.md`. Fecha o `[ABERTO-21]` | decisão do Lorenzo em 05/10; as boas fontes livres (as do Google Fonts) usam a OFL, que deixa usar, embutir e distribuir, e só pede que a fonte modificada mude de nome | só fontes do sistema (sem identidade); servir de um CDN (o painel não depende de outro servidor, seção 6.1) |
 | D-51 | **A demonstração na internet roda na Vercel e no Supabase**, e não numa máquina na Lightsail: a API como função da Vercel (o runtime Python roda o FastAPI) e o PostgreSQL e as fotos no Supabase, os dois em São Paulo. Sem processo que fica rodando, o worker vira um **tique**: as telas, ao se atualizar, fazem a nuvem avançar o que estiver pendente (o casamento e o dia de demonstração), um tique de cada vez (trava do PostgreSQL). As fotos vão para o Supabase Storage, porque o disco da Vercel não fica. A produção do piloto (seção 7.2) não muda agora; volta a ser vista no mês 4 | decisão do Lorenzo em 05/10: um primeiro deploy simples, sem máquina para cuidar (os dois serviços cuidam do servidor, do HTTPS e dos backups). Regras dos planos em 10/2026: a Vercel Hobby é só para uso pessoal, não comercial (Pro: US$ 20 por pessoa/mês), e o cron dela roda no máximo uma vez por dia (no Pro, uma por minuto); o Supabase Free pausa o projeto depois de uma semana sem uso (Pro: a partir de US$ 25/mês, sem pausa); o pooler do Supabase em modo transação não aceita prepared statements | a máquina na Lightsail (US$ 12/mês, mas com servidor, HTTPS e backups por nossa conta); o worker num serviço à parte (mais uma conta e mais um custo) |
 | D-52 | **Um link de demonstração por empresa visitada**, gerado pela administração e válido por 7 dias (o código guardado só como resumo, como o link da transportadora, D-34). Quem abre ganha uma empresa de demonstração só dela (a da T45, D-49) e entra como gestor; ela é apagada depois. Sem cadastro aberto ao público | decisão do Lorenzo em 05/10: cada conversa comercial ganha a sua demonstração, sem uma empresa ver o que outra fez | uma demonstração única para todos (uma empresa veria o que a outra mexeu); cadastro aberto (expõe a demonstração a qualquer um) |
+| D-53 | **A documentação também fica num vault do Obsidian** em `knowledge/`: o SDD dividido em seções, uma nota por decisão, item em aberto, tarefa e item da trilha, os outros documentos e um mapa do código, tudo ligado entre si. As notas são **geradas** de `docs/` e do código (`uv run tarefas conhecimento`), e um teste confere que o vault no Git está em dia; só os resumos (a nota de início, o estado atual, as pendências e os temas) são escritos à mão. `docs/` continua a fonte da verdade | pedido do Lorenzo em 05/10: achar qualquer decisão, tarefa ou parte do código em poucos cliques, e dar às sessões novas um ponto de partida; gerado, o vault não se desatualiza sem a CI avisar | mudar a documentação para o vault e apagar `docs/` (o SDD deixaria de ser um arquivo só, e cada nota teria de ser mantida à mão); copiar à mão (desatualiza na primeira mudança) |
 
 ---
 
@@ -1039,6 +1042,7 @@ do cuidado de cargas (D-43).
 | **WMS** | sistema de gestão de armazém: onde cada mercadoria está e o que entra e sai |
 | **Resumo (hash)** | transformação de mão única: dá para conferir se uma senha ou código bate, mas não para recuperá-lo. Senhas e PINs usam o argon2, feito para ser lento de adivinhar |
 | **Cookie** | pequeno dado que o site guarda no navegador e que volta a cada pedido; aqui, só o código da sessão de login |
+| **Vault (Obsidian)** | uma pasta de notas em Markdown ligadas entre si, que o programa Obsidian abre como um caderno; o nosso é `knowledge/`, e começa na nota `00 Início` |
 
 ---
 
@@ -1082,3 +1086,4 @@ do cuidado de cargas (D-43).
 | 0.34 | 2026-10-05 | painel e extrato (T44): como cada conta é feita, a economia em R$, o mês fechado guardado e a linha de base por site (D-48); entidades `ParametrosSite`, `LinhaDeBase` e `Extrato`; "franquia" no glossário (seções 5.1, 5.4, 6.2, 11 e 13) |
 | 0.35 | 2026-10-05 | o dia de demonstração (T45): no worker e no relógio de verdade, com a manhã pronta, o líder automático, uma exceção para resolver e celulares de DDD que não existe (D-49); o ambiente `demonstracao` (seções 7.1, 11 e 13) |
 | 0.36 | 2026-10-05 | decisões de 05/10 à noite: fontes OFL (D-50, fecha o `[ABERTO-21]`), a demonstração na Vercel e no Supabase (D-51) e o link de 7 dias por empresa (D-52); o nome e a identidade visual vão para uma sessão à parte (`[ABERTO-01]`) (seções 6.1, 7.1, 11 e 12) |
+| 0.37 | 2026-10-05 | o vault do Obsidian em `knowledge/`, gerado de `docs/` e do código, com o comando `tarefas conhecimento` e o teste que o mantém em dia (D-53); "vault" no glossário (seções 6.3, 11 e 13) |
