@@ -1,7 +1,7 @@
 # SDD — patio-br (nome provisório)
 
 **Documento de desenho do software (SDD) do MVP do piloto**
-Versão 0.27 · 2026-10-04 · Situação: aprovado como base; itens em aberto na seção 12
+Versão 0.28 · 2026-10-05 · Situação: aprovado como base; itens em aberto na seção 12
 
 ---
 
@@ -402,21 +402,24 @@ confiança). Motores:
 | Motor | Papel | Custo |
 |---|---|---|
 | **Próprio** (seções 4.2–4.4) | principal | hardware + treino |
-| **Comercial** (Plate Recognizer) | régua no teste técnico; segunda opinião para leitura de baixa confiança quando houver internet; plano B do piloto | US$ 50/mês por 50 mil leituras (preço de 2026-09-29) |
+| **Comercial** (Plate Recognizer) | régua no teste técnico; segunda opinião para leitura de baixa confiança quando houver internet; plano B do piloto. Mandar imagens à nuvem dele pede o sim do advogado, e o que ele lê nunca vira rótulo (D-41) | US$ 50/mês por 50 mil leituras (preço de 2026-09-29) |
 
 Trocar de motor não muda nada fora da caixa.
 
 ### 4.6 Dados de treino
 
-O banco público brasileiro (RodoSol-ALPR) só permite uso acadêmico. Por isso:
+Os bancos públicos brasileiros com placas reais (RodoSol-ALPR e UFPR-ALPR) só permitem uso
+acadêmico (`docs/validacao/fontes-de-placas.md`). Por isso:
 
-1. **Semanas 1–4 do site parceiro:** as câmeras gravam (com aviso LGPD, sem operar). Rotulamos
-   3 a 5 mil placas no Label Studio.
-2. **Depois:** cada correção do porteiro na fila de exceções vira um rótulo novo (módulo
-   `treino`), após revisão na tela de rotulagem.
-3. **Treino:** PyTorch em GPU alugada por hora, só quando há dados novos. Exporta ONNX →
-   OpenVINO.
-4. A base de treino guarda **só recortes de placa**, nunca rostos.
+1. **Primeiras placas** (`[ABERTO-18]`): 3 a 5 mil placas rotuladas no Label Studio, pelo
+   Lorenzo. A gravação no site parceiro ficou para depois (decisão de 05/10). Onde houver
+   gravação, as câmeras gravam só a região de gravação (D-39), com aviso LGPD, sem operar.
+2. **Depois:** cada conferência do porteiro (D-42) vira um rótulo novo (módulo `treino`), após
+   revisão na tela de rotulagem, se o contrato do cliente autorizar (seção 8.3).
+3. **Treino:** PyTorch em GPU alugada por hora, num ambiente à parte (D-40), só quando há dados
+   novos. Exporta ONNX → OpenVINO.
+4. A base de treino guarda **só recortes de placa e a região de gravação** (D-39), nunca rostos.
+5. O que um leitor comercial lê nunca vira rótulo (D-41).
 
 ### 4.7 Metas e a régua
 
@@ -436,7 +439,7 @@ O banco público brasileiro (RodoSol-ALPR) só permite uso acadêmico. Por isso:
 |---|---|
 | `Empresa` | nome, CNPJ |
 | `Site` | empresa, nome, endereço, fuso, horário de operação (abre e fecha, na hora do site; vazio = 24 horas) |
-| `Portaria` / `Faixa` / `Camera` | site; faixa tem sentido (entrada/saída); câmera tem posição (frente/trás/contexto), endereço RTSP, senha cifrada |
+| `Portaria` / `Faixa` / `Camera` | site; faixa tem sentido (entrada/saída); câmera tem posição (frente/trás/contexto), endereço RTSP, senha cifrada, região de gravação (D-39) |
 | `Doca` | site, nome, situação |
 | `Usuario` | empresa, nome, e-mail, papel (porteiro, pátio ou gestor), sites com acesso, senha, PIN (porteiro), ativo, verificação em duas etapas (gestor) |
 | `Administrador` | nome, e-mail, senha, ativo, verificação em duas etapas; é a administração (nós), fora de qualquer empresa (D-19) |
@@ -447,13 +450,14 @@ O banco público brasileiro (RodoSol-ALPR) só permite uso acadêmico. Por isso:
 | `Visita` | site, agendamento (opcional; no máximo uma visita por agendamento), passagens de entrada e de saída, composição confirmada (cada placa marcada como lida ou inferida), estado, horários de cada etapa, doca |
 | `Evento` | visita, tipo, horário, autor (sistema ou usuário), dados, foto (pela passagem) — **só se acrescenta**: o banco recusa alterar ou apagar |
 | `Excecao` | visita, passagem, motivo, candidatos (agendamento e pontos), situação (aberta ou resolvida), resolução, quem resolveu |
+| `ConferenciaPlaca` | passagem, foto (o recorte da placa), placa lida, placa conferida, quem, quando — **só se acrescenta**: conferir de novo é outro registro, e o último vale (D-42) |
 | `Mensagem` | visita, canal, modelo, situação (enviada, entregue, lida, falhou), custo |
 | `ParametrosSite` | custo mensal de um ponto de portaria, postos antes/depois, valor da estadia (R$/t·h), franquia (h), tolerância de janela, horas para alerta, custo hora-doca (opcional) |
 | `Extrato` | site, mês, números calculados, versão da regra de cálculo |
 | `CaixaBorda` | site, versão instalada, último contato, saúde, chave de acesso (só o resumo), ativada em, revogada em |
 | `CodigoAtivacao` | site, resumo do código, criado por (administração), vence em, usado em |
 | `LinkTransportadora` | site, nome (a transportadora), resumo do código, criado por (gestor), criado em, vence em, revogado em, limite de envios, envios feitos; o agendamento feito pelo link aponta para ele |
-| `Rotulo` | recorte, placa correta, origem (correção ou rotulagem), revisado |
+| `Rotulo` | recorte, placa correta, origem (conferência do porteiro ou rotulagem), revisado |
 
 Toda tabela de dados do cliente tem `empresa_id`. Toda consulta filtra por empresa.
 
@@ -582,7 +586,7 @@ licença deles é conferida à mão, como a dos modelos.
 
 | Tela | Quem | Conteúdo |
 |---|---|---|
-| Portaria | porteiro | chegadas ao vivo com foto e o resultado do casamento (check-in, exceção, saída); **fila de exceções** em cartões (foto, candidatos, "é este" / "corrigir"); saídas; registro manual |
+| Portaria | porteiro | chegadas ao vivo com foto e o resultado do casamento (check-in, exceção, saída); **conferência da placa**: o recorte ao lado da leitura, para confirmar ou corrigir (D-42); **fila de exceções** em cartões (foto, candidatos, "é este" / "corrigir"); saídas; registro manual |
 | Pátio e docas | líder | fila por tempo de espera; docas livres/ocupadas; chamar / iniciar / finalizar; alerta perto de 5h |
 | Gestor | gestor | indicadores (espera média, visitas acima de 5h, % de check-in automático, uso de docas); extrato do mês (PDF e planilha) |
 | Agendamentos | gestor | lista do dia ou da semana, no fuso do site, com o cancelamento; importar planilha com modelo e relatório de erros por linha; gerar e revogar links da transportadora (o endereço aparece uma vez só, ao gerar) |
@@ -806,8 +810,9 @@ Serve para desenvolver sem câmera, para os testes de ponta a ponta e para simul
   exceção ou disputa); visitas e trilha de prova 5 anos.
 - **Transparência:** placa de aviso na portaria com o contato do encarregado; modelo de relatório
   de impacto (RIPD) entregue ao cliente.
-- **Base de treino:** só recortes de placa; cláusula contratual autorizando o uso para melhorar
-  o serviço.
+- **Base de treino:** só recortes de placa e a região de gravação (D-39), nunca rostos;
+  cláusula contratual autorizando o uso para melhorar o serviço. Sem ela, a conferência do
+  porteiro (D-42) não vira rótulo.
 - **Portos e recintos alfandegados** (fora do foco do MVP): exigem credenciamento prévio do
   motorista; nesses casos o sistema se integra ao credenciamento, não o substitui.
 
@@ -840,6 +845,10 @@ folga.
 | 4. Jan | WhatsApp e SMS; indicadores e extrato; base de treino; frota de borda; produção na AWS com backups e monitoramento | fechar o piloto pago | versão do piloto em homologação |
 | 5. Fev | 6 câmeras e caixa definitiva no site; modo sombra 2–4 semanas; ajustes e retreino | linha de base do extrato | acerto real medido |
 | 6. Mar | check-in automático ligado; WhatsApp ativo; primeiro extrato real | apresentar o extrato | **decisão seguir / iterar / parar** (até 31/03/2027) |
+
+**Mudança de 05/10:** o site parceiro ficou para depois. O Lorenzo quer o produto mais
+completo antes de levá-lo ao site. A gravação e o teste técnico saem do mês 2, e as primeiras
+placas vêm de outra fonte (`[ABERTO-18]`). O cronograma é refeito com o próximo plano.
 
 **Decisão do teste técnico (mês 2):**
 
@@ -901,7 +910,11 @@ folga.
 | D-35 | A visita nasce na chegada (ou no prazo do "não veio"), e não junto com o agendamento; o `AGENDADA` é o agendamento ativo sem visita | o módulo de agendamento não precisa conhecer a portaria (seção 3.3); mudar ou cancelar um agendamento antes da chegada não mexe em visita nenhuma; toda entrada vira visita na hora, e a exceção já tem onde guardar os eventos e a foto | criar a visita em `AGENDADA` junto com o agendamento (o agendamento cria e cancela visitas, e o cancelamento precisaria de um estado fora do diagrama) |
 | D-36 | No casamento, a placa antiga e a Mercosul que a substituiu contam como a mesma | a troca para a Mercosul manteve a placa de cada veículo, trocando só o 5º caractere por uma letra; a agenda do cliente e o cadastro da transportadora ainda trazem muita placa antiga, e a câmera lê a nova | contar como troca fácil (40 pontos; o check-in automático dependeria da janela) |
 | D-37 | Na saída, qualquer placa da composição fecha a visita, e não só a do cavalo | a câmera da saída é traseira e, num caminhão com reboque, vê a placa do último reboque, não a do cavalo | só a placa do cavalo (a saída quase nunca fecharia a visita de uma carreta) |
-| D-38 | Fila de tarefas numa tabela nossa, com `SELECT ... FOR UPDATE SKIP LOCKED`, e não numa biblioteca | decisão pela recomendação do plano do mês 2 (D4), que fecha o `[ABERTO-11]` e espera a confirmação do Lorenzo: as bibliotecas de fila para PostgreSQL que conhecemos usam o psycopg (LGPL), que a D-18 tirou; a fila do MVP é pequena (uma tarefa por passagem e o "não veio") | uma biblioteca de fila sobre o psycopg (licença); Redis + Celery (D-16) |
+| D-38 | Fila de tarefas numa tabela nossa, com `SELECT ... FOR UPDATE SKIP LOCKED`, e não numa biblioteca | decisão pela recomendação do plano do mês 2 (D4), que fecha o `[ABERTO-11]`, confirmada pelo Lorenzo em 05/10: as bibliotecas de fila para PostgreSQL que conhecemos usam o psycopg (LGPL), que a D-18 tirou; a fila do MVP é pequena (uma tarefa por passagem e o "não veio") | uma biblioteca de fila sobre o psycopg (licença); Redis + Celery (D-16) |
+| D-39 | Cada câmera de placa tem uma **região de gravação**, abaixo do para-brisa, marcada no cadastro da câmera; ao gravar para treinar, a caixa só guarda o que está nela | decisão de 05/10, que fecha o `[ABERTO-15]`: o detector aprende com o quadro, mas a base de treino não pode ter rostos (seções 4.6 e 8.3); com a câmera enquadrando o para-choque (`[ABERTO-08]`), a região tem o veículo e a placa, sem o motorista | gravar o quadro inteiro e borrar os rostos depois (o rosto que o borrão perde fica guardado) |
+| D-40 | O treino roda num **ambiente à parte**, fora do `uv.lock` do projeto, só na máquina de GPU alugada; os modelos saem em ONNX, e o código de treino segue a regra de licença | decisão de 05/10, que fecha o `[ABERTO-16]`: o PyTorch com GPU traz bibliotecas da NVIDIA com licença proprietária, que a seção 6.1 não aceita; nada delas vai para a caixa nem para a nuvem | treinar no ambiente do projeto (a checagem de licenças da CI recusaria) |
+| D-41 | Leitor comercial: mandar imagens à nuvem dele só com o sim do advogado e do site; sem esse sim, o programa local dele ou a comparação só com o v0 e o registro manual. O que ele lê nunca vira rótulo nem entra no treino | decisão de 05/10, que fecha o `[ABERTO-17]`: as imagens são dados do site, e a nuvem dele pode ficar fora do Brasil; os termos de uso do Plate Recognizer (03/02/2025, item 1.7) proíbem usar o serviço para treinar modelos ou criar dados rotulados (`docs/validacao/fontes-de-placas.md`) | usá-lo para pré-rotular as placas (proibido pelos termos) |
+| D-42 | O porteiro **confere a placa** de qualquer passagem, e não só a das exceções: a tela mostra o recorte ao lado da leitura, e ele confirma ou digita a placa certa. A conferência é um registro novo (a leitura e a foto não mudam, seção 5.5), e a última vale. Ela não muda a visita: o "corrigir" da fila de exceções, que casa de novo, vem com a resolução das exceções (mês 3) | pedido do Lorenzo em 05/10: compara a leitura com a placa certa no dia a dia e gera rótulos para o treino (seção 4.6), inclusive dos acertos | conferir só nas exceções (poucos rótulos, e só dos erros) |
 
 ---
 
@@ -919,9 +932,7 @@ folga.
 | ABERTO-08 | Guia de posicionamento das câmeras por tipo de portaria | no kit de bancada e no site parceiro (meses 1–2) |
 | ABERTO-09 | Tolerância de janela (padrão 4h após o fim da janela, usada também para "não veio") e momento do alerta de estadia (padrão: 4h depois da chegada) | com o cliente do piloto |
 | ABERTO-10 | Modelo de dados detalhado do modo B | no início da Fase 2 |
-| ABERTO-15 | Gravar para treinar sem guardar rostos: o detector do leitor aprende com quadros inteiros, e a base de treino só pode ter recortes de placa (seções 4.6 e 8.3). Proposta: cada câmera de placa ganha uma região de gravação (abaixo do para-brisa), e a caixa só guarda o que está nela | com o Lorenzo, antes de gravar no site parceiro (mês 2, `docs/planos/2026-11-plano-mes-2.md`) |
-| ABERTO-16 | Ambiente de treino: o PyTorch com GPU traz bibliotecas da NVIDIA com licença proprietária, que a regra da seção 6.1 não aceita. Proposta: o treino roda num ambiente à parte, fora do `uv.lock` do projeto, só na máquina de GPU alugada; nada dele vai para a caixa nem para a nuvem | com o Lorenzo, antes do primeiro treino (mês 2) |
-| ABERTO-17 | Teste técnico com o leitor comercial (seção 4.5): mandar as imagens da régua ao Plate Recognizer é passar dado de terceiros a outro operador, talvez fora do Brasil. Proposta: perguntar ao advogado e ao site parceiro; se não puder, usar o programa local do Plate Recognizer ou comparar só com o v0 e com o registro manual da portaria | com o Lorenzo e o advogado, antes do teste técnico (mês 2) |
+| ABERTO-18 | Primeiras 3 a 5 mil placas para treinar, com o site parceiro adiado (seção 4.6). Proposta: começar já com placas sintéticas e bases abertas (sem dado pessoal) e, com o sim do advogado, gravar em 1 a 3 portões de conhecidos (`docs/validacao/fontes-de-placas.md`) | com o Lorenzo e o advogado, antes do treino |
 
 ---
 
@@ -942,6 +953,8 @@ folga.
 | **Linha de base** | as medidas do site antes de o sistema operar, usadas para calcular a economia |
 | **Modo sombra** | período em que o sistema roda sem substituir o processo manual, só medindo |
 | **Régua fixa** | conjunto de imagens rotuladas, fora do treino, usado para aprovar modelos novos |
+| **Rótulo** | a resposta certa de uma imagem (a placa e onde ela está), usada para treinar e medir o leitor |
+| **Placa sintética** | imagem de placa gerada por programa, com letras sorteadas, para treinar a leitura |
 | **Conector** | peça que traz agendamentos de uma origem (link, planilha, ERP) para o formato interno |
 | **PWA** | site que se instala no tablet como se fosse um aplicativo |
 | **SSE** | forma de o servidor empurrar novidades para a tela sem recarregar |
@@ -983,3 +996,4 @@ folga.
 | 0.25 | 2026-10-04 | casamento (T32): candidatos com a tolerância, motivos da exceção, placa antiga e Mercosul (D-36), saída por qualquer placa da composição (D-37), composição lida ou inferida, passagem repetida (seções 5.3 e 11) |
 | 0.26 | 2026-10-04 | fila de tarefas e worker (T33): tabela nossa com `SKIP LOCKED` (D-38, fecha o `[ABERTO-11]` pela recomendação do plano), espera crescente, "não veio" a cada 5 minutos (seções 6.1, 11 e 12) |
 | 0.27 | 2026-10-04 | simulador com agendamentos (T35): `--agendamentos`, passagem pelo sentido, resultado do casamento na tela da portaria (seções 6.2 e 6.4) |
+| 0.28 | 2026-10-05 | decisões de 05/10: região de gravação (D-39), ambiente de treino (D-40) e leitor comercial (D-41), que fecham os `[ABERTO-15]` a `[ABERTO-17]`; D-38 confirmada; conferência da placa pelo porteiro (D-42); site parceiro adiado e as primeiras placas em aberto (`[ABERTO-18]`) (seções 4.5, 4.6, 5.1, 6.2, 8.3, 10, 11, 12 e 13) |
