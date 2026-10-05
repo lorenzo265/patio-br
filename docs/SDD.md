@@ -947,7 +947,7 @@ do cuidado de cargas (D-43).
 | ABERTO-09 | Tolerância de janela (padrão 4h após o fim da janela, usada também para "não veio") e momento do alerta de estadia (padrão: 4h depois da chegada) | com o cliente do piloto |
 | ABERTO-10 | Modelo de dados detalhado do modo B | no início da Fase 2 |
 | ABERTO-18 | Primeiras 3 a 5 mil placas para treinar, com o site parceiro adiado (seção 4.6). Proposta: começar já com placas sintéticas e bases abertas (sem dado pessoal) e, com o sim do advogado, gravar em 1 a 3 portões de conhecidos (`docs/validacao/fontes-de-placas.md`) | com o Lorenzo e o advogado, antes do treino |
-| ABERTO-19 | Recebimento: de onde vêm os itens da NF-e (o XML que o fornecedor manda, o certificado digital do cliente ou outro caminho) e como o resultado volta ao sistema do cliente | no desenho do módulo, depois do piloto aprovado |
+| ABERTO-19 | Recebimento: de onde vêm os itens da NF-e (o XML que o fornecedor manda, o certificado digital do cliente ou outro caminho) e como o resultado volta ao sistema do cliente (`docs/validacao/recebimento-e-estoque.md`) | no desenho do módulo, depois do piloto aprovado |
 | ABERTO-20 | Estoque e cuidado de cargas: estoque próprio (endereços, saldo, busca, visão 3D) ou ligado ao sistema do cliente; o que entra em "cuidado de cargas e controle de entregas" e se inclui a conferência de carga e lacre da Fase 3 | no desenho dos módulos, depois do piloto aprovado |
 
 ---
