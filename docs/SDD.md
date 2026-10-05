@@ -1,7 +1,7 @@
 # SDD — patio-br (nome provisório)
 
 **Documento de desenho do software (SDD) do MVP do piloto**
-Versão 0.39 · 2026-10-05 · Situação: aprovado como base; itens em aberto na seção 12
+Versão 0.40 · 2026-10-05 · Situação: aprovado como base; itens em aberto na seção 12
 
 ---
 
@@ -606,7 +606,7 @@ Como cada conta é feita (versão 1 da regra, D-48):
 | Camada | Escolha |
 |---|---|
 | Linguagem | **Python 3.12** em tudo (borda, nuvem, treino) |
-| Backend | FastAPI, SQLAlchemy 2 com o driver pg8000, Alembic (migrações), Pydantic 2; openpyxl (MIT) com defusedxml (PSF) para a planilha |
+| Backend | FastAPI, SQLAlchemy 2 com o driver pg8000, Alembic (migrações), Pydantic 2; openpyxl (MIT) com defusedxml (PSF) para a planilha; boto3 (Apache-2.0) para as fotos num armazenamento S3 (D-56) |
 | Banco | PostgreSQL 16; fila de tarefas no próprio PostgreSQL, numa tabela nossa (D-38) |
 | Painel | páginas no servidor (Jinja) + **HTMX**; atualização ao vivo por SSE; instalável como **PWA** |
 | Gráficos | biblioteca JavaScript pequena, só onde houver gráfico |
@@ -621,6 +621,13 @@ passagem. O worker pega a próxima com `SELECT ... FOR UPDATE SKIP LOCKED`: dois
 pegam a mesma. Tarefa com erro volta para a fila esperando cada vez mais (10 s, 20 s, 40 s ...
 até 10 min), até 8 tentativas; depois, fica como falhou, com o erro, para o suporte. A cada 5
 minutos, o worker confere o "não veio" (seção 5.2), um worker de cada vez.
+
+**Sem worker, na demonstração na Vercel** (D-51 e D-56): com `PATIO_TIQUE`, cada tela que se
+atualiza sozinha (portaria, pátio, mensagens e o dia de demonstração) roda antes um
+**tique**: o dia de demonstração, as tarefas da fila e as mensagens, um tique de cada vez (trava
+do PostgreSQL); um erro no tique fica registrado e a tela abre do mesmo jeito. Uma vez por dia,
+o cron da Vercel chama `/api/cron/diaria`, com o segredo dele: apaga as empresas dos links
+vencidos (D-54) e confere o "não veio".
 
 Toda dependência precisa de licença permissiva (MIT, BSD, Apache, PostgreSQL, ISC, PSF). MPL-2.0 só é aceita para biblioteca usada sem modificação (ex.: `certifi`). GPL, LGPL e AGPL ficam de fora. A CI checa.
 
@@ -1008,6 +1015,7 @@ do cuidado de cargas (D-43).
 | D-53 | **A documentação também fica num vault do Obsidian** em `knowledge/`: o SDD dividido em seções, uma nota por decisão, item em aberto, tarefa e item da trilha, os outros documentos e um mapa do código, tudo ligado entre si. As notas são **geradas** de `docs/` e do código (`uv run tarefas conhecimento`), e um teste confere que o vault no Git está em dia; só os resumos (a nota de início, o estado atual, as pendências e os temas) são escritos à mão. `docs/` continua a fonte da verdade | pedido do Lorenzo em 05/10: achar qualquer decisão, tarefa ou parte do código em poucos cliques, e dar às sessões novas um ponto de partida; gerado, o vault não se desatualiza sem a CI avisar | mudar a documentação para o vault e apagar `docs/` (o SDD deixaria de ser um arquivo só, e cada nota teria de ser mantida à mão); copiar à mão (desatualiza na primeira mudança) |
 | D-54 | **O link de demonstração por dentro** (T48): a página do link só mostra para quem é e o botão "Entrar"; quem aperta cria a empresa de demonstração, na primeira vez, e entra como gestor. **Uma empresa por link**: quem abre o mesmo link entra na mesma. **A cada entrada, os dias que faltam até ontem entram no histórico.** **Uma faixa no topo troca de papel sem senha** (gestor, porteiro, líder de pátio; o motorista é a tela do celular), só nos ambientes da demonstração e só dentro da mesma empresa; as pessoas da empresa do link têm senha sorteada, que ninguém sabe, e entram só pelo link. **A empresa vencida ou revogada é apagada inteira**, com as fotos e as linhas de prova: o gatilho `so_acrescenta` deixa apagar só linha de uma empresa que nasceu de um link de demonstração, e só quando a própria transação avisa qual empresa está apagando (`patio.apagar_empresa`) | o pré-visualizador do WhatsApp e do e-mail abre o link sozinho, e não pode criar empresa nem sessão; criar a empresa leva cerca de 15 segundos, e quem volta entra na hora; sem completar o histórico, o painel teria buraco nos dias entre as visitas; a garantia de prova (seção 5.5) protege dado de cliente, e a empresa de demonstração só tem dado inventado; o Supabase Free tem 500 MB | criar a empresa ao gerar o link (o histórico pararia no dia em que o link foi gerado); uma empresa por pessoa que abre (o link passado adiante viraria várias empresas); desligar os gatilhos para apagar (o banco deixaria de garantir que só a demonstração se apaga); só desativar a empresa vencida (o banco cresceria sem parar) |
 | D-55 | **O código anti-CSRF sai da própria sessão**: é o HMAC do código da sessão com um segredo só da nuvem (tirado da chave da cifra), e muda a cada login; nada novo se grava no banco. Ele vai num campo escondido de cada formulário e no cabeçalho dos pedidos do HTMX, e a nuvem confere em todo pedido que muda alguma coisa de quem tem o cookie da sessão; um teste passa por todas as rotas e confere que cada uma confere o código ou está na lista curta das que não usam o cookie | sem tabela e sem estado; o código da sessão já é secreto e longo, e outro site não sabe o segredo para calcular; a conferência num lugar só não depende de cada rota lembrar | guardar um código à parte na sessão do banco (mais uma coluna e uma escrita); o cookie duplo (*double submit*: um subdomínio poderia escrever o cookie); só os cabeçalhos `Sec-Fetch-Site` (navegador antigo não manda, e o SDD pede o código) |
+| D-56 | **A demonstração na Vercel, por dentro** (T47, parte 2): as fotos vão para o Supabase Storage pela **API S3**, com o boto3; o mesmo código serve à AWS no mês 4. Sem worker, um **tique** roda antes das telas que se atualizam sozinhas (com `PATIO_TIQUE`), e um **cron diário** (`/api/cron/diaria`, com o `CRON_SECRET` da Vercel) apaga as empresas vencidas e confere o "não veio". No ambiente `demonstracao`, a API da caixa não existe (as passagens só vêm do dia de demonstração). O banco vai pelo pooler do Supabase em **modo sessão**, sem pool na função (`PATIO_BANCO_SEM_POOL`) e com SSL (`PATIO_BANCO_SSL`, e o certificado do Supabase em `PATIO_BANCO_CA`) | uma só implementação de armazenamento para a demonstração e a produção; o tique só trabalha quando alguém olha, e a trava evita dois ao mesmo tempo; o modo sessão aceita tudo o que o pg8000 faz, e a demonstração tem pouco tráfego; caixa de verdade não tem o que fazer num ambiente de dados inventados | a API própria do Supabase Storage (só serviria à demonstração); um worker em outra hospedagem (mais uma conta e uma máquina); o pooler em modo transação (não aceita *prepared statements*; fica para conferir com o pg8000 quando houver a conta); deixar a API da caixa aberta (uma porta a mais na internet) |
 
 ---
 
@@ -1109,3 +1117,4 @@ do cuidado de cargas (D-43).
 | 0.37 | 2026-10-05 | o vault do Obsidian em `knowledge/`, gerado de `docs/` e do código, com o comando `tarefas conhecimento` e o teste que o mantém em dia (D-53); "vault" no glossário (seções 6.3, 11 e 13) |
 | 0.38 | 2026-10-05 | link de demonstração por empresa (T48): a entidade `LinkDemonstracao`, a página do link, a faixa que troca de papel, o histórico completado a cada entrada e a empresa vencida apagada inteira, com a exceção da prova só para ela (D-54) (seções 5.1, 5.5, 6.2, 8.2 e 11) |
 | 0.39 | 2026-10-05 | segurança antes da internet (T47, parte 1): limite de login por endereço IP, código anti-CSRF tirado da sessão (D-55) e o comando para criar a administração (seções 8.2 e 11) |
+| 0.40 | 2026-10-05 | a demonstração na Vercel, por dentro (T47, parte 2): fotos pela API S3 com o boto3, o tique, o cron diário, a API da caixa fechada no ambiente `demonstracao` e o banco pelo pooler do Supabase com SSL (D-56) (seções 6.1 e 11) |

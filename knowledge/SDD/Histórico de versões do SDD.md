@@ -50,6 +50,7 @@ tags: [sdd]
 | 0.37 | 2026-10-05 | o vault do Obsidian em `knowledge/`, gerado de `docs/` e do código, com o comando `tarefas conhecimento` e o teste que o mantém em dia ([[D-53]]); "vault" no glossário (seções [[6.3 Repositório\|6.3]], [[11. Registro de decisões\|11]] e [[13. Glossário\|13]]) |
 | 0.38 | 2026-10-05 | link de demonstração por empresa ([[T48]]): a entidade `LinkDemonstracao`, a página do link, a faixa que troca de papel, o histórico completado a cada entrada e a empresa vencida apagada inteira, com a exceção da prova só para ela ([[D-54]]) (seções [[5.1 Entidades\|5.1]], [[5.5 Garantias\|5.5]], [[6.2 Telas do MVP\|6.2]], [[8.2 Segurança\|8.2]] e [[11. Registro de decisões\|11]]) |
 | 0.39 | 2026-10-05 | segurança antes da internet ([[T47]], parte 1): limite de login por endereço IP, código anti-CSRF tirado da sessão ([[D-55]]) e o comando para criar a administração (seções [[8.2 Segurança\|8.2]] e [[11. Registro de decisões\|11]]) |
+| 0.40 | 2026-10-05 | a demonstração na Vercel, por dentro ([[T47]], parte 2): fotos pela API S3 com o boto3, o tique, o cron diário, a API da caixa fechada no ambiente `demonstracao` e o banco pelo pooler do Supabase com SSL ([[D-56]]) (seções [[6.1 Stack\|6.1]] e [[11. Registro de decisões\|11]]) |
 
 ---
 
