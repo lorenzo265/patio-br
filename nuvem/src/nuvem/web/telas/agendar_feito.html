@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block titulo %}Agendado · {{ site.nome }}{% endblock %}
+{% block cabeca %}<meta name="referrer" content="no-referrer">{% endblock %}
+{% block conteudo %}
+<h1>Agendado</h1>
+<p>Número do agendamento: <strong>{{ agendamento.codigo_externo }}</strong></p>
+<table>
+  <tr><th>Site</th><td>{{ site.nome }}</td></tr>
+  <tr><th>Janela</th><td>{{ dia }}, das {{ de }} às {{ ate }}</td></tr>
+  <tr><th>Tipo</th><td>{{ agendamento.tipo }}</td></tr>
+  <tr><th>Placas</th><td>{{ agendamento.placa_cavalo }}{% for placa in agendamento.placas_reboques %}, {{ placa }}{% endfor %}</td></tr>
+  <tr><th>Motorista</th><td>{{ agendamento.motorista_nome }}</td></tr>
+</table>
+<p>Na chegada, a câmera da portaria lê a placa: não precisa mostrar este número.</p>
+{% endblock %}

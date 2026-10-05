@@ -51,6 +51,8 @@ class Agendamento(Base):
         CheckConstraint("toneladas > 0", name="toneladas_positivas"),
         CheckConstraint(f"chave_nfe ~ '{FORMATO_DA_CHAVE_NFE}'", name="chave_nfe_formato"),
         CheckConstraint("char_length(codigo_externo) > 0", name="codigo_externo_preenchido"),
+        do_pai_na_mesma_empresa("link_transportadora", coluna="link_id"),
+        CheckConstraint("link_id IS NULL OR origem = 'link'", name="link_so_na_origem_link"),
         # A tela e o casamento procuram os agendamentos de um site por dia.
         Index("ix_agendamento_site_id_janela_inicio", "site_id", "janela_inicio"),
     )
@@ -73,6 +75,8 @@ class Agendamento(Base):
     origem: Mapped[Origem] = mapped_column(texto_de_lista(Origem, "origem"))
     codigo_externo: Mapped[str] = mapped_column(String(100))
     situacao: Mapped[Situacao] = mapped_column(texto_de_lista(Situacao, "situacao"))
+    link_id: Mapped[int | None]
+    """O link da transportadora que criou o agendamento (só na origem ``link``)."""
     criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     atualizado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True))
 
@@ -101,3 +105,37 @@ class MudancaAgendamento(Base):
     """Quem fez, se foi uma pessoa do cliente (o link da transportadora não tem)."""
     antes: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
     depois: Mapped[dict[str, Any]] = mapped_column(JSONB)
+
+
+class LinkTransportadora(Base):
+    """Um link de agendamento que o gestor manda a uma transportadora (SDD 8.2 e D-34).
+
+    O código vai no endereço e aparece uma vez só, para quem gerou; aqui fica só o resumo.
+    """
+
+    __tablename__ = "link_transportadora"
+    __table_args__ = (
+        pode_ser_pai(),
+        do_pai_na_mesma_empresa("site"),
+        do_pai_na_mesma_empresa("usuario", coluna="criado_por"),
+        CheckConstraint("limite_de_envios > 0", name="limite_positivo"),
+        CheckConstraint("envios >= 0 AND envios <= limite_de_envios", name="envios_no_limite"),
+        CheckConstraint("vence_em > criado_em", name="vence_depois_de_criado"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    empresa_id: Mapped[int]
+    site_id: Mapped[int]
+    nome: Mapped[str] = mapped_column(String(120))
+    """Para quem é o link (ex.: o nome da transportadora)."""
+    codigo_resumo: Mapped[str] = mapped_column(String(64), unique=True)
+    """SHA-256 do código do endereço."""
+    criado_por: Mapped[int]
+    """O gestor que gerou."""
+    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    vence_em: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    revogado_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    limite_de_envios: Mapped[int]
+    """Quantos agendamentos o link pode criar."""
+    envios: Mapped[int]
+    """Quantos agendamentos o link já criou."""

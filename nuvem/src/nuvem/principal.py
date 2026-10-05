@@ -33,6 +33,7 @@ from nuvem.erros import (
 from nuvem.frota import rotas as frota
 from nuvem.portaria import rotas as portaria
 from nuvem.senhas import Senhas
+from nuvem.web import agendar as tela_do_link
 from nuvem.web import portaria as tela_da_portaria
 from nuvem.web import rotas as web
 
@@ -80,6 +81,8 @@ def criar_app(configuracao: Configuracao | None = None, senhas: Senhas | None = 
     app.include_router(agendamento.roteador)
     app.include_router(web.roteador)
     app.include_router(tela_da_portaria.roteador)
+    app.include_router(tela_do_link.roteador)
+    tela_do_link.esconder_codigo_no_registro_de_acesso()
     app.mount("/estatico", StaticFiles(directory=PASTA_ESTATICA), name="estatico")
     return app
 

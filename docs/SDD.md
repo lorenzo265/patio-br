@@ -1,7 +1,7 @@
 # SDD — patio-br (nome provisório)
 
 **Documento de desenho do software (SDD) do MVP do piloto**
-Versão 0.20 · 2026-10-04 · Situação: aprovado como base; itens em aberto na seção 12
+Versão 0.21 · 2026-10-04 · Situação: aprovado como base; itens em aberto na seção 12
 
 ---
 
@@ -268,6 +268,12 @@ Regras comuns a todos os conectores:
   número, não do agendamento.
 - **Cancelado não volta pelo reenvio:** o conector recebe a recusa, com o motivo.
 
+O **link da transportadora** (`link`) é um formulário curto para o celular, sem conta. Cada envio
+cria um agendamento novo, com o código externo `<link>-<número do envio>` (ex.: `12-3`), que a
+transportadora vê na confirmação. A janela é escolhida no fuso do site, num dia só, dentro do
+horário de operação, começando no futuro e no máximo 60 dias à frente. O código, o limite e a
+validade do link estão na seção 8.2.
+
 ### 3.5 Fases futuras (já previstas)
 
 | Fase | Módulos |
@@ -411,7 +417,7 @@ O banco público brasileiro (RodoSol-ALPR) só permite uso acadêmico. Por isso:
 | Entidade | Campos principais |
 |---|---|
 | `Empresa` | nome, CNPJ |
-| `Site` | empresa, nome, endereço, fuso, horário de operação |
+| `Site` | empresa, nome, endereço, fuso, horário de operação (abre e fecha, na hora do site; vazio = 24 horas) |
 | `Portaria` / `Faixa` / `Camera` | site; faixa tem sentido (entrada/saída); câmera tem posição (frente/trás/contexto), endereço RTSP, senha cifrada |
 | `Doca` | site, nome, situação |
 | `Usuario` | empresa, nome, e-mail, papel (porteiro, pátio ou gestor), sites com acesso, senha, PIN (porteiro), ativo, verificação em duas etapas (gestor) |
@@ -428,6 +434,7 @@ O banco público brasileiro (RodoSol-ALPR) só permite uso acadêmico. Por isso:
 | `Extrato` | site, mês, números calculados, versão da regra de cálculo |
 | `CaixaBorda` | site, versão instalada, último contato, saúde, chave de acesso (só o resumo), ativada em, revogada em |
 | `CodigoAtivacao` | site, resumo do código, criado por (administração), vence em, usado em |
+| `LinkTransportadora` | site, nome (a transportadora), resumo do código, criado por (gestor), criado em, vence em, revogado em, limite de envios, envios feitos; o agendamento feito pelo link aponta para ele |
 | `Rotulo` | recorte, placa correta, origem (correção ou rotulagem), revisado |
 
 Toda tabela de dados do cliente tem `empresa_id`. Toda consulta filtra por empresa.
@@ -711,7 +718,13 @@ Serve para desenvolver sem câmera, para os testes de ponta a ponta e para simul
   pátio podem nos sites dele. A administração (nós) tem rotas próprias e não usa as do cliente
   (D-19).
 - Caixa com chave própria, revogável.
-- Link da transportadora com código aleatório, revogável, com limite de envios.
+- **Link da transportadora** (D-34): código aleatório e longo no endereço (`/agendar/<código>`);
+  o banco guarda só o resumo (SHA-256, como o código da sessão), e o registro de acesso da API
+  troca o código por `***`. O gestor dá um nome ao link (a transportadora), a validade (padrão 30
+  dias, no máximo 180) e o limite de agendamentos (padrão 50, no máximo 1.000), e pode revogá-lo.
+  Link vencido, revogado ou inventado responde 404, sem dizer qual; link que chegou ao limite
+  responde 429. As páginas do link não vão para o cache nem mandam o endereço a outro site
+  (`Referrer-Policy: no-referrer`).
 - HTTPS em tudo; banco e fotos cifrados; senhas de câmera cifradas.
 - Dependências checadas a cada build.
 - **Antes da produção (mês 4)**, decidido em 04/10:
@@ -825,6 +838,7 @@ folga.
 | D-31 | O OpenSSL 1.1.1w que vem na roda do OpenCV para Linux é aceito, com o crédito que a licença pede em `borda/AVISOS-DE-TERCEIROS.md` | decisão de 04/10, que fecha o `[ABERTO-14]`: a licença OpenSSL/SSLeay é no estilo BSD, sem cópia obrigatória; a caixa não usa TLS pelo FFmpeg (RTSP sem TLS, na rede local), e o HTTPS dela vai pelo Python, com o OpenSSL do sistema; quando o OpenCV passar ao OpenSSL 3 (Apache-2.0), a roda nova entra no lugar | montar o nosso FFmpeg e o nosso OpenCV sem OpenSSL (trabalho grande para pouco ganho agora) |
 | D-32 | O agendamento tem situação própria, só ativo ou cancelado; o andamento da chegada (`AGENDADA`, `NA_FILA`, `NAO_VEIO`...) é da visita (seção 5.2) | o agendamento muda pela origem (a planilha reimportada, o link) até o caminhão chegar; se carregasse os estados da chegada, um reenvio da planilha poderia mexer num check-in já feito | o agendamento com os estados da visita |
 | D-33 | O mesmo `codigo_externo` da mesma origem, no mesmo site, atualiza o agendamento, e a mudança fica registrada | o gestor reimporta a planilha do dia várias vezes, com correções; recusar a repetida o obrigaria a apagar e criar de novo, e duplicar deixaria dois candidatos iguais no casamento | recusar o código repetido; criar outro agendamento |
+| D-34 | O código do link da transportadora vai no endereço, e não num campo para digitar; o banco guarda só o resumo, e o registro de acesso o esconde | a transportadora abre o link no celular, direto da mensagem, sem copiar nada; o código é longo (sorteado pela nuvem) e o resumo basta para conferir | um código curto para digitar numa página fixa (mais um passo, e curto é fácil de adivinhar) |
 
 ---
 
@@ -900,3 +914,4 @@ folga.
 | 0.18 | 2026-10-04 | decisão de 04/10 sobre o OpenSSL dentro do OpenCV (D-31, fecha o `[ABERTO-14]`); créditos de terceiros da caixa em `borda/AVISOS-DE-TERCEIROS.md` (seções 6.1, 11 e 12) |
 | 0.19 | 2026-10-04 | plano do mês 2 criado (`docs/planos/2026-11-plano-mes-2.md`); novos `[ABERTO-15]` (gravar sem rostos), `[ABERTO-16]` (ambiente de treino) e `[ABERTO-17]` (leitor comercial no teste técnico) (seção 12) |
 | 0.20 | 2026-10-04 | agendamentos (T27): regras comuns aos conectores, situação própria do agendamento (D-32), reenvio que atualiza (D-33) e o registro das mudanças (seções 3.4, 5.1 e 11) |
+| 0.21 | 2026-10-04 | link da transportadora (T28): o código no endereço (D-34), validade, limite, horário de operação do site e as regras da janela pelo link (seções 3.4, 5.1, 8.2 e 11) |
