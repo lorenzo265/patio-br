@@ -36,8 +36,10 @@ economia em R$. Uma caixa de borda (mini PC) lê as placas; a nuvem decide.
      O YOLO da Ultralytics (AGPL) não entra. O banco RodoSol-ALPR é só acadêmico: nunca treina
      o produto (SDD 4.6). Pesos de terceiros só para comparar modelos e avaliar internamente
      (SDD D-26). A CI não vê modelos; essa checagem é sua.
-   - Arquivos de terceiros do painel (ex.: o HTMX) ficam em `nuvem/src/nuvem/web/estatico/`,
-     com licença e hash no `LEIA-ME.md` de lá (SDD 6.1). A CI também não os vê.
+   - Arquivos de terceiros do painel (ex.: o HTMX, o three.js) ficam em
+     `nuvem/src/nuvem/web/estatico/`, com licença e hash no `LEIA-ME.md` de lá (SDD 6.1); um
+     teste confere os hashes. Fontes com a licença SIL OFL 1.1 entram do mesmo jeito, usadas
+     sem modificação (D-50).
 2. **LGPD** (SDD 8.3). Sem reconhecimento facial. Foto guardada é recorte de placa e de
    veículo; rostos nas fotos de contexto são borrados na própria caixa. A base de treino guarda
    só recortes de placa e a região de gravação das câmeras (abaixo do para-brisa, SDD D-39).
