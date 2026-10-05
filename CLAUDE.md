@@ -40,7 +40,7 @@ economia em R$. Uma caixa de borda (mini PC) lê as placas; a nuvem decide.
      com licença e hash no `LEIA-ME.md` de lá (SDD 6.1). A CI também não os vê.
 2. **LGPD** (SDD 8.3). Sem reconhecimento facial. Foto guardada é recorte de placa e de
    veículo; rostos nas fotos de contexto são borrados na própria caixa. A base de treino guarda
-   só recortes de placa.
+   só recortes de placa e a região de gravação das câmeras (abaixo do para-brisa, SDD D-39).
 3. **Dado real nunca entra no Git.** Vídeos, fotos, placas, nomes e telefones reais ficam em
    `dados/`; pesos de modelos ficam em `modelos/`. As duas pastas são ignoradas. Nem em teste,
    nem em fixture, nem em mensagem de commit: os testes usam dados inventados.

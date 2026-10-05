@@ -1,7 +1,7 @@
 # Plano do mês 2 (novembro de 2026): leitor próprio, agendamento e casamento
 
 Plano de implementação do mês 2 do cronograma do SDD (`docs/SDD.md`, seção 10).
-Versão 1 · 2026-10-04 · **Rascunho para aprovação do Lorenzo**
+Versão 2 · 2026-10-05 · Aprovado pelo Lorenzo; o site parceiro ficou para depois (seção 2)
 
 ---
 
@@ -15,7 +15,9 @@ Versão 1 · 2026-10-04 · **Rascunho para aprovação do Lorenzo**
    do cliente, e a chegada da caixa casa com ele: check-in automático ou exceção (SDD 2.2, 3.4 e
    5.3).
 
-**Marco do mês (o teste de "pronto"): o teste técnico** (SDD 10).
+~~**Marco do mês (o teste de "pronto"): o teste técnico** (SDD 10).~~ → próximo plano: o site
+parceiro foi adiado em 05/10 (seção 2). Fica como marco o fluxo do agendamento à saída na
+demonstração (T35), com a conferência da placa pelo porteiro (T38).
 
 > Na régua fixa, o leitor v1 é comparado com o leitor comercial (e com o v0): acerto por placa e
 > acerto da composição casando com o agendamento. O resultado decide o caminho do piloto:
@@ -52,6 +54,14 @@ Mais uma pergunta, sem item no SDD: **quem rotula as 3 a 5 mil placas, e em quan
 Com a leitura do v0 como pré-rótulo, a pessoa só confere e corrige. O ritmo real é medido na
 primeira hora de rotulagem.
 
+**Decididas em 05/10:**
+- D1 a D4 pela recomendação (SDD D-39, D-40, D-41 e D-38).
+- Quem rotula: o Lorenzo. Ele pediu também que o porteiro confira a placa na plataforma,
+  comparando a leitura com a foto (T38, SDD D-42).
+- O site parceiro fica para depois: o Lorenzo quer o produto mais completo antes de levá-lo
+  ao site. As primeiras placas vêm de outra fonte (`[ABERTO-18]`,
+  `docs/validacao/fontes-de-placas.md`). O que depende do site sai deste mês (riscado abaixo).
+
 ---
 
 ## 3. Como trabalhar neste plano
@@ -78,7 +88,8 @@ Ordem sugerida por semana. A semana 4 tem folga.
 
 **Objetivo:** a caixa grava, sem operar, as passagens do site parceiro para rotular.
 
-**Depende de:** D1 decidida e N9 (o kit instalado, com o aviso de gravação).
+**Depende de:** D1 decidida (D-39) e um lugar para gravar, com o aviso de gravação: o site
+parceiro (adiado em 05/10) ou os portões do `[ABERTO-18]`.
 
 **Arquivos:** `borda/src/borda/gravacao.py`, o comando `caixa gravar`, o campo da região de
 gravação no cadastro da câmera (nuvem), testes.
@@ -97,7 +108,7 @@ gravação no cadastro da câmera (nuvem), testes.
 
 #### T22. Rotulagem no Label Studio
 
-**Objetivo:** rotular rápido, conferindo o pré-rótulo.
+**Objetivo:** rotular rápido, conferindo o pré-rótulo. Quem rotula: o Lorenzo (05/10).
 
 **Arquivos:** o serviço `label-studio` no `infra/docker-compose.yml` (fora do `tarefas up` comum),
 o comando `tarefas rotulagem`, `ml/src/ml/rotulagem.py`, testes.
@@ -116,6 +127,8 @@ o comando `tarefas rotulagem`, `ml/src/ml/rotulagem.py`, testes.
 #### T23. Régua fixa
 
 **Objetivo:** um conjunto de imagens rotuladas que **nunca** entra no treino (SDD 4.7).
+
+**Depende de:** as primeiras placas reais (`[ABERTO-18]`).
 
 **Arquivos:** `ml/src/ml/regua.py`, `ml/src/ml/avaliar.py`, `docs/validacao/regua.md` (o
 manifesto, sem placas), testes.
@@ -139,7 +152,7 @@ no treino dá erro.
 
 **Objetivo:** detector de veículo e placa com pesos nossos, e a decisão do `[ABERTO-03]`.
 
-**Depende de:** D2 decidida, T22 e T23.
+**Depende de:** D2 decidida (D-40), T22, T23 e as primeiras placas (`[ABERTO-18]`).
 
 **Arquivos:** `ml/treino/` (ambiente à parte, D2), `docs/validacao/detector-v1.md` (só números).
 
@@ -322,7 +335,9 @@ de passagens tem casos que casam, que viram exceção e que saem.
 
 **Commit:** `feat(ferramentas): simulador com agendamentos`
 
-#### T36. Teste técnico (o marco)
+#### ~~T36. Teste técnico (o marco)~~ → próximo plano
+
+Adiada em 05/10: precisa das gravações de um site, com o registro manual das chegadas (N13).
 
 **Objetivo:** decidir o caminho do piloto (seção 1).
 
@@ -338,7 +353,9 @@ de passagens tem casos que casam, que viram exceção e que saem.
 
 **Commit:** `docs: teste técnico do mês 2`
 
-#### T37. Ajuste do casamento
+#### ~~T37. Ajuste do casamento~~ → próximo plano
+
+Adiada em 05/10: precisa dos dados do site parceiro.
 
 **Objetivo:** fechar o `[ABERTO-02]`, os pesos e o limite do casamento, com os dados do site
 parceiro.
@@ -347,18 +364,44 @@ parceiro.
 
 **Commit:** `feat(portaria): pesos do casamento ajustados com os dados do site parceiro`
 
+### Acrescentada em 05/10
+
+#### T38. Conferência da placa pelo porteiro
+
+**Objetivo:** o porteiro compara a leitura com a placa da foto e confirma ou corrige (SDD
+D-42). Cada conferência é a placa certa de um recorte: vira rótulo para o treino quando o
+contrato do cliente autorizar (SDD 4.6 e 8.3).
+
+**Arquivos:** `nuvem/src/nuvem/portaria/conferencia.py`, o modelo e a migração,
+`nuvem/src/nuvem/web/portaria.py`, telas, testes.
+
+**Regras (teste primeiro):**
+- Porteiro e gestor conferem o recorte de placa de qualquer passagem do site; a placa digitada
+  passa pelo formato da placa (antiga ou Mercosul).
+- A conferência é um registro novo, que o banco não deixa alterar nem apagar; conferir de novo
+  cria outro, e o último vale.
+- A leitura comparada é a placa lida pela mesma câmera do recorte; sem leitura, a placa
+  digitada é a correção.
+- A passagem de outra empresa, ou de um site que o usuário não vê, responde "não encontrado".
+- Não muda a visita nem o casamento: isso vem com a resolução das exceções, no mês 3.
+- A conferência abre numa página própria, fora da lista que se atualiza a cada 2 segundos,
+  para a atualização não apagar o que o porteiro digita.
+
+**Commit:** `feat(portaria): conferência da placa pelo porteiro`
+
 ---
 
 ## 5. Trilha não técnica (comercial e burocracia)
 
 | # | Tarefa | Por quê | Resolve |
 |---|---|---|---|
-| N9 | **Instalar o kit no site parceiro**, com as câmeras posicionadas pelo guia (N8), a placa de aviso de gravação e o termo com o site | sem ele não há dados para treinar | T21 |
-| N10 | **Definir quem rotula** e quantas horas (a pergunta do fim da seção 2) | 3 a 5 mil placas | T22 |
-| N11 | **Abrir as contas:** GPU por hora para o treino e, se D3 permitir, Plate Recognizer | o treino e o teste técnico | T24, T36 |
+| ~~N9~~ | ~~**Instalar o kit no site parceiro**, com as câmeras posicionadas pelo guia (N8), a placa de aviso de gravação e o termo com o site~~ (adiada em 05/10, seção 2) | sem ele não há dados para treinar | T21 |
+| N10 | ~~**Definir quem rotula**~~ resolvida em 05/10: o Lorenzo | 3 a 5 mil placas | T22 |
+| N11 | **Abrir as contas:** GPU por hora para o treino (quando houver as primeiras placas) e, se D3 permitir, Plate Recognizer | o treino e o teste técnico | T24, T36 |
 | N12 | **Montar a oferta de piloto anual pré-pago** e levá-la às conversas | o comercial do mês 2 (SDD 10) | `[ABERTO-06]` |
-| N13 | **Combinar com o site parceiro o registro manual** das chegadas durante a gravação (hora, placas, agendamento) | é o gabarito da composição e do casamento | T36, T37 |
+| ~~N13~~ | ~~**Combinar com o site parceiro o registro manual** das chegadas durante a gravação (hora, placas, agendamento)~~ (adiada em 05/10) | é o gabarito da composição e do casamento | T36, T37 |
 | N14 | **Fechar o que ficou da trilha do mês 1** (N1 a N8) | Meta, AWS e advogado têm prazo longo | `[ABERTO-01]`, `[ABERTO-04]`, `[ABERTO-07]` |
+| N15 | **Levar ao advogado** (acrescentada em 05/10): gravar em portões de conhecidos, o leitor comercial na nuvem (D-41) e a cláusula do treino no contrato (SDD 8.3) | a coleta própria e o uso das conferências no treino dependem do sim | `[ABERTO-18]`, `[ABERTO-07]` |
 
 ---
 
@@ -368,19 +411,23 @@ parceiro.
   - `[ABERTO-15]`: gravar sem guardar rostos;
   - `[ABERTO-16]`: ambiente de treino;
   - `[ABERTO-17]`: leitor comercial no teste técnico.
+- Em 05/10 (SDD 0.28): os três fechados pela recomendação (D-39 a D-41), a D-38 confirmada, a
+  conferência da placa pelo porteiro (D-42) e o novo `[ABERTO-18]` (as primeiras placas).
 
 ---
 
 ## 7. Checklist de "mês 2 pronto"
 
-- [ ] D1 a D4 decididas e registradas no SDD.
-- [ ] Gravações do site parceiro em `dados/`, sem rostos, e 3 a 5 mil placas rotuladas.
+- [x] D1 a D4 decididas e registradas no SDD.
+- [ ] ~~Gravações do site parceiro em `dados/`, sem rostos,~~ e 3 a 5 mil placas rotuladas
+      (da fonte que o `[ABERTO-18]` escolher).
 - [ ] Régua fixa separada, com o manifesto no repositório e a garantia de que não entra no
       treino.
 - [ ] Detector e OCR v1 treinados, com pesos nossos; o v1 na caixa; `[ABERTO-03]` decidido.
 - [ ] Medição no N150 registrada (a T20 do mês 1).
-- [ ] Agendamento por link e por planilha, com a tela do gestor.
-- [ ] Casamento com check-in automático, exceção e saída, com o worker.
-- [ ] **Marco:** teste técnico feito e o caminho do piloto decidido.
-- [ ] `[ABERTO-02]` fechado com os dados do site parceiro.
-- [ ] Trilha não técnica: kit instalado no site parceiro; oferta de piloto nas conversas.
+- [x] Agendamento por link e por planilha, com a tela do gestor.
+- [x] Casamento com check-in automático, exceção e saída, com o worker.
+- [ ] Conferência da placa pelo porteiro (T38).
+- [ ] ~~**Marco:** teste técnico feito e o caminho do piloto decidido.~~ → próximo plano
+- [ ] ~~`[ABERTO-02]` fechado com os dados do site parceiro.~~ → próximo plano
+- [ ] Trilha não técnica: ~~kit instalado no site parceiro;~~ oferta de piloto nas conversas.
