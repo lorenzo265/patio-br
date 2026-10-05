@@ -23,6 +23,8 @@ Entrar = Callable[..., TestClient]
 Registrar = Callable[..., Passagem]
 
 AGORA = datetime(2026, 10, 5, 17, 3, tzinfo=UTC)
+DEPOIS_DA_SAIDA = AGORA + timedelta(hours=1, minutes=1)
+"""A passagem de saída (uma hora depois) já terminou e chegou à nuvem."""
 
 
 @pytest.fixture
@@ -112,7 +114,7 @@ def test_saida_fecha_e_a_entrada_mostra_que_saiu(
     entrada = registrar_passagem()
     fila.executar_pendentes(sessao, agora=AGORA)
     de_saida = saida("ABC1D23")
-    fila.executar_pendentes(sessao, agora=AGORA + timedelta(hours=1))
+    fila.executar_pendentes(sessao, agora=DEPOIS_DA_SAIDA)
     porteiro = entrar(cenario.porteiro_a.email)
 
     assert "check-in AG-1 · saiu" in _linha(porteiro, cenario, entrada)
@@ -123,7 +125,7 @@ def test_saida_sem_visita_aberta(
     sessao: Session, entrar: Entrar, cenario: Demonstracao, saida: Callable[..., Passagem]
 ) -> None:
     de_saida = saida("XYZ9K87")
-    fila.executar_pendentes(sessao, agora=AGORA + timedelta(hours=1))
+    fila.executar_pendentes(sessao, agora=DEPOIS_DA_SAIDA)
 
     linha = _linha(entrar(cenario.porteiro_a.email), cenario, de_saida)
 
