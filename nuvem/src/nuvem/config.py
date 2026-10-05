@@ -5,10 +5,20 @@ atual (o mesmo que o docker compose lê; as variáveis dele, sem o prefixo, são
 Valor obrigatório ausente impede a nuvem de iniciar: melhor parar na hora do que rodar errado.
 """
 
+import ssl
 from pathlib import Path
-from typing import Literal
+from typing import Literal, Self
 
-from pydantic import HttpUrl, SecretStr, ValidationError, ValidationInfo, field_validator
+from pydantic import (
+    AliasChoices,
+    Field,
+    HttpUrl,
+    SecretStr,
+    ValidationError,
+    ValidationInfo,
+    field_validator,
+    model_validator,
+)
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from nuvem.cifra import Cifra
@@ -67,6 +77,39 @@ class Configuracao(BaseSettings):
     login por endereço.
     """
 
+    tique: bool = False
+    """Roda o trabalho do worker antes das telas que se atualizam sozinhas (D-56).
+
+    Na Vercel, que não tem processo que fica rodando. Com um worker, fica desligado.
+    """
+
+    segredo_do_cron: SecretStr | None = Field(
+        default=None,
+        validation_alias=AliasChoices("segredo_do_cron", "PATIO_SEGREDO_DO_CRON", "CRON_SECRET"),
+    )
+    """O segredo que o cron da Vercel manda (``Authorization: Bearer ...``); vem do
+    ``CRON_SECRET`` dela. Sem ele, a rota do cron diário não existe."""
+
+    banco_sem_pool: bool = False
+    """Uma conexão nova por pedido, sem guardar (na Vercel; quem guarda é o pooler do Supabase)."""
+
+    banco_ssl: bool = False
+    """Conexão com o banco por SSL, conferindo o certificado e o nome do servidor (Supabase)."""
+
+    banco_ca: str | None = None
+    """O certificado (PEM) da autoridade do banco, quando ela não é pública (o do Supabase)."""
+
+    fotos_s3_endereco: HttpUrl | None = None
+    """O endereço S3 das fotos (D-56); sem ele, as fotos ficam na ``pasta_fotos``.
+
+    Ex.: ``https://<projeto>.storage.supabase.co/storage/v1/s3``.
+    """
+
+    fotos_s3_regiao: str = "sa-east-1"
+    fotos_s3_balde: str = "fotos"
+    fotos_s3_chave: SecretStr | None = None
+    fotos_s3_segredo: SecretStr | None = None
+
     @property
     def cookie_seguro(self) -> bool:
         """Se o cookie da sessão só pode andar por HTTPS (``Secure``)."""
@@ -82,6 +125,22 @@ class Configuracao(BaseSettings):
     def _chave_valida(cls, chave: SecretStr) -> SecretStr:
         Cifra(chave)  # recusa já na partida uma chave que não serviria
         return chave
+
+    @field_validator("banco_ca")
+    @classmethod
+    def _certificado_valido(cls, certificado: str | None) -> str | None:
+        if certificado:
+            try:
+                ssl.create_default_context(cadata=certificado)
+            except (ssl.SSLError, ValueError, TypeError) as erro:
+                raise ValueError("o certificado do banco precisa ser um PEM válido") from erro
+        return certificado or None
+
+    @model_validator(mode="after")
+    def _s3_completo(self) -> Self:
+        if self.fotos_s3_endereco and not (self.fotos_s3_chave and self.fotos_s3_segredo):
+            raise ValueError("fotos_s3: com o endereço, a chave e o segredo são obrigatórios")
+        return self
 
     @field_validator("url_publica", mode="before")
     @classmethod

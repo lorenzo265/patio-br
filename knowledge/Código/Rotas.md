@@ -43,6 +43,7 @@ Os endereços da API e das telas, lidos dos decoradores (`@roteador.get(...)`) c
 | `/api/cadastro/sites` | GET | `listar_sites` | [[nuvem.cadastro]] | Os sites que o usuário vê. |
 | `/api/cadastro/sites/{site_id}` | GET | `obter_site` | [[nuvem.cadastro]] | Um site que o usuário vê (404 para qualquer outro). |
 | `/api/cadastro/sites/{site_id}/cameras` | GET | `listar_cameras` | [[nuvem.cadastro]] | As câmeras de um site que o gestor vê (404 para qualquer outro site). |
+| `/api/cron/diaria` | GET | `diaria` | [[nuvem]] | Apaga as empresas de demonstração vencidas e confere o "não veio". |
 | `/demonstracao` | GET | `andamento` | [[nuvem.web]] | O dia de demonstração de um site do gestor: o botão de começar ou o andamento. |
 | `/demonstracao/comecar` | POST | `comecar` | [[nuvem.web]] | Começa o dia de demonstração do site. |
 | `/demonstracao/link/{codigo}` | GET | `pagina_do_link` | [[nuvem.web]] | Para quem é a demonstração e o botão de entrar; não cria nada. |

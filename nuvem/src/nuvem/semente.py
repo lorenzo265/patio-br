@@ -23,7 +23,7 @@ from decimal import Decimal
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from nuvem.banco import criar_motor
+from nuvem.banco import motor_da_configuracao
 from nuvem.cadastro import servico
 from nuvem.cadastro.modelos import (
     Administrador,
@@ -227,7 +227,7 @@ def principal() -> None:
         raise SystemExit(
             f"erro: a semente roda só no ambiente local (PATIO_AMBIENTE={configuracao.ambiente})"
         )
-    motor = criar_motor(configuracao.url_banco.get_secret_value())
+    motor = motor_da_configuracao(configuracao)
     with Session(motor) as sessao:
         demonstracao = semear(sessao, Cifra(configuracao.chave_cifra), Senhas())
         sessao.commit()

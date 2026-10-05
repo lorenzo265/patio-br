@@ -1,7 +1,8 @@
 """Conexão com o PostgreSQL (SQLAlchemy 2, driver pg8000) e a base dos modelos da nuvem."""
 
+import ssl
 from collections.abc import Iterator
-from typing import get_args
+from typing import Any, get_args
 
 from fastapi import Request
 from sqlalchemy import (
@@ -14,6 +15,9 @@ from sqlalchemy import (
 )
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
+from sqlalchemy.pool import NullPool
+
+from nuvem.config import Configuracao
 
 CONVENCAO_DE_NOMES = {
     "ix": "ix_%(column_0_label)s",
@@ -74,9 +78,37 @@ def sqlstate(erro: DBAPIError) -> str | None:
     return codigo if isinstance(codigo, str) else None
 
 
-def criar_motor(url: str) -> Engine:
-    """Cria o motor de conexões; ``pool_pre_ping`` descarta conexões que o banco já fechou."""
-    return create_engine(url, pool_pre_ping=True)
+def criar_motor(
+    url: str, *, sem_pool: bool = False, contexto: ssl.SSLContext | None = None
+) -> Engine:
+    """Cria o motor de conexões; ``pool_pre_ping`` descarta conexões que o banco já fechou.
+
+    Args:
+        sem_pool: uma conexão nova por uso, sem guardar (a função da Vercel, D-56).
+        contexto: o SSL da conexão (o Supabase pede).
+    """
+    argumentos: dict[str, Any] = {"pool_pre_ping": True}
+    if sem_pool:
+        argumentos["poolclass"] = NullPool
+    if contexto is not None:
+        argumentos["connect_args"] = {"ssl_context": contexto}
+    return create_engine(url, **argumentos)
+
+
+def contexto_ssl(configuracao: Configuracao) -> ssl.SSLContext | None:
+    """O SSL da conexão com o banco, se a configuração pede (conferindo o certificado)."""
+    if not configuracao.banco_ssl:
+        return None
+    return ssl.create_default_context(cadata=configuracao.banco_ca or None)
+
+
+def motor_da_configuracao(configuracao: Configuracao) -> Engine:
+    """O motor do banco como a configuração pede (pool e SSL)."""
+    return criar_motor(
+        configuracao.url_banco.get_secret_value(),
+        sem_pool=configuracao.banco_sem_pool,
+        contexto=contexto_ssl(configuracao),
+    )
 
 
 def obter_sessao(request: Request) -> Iterator[Session]:

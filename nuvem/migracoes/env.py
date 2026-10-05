@@ -11,7 +11,7 @@ from sqlalchemy import Connection
 
 from nuvem import tarefas_de_fundo as _fila  # noqa: F401
 from nuvem.agendamento import modelos as _modelos_do_agendamento  # noqa: F401
-from nuvem.banco import Base, criar_motor
+from nuvem.banco import Base, motor_da_configuracao
 from nuvem.cadastro import modelos as _modelos_do_cadastro  # noqa: F401  (registra as tabelas)
 from nuvem.config import ConfiguracaoInvalidaError, ler_configuracao
 from nuvem.demonstracao import modelos as _modelos_da_demonstracao  # noqa: F401
@@ -40,7 +40,7 @@ else:
         configuracao = ler_configuracao()
     except ConfiguracaoInvalidaError as erro:
         raise SystemExit(f"erro: {erro}") from None
-    motor = criar_motor(configuracao.url_banco.get_secret_value())
+    motor = motor_da_configuracao(configuracao)
     with motor.connect() as conexao:
         _aplicar(conexao)
     motor.dispose()

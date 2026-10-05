@@ -17,9 +17,10 @@ from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
 
+from nuvem import cron, tique
 from nuvem.agendamento import rotas as agendamento
-from nuvem.armazenamento import ArmazenamentoLocal
-from nuvem.banco import criar_motor, obter_sessao
+from nuvem.armazenamento import armazenamento_da_configuracao
+from nuvem.banco import motor_da_configuracao, obter_sessao
 from nuvem.cadastro.rotas import roteador as rotas_do_cadastro
 from nuvem.cadastro.rotas import roteador_admin as rotas_da_administracao
 from nuvem.cifra import Cifra
@@ -62,19 +63,27 @@ def criar_app(configuracao: Configuracao | None = None, senhas: Senhas | None = 
         nuvem.config.ConfiguracaoInvalidaError: se faltar um valor obrigatório no ambiente.
     """
     configuracao = configuracao or ler_configuracao()
-    motor = criar_motor(configuracao.url_banco.get_secret_value())
+    motor = motor_da_configuracao(configuracao)
 
     @asynccontextmanager
     async def ciclo_de_vida(_app: FastAPI) -> AsyncIterator[None]:
         yield
         motor.dispose()
 
-    # O código anti-CSRF é conferido antes de tudo, em toda rota (D-55).
-    app = FastAPI(title="patio-br", lifespan=ciclo_de_vida, dependencies=[Depends(csrf.conferir)])
+    # Antes de toda rota: o código anti-CSRF (D-55) e, se ligado, o tique (D-56).
+    app = FastAPI(
+        title="patio-br",
+        lifespan=ciclo_de_vida,
+        dependencies=[Depends(csrf.conferir), Depends(tique.na_tela)],
+    )
     app.state.sessoes = sessionmaker(motor)
     app.state.senhas = senhas or Senhas()
     app.state.cifra = Cifra(configuracao.chave_cifra)
-    app.state.armazenamento = ArmazenamentoLocal(configuracao.pasta_fotos, app.state.cifra)
+    app.state.armazenamento = armazenamento_da_configuracao(configuracao, app.state.cifra)
+    app.state.tique = configuracao.tique
+    app.state.segredo_do_cron = (
+        configuracao.segredo_do_cron.get_secret_value() if configuracao.segredo_do_cron else None
+    )
     app.state.cookie_seguro = configuracao.cookie_seguro
     app.state.tem_demonstracao = configuracao.tem_demonstracao
     app.state.url_publica = str(configuracao.url_publica) if configuracao.url_publica else None
@@ -88,9 +97,13 @@ def criar_app(configuracao: Configuracao | None = None, senhas: Senhas | None = 
     app.add_exception_handler(csrf.CodigoCsrfRecusadoError, _csrf_recusado)
     app.include_router(rotas_do_cadastro)
     app.include_router(rotas_da_administracao)
-    app.include_router(frota.roteador_borda)
+    if configuracao.ambiente != "demonstracao":
+        # Na demonstração, as passagens só vêm do dia de demonstração: caixa de verdade não tem
+        # o que fazer num ambiente de dados inventados (D-56).
+        app.include_router(frota.roteador_borda)
+        app.include_router(portaria.roteador_borda)
     app.include_router(frota.roteador_admin)
-    app.include_router(portaria.roteador_borda)
+    app.include_router(cron.roteador)
     app.include_router(agendamento.roteador)
     app.include_router(web.roteador)
     app.include_router(tela_da_portaria.roteador)

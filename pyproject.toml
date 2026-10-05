@@ -16,6 +16,7 @@ dependencies = [
 [dependency-groups]
 dev = [
     "httpx2>=2.13.1",
+    "moto[s3]>=5.1",
     "mypy>=1.11",
     "pytest>=8.3",
     "ruff>=0.6",
@@ -25,6 +26,10 @@ dev = [
 
 [tool.uv]
 package = false
+
+[tool.vercel]
+# A demonstração na internet (D-51 e D-56): a Vercel carrega o `app` deste arquivo.
+entrypoint = "vercel_app:app"
 
 [tool.uv.workspace]
 members = ["contratos", "borda", "nuvem", "ferramentas", "ml"]
@@ -52,6 +57,11 @@ files = ["contratos/src", "borda/src", "nuvem/src", "ferramentas/src", "ml/src"]
 [[tool.mypy.overrides]]
 # O ONNX Runtime não publica tipos; o uso dele fica todo em borda/leitor/v0.py.
 module = ["onnxruntime", "onnxruntime.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# O boto3 (as fotos no S3, D-56) e o moto (que o imita nos testes) não publicam tipos.
+module = ["boto3", "boto3.*", "botocore", "botocore.*", "moto", "moto.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

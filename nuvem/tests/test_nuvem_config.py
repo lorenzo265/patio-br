@@ -129,3 +129,24 @@ def test_sem_configuracao_diz_o_que_falta_e_como_resolver(
         ConfiguracaoInvalidaError, match=r"PATIO_CHAVE_CIFRA, PATIO_URL_BANCO.*\.env\.exemplo"
     ):
         ler_configuracao()
+
+
+def test_fotos_no_s3_pedem_a_chave_e_o_segredo(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("PATIO_URL_BANCO", URL)
+    monkeypatch.setenv(
+        "PATIO_FOTOS_S3_ENDERECO", "https://projeto.storage.supabase.co/storage/v1/s3"
+    )
+
+    with pytest.raises(ValidationError, match="fotos_s3"):
+        Configuracao(_env_file=None)
+
+
+def test_o_segredo_do_cron_vem_do_cron_secret_da_vercel(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("PATIO_URL_BANCO", URL)
+    monkeypatch.setenv("CRON_SECRET", "segredo-do-cron")
+
+    configuracao = Configuracao(_env_file=None)
+
+    assert configuracao.segredo_do_cron is not None
+    assert configuracao.segredo_do_cron.get_secret_value() == "segredo-do-cron"
+    assert "segredo-do-cron" not in repr(configuracao)

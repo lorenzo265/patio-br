@@ -1,0 +1,11 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "regions": ["gru1"],
+  "functions": {
+    "vercel_app.py": {
+      "maxDuration": 60,
+      "excludeFiles": "{docs/**,knowledge/**,borda/**,ml/**,ferramentas/**,infra/**,dados/**,modelos/**,**/tests/**}"
+    }
+  },
+  "crons": [{ "path": "/api/cron/diaria", "schedule": "0 9 * * *" }]
+}
