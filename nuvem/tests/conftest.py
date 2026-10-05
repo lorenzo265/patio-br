@@ -170,13 +170,18 @@ def fazer_passagem(cenario: Demonstracao, caixa_a: CaixaAtivada) -> Callable[...
 def registrar_passagem(
     sessao: Session, caixa_a: CaixaAtivada, fazer_passagem: Callable[..., Passagem]
 ) -> Callable[..., Passagem]:
-    """Grava uma passagem da caixa_a, como se ela tivesse chegado agora; devolve a passagem."""
+    """Grava uma passagem da caixa_a, recebida 2 segundos depois do fim; devolve a passagem.
+
+    A hora de receber sai da passagem, e não do relógio: a tarefa "casar" fica na fila para essa
+    hora, e os testes que rodam a fila numa hora fixa não dependem de quando rodam.
+    """
     caixa = frota.caixa_da_chave(sessao, caixa_a.chave)
     assert caixa is not None
 
     def _registrar(**mudancas: Any) -> Passagem:
         passagem = fazer_passagem(**mudancas)
-        portaria.receber_passagem(sessao, caixa, passagem, agora=datetime.now(UTC))
+        recebida = passagem.fim + timedelta(seconds=2)
+        portaria.receber_passagem(sessao, caixa, passagem, agora=recebida)
         return passagem
 
     return _registrar
