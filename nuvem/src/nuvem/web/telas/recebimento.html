@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block titulo %}Recebimento (em breve){% endblock %}
+{% block cabeca %}
+<style>
+  body { max-width: 60rem; }
+  .em-breve { background: #fff4e0; border-left: 4px solid #b36b00; padding: 0.6rem 0.9rem; }
+  .nota { display: flex; flex-wrap: wrap; gap: 0.5rem 2rem; margin: 1rem 0; }
+  .nota div span { display: block; font-size: 0.8rem; color: #555; }
+  td input { width: 5.5rem; margin: 0; padding: 0.25rem; }
+  .selo { padding: 0.1rem 0.5rem; border-radius: 0.75rem; font-size: 0.85rem; white-space: nowrap; }
+  .confere { background: #e3f1e3; } .falta { background: #fbe2e2; } .sobra { background: #e2ecfb; }
+  .a-contar { background: #eee; }
+</style>
+{% endblock %}
+{% block conteudo %}
+<p class="em-breve"><strong>Em breve.</strong> Esta tela mostra como será a conferência do recebimento, com dados inventados; ela ainda não grava nada.</p>
+<h1>Recebimento · {{ nota.doca }}</h1>
+<div class="nota">
+  <div><span>Nota fiscal</span>{{ nota.numero }}</div>
+  <div><span>Fornecedor</span>{{ nota.fornecedor }}</div>
+  <div><span>Caminhão</span>{{ nota.placa }}</div>
+</div>
+<table>
+  <thead><tr><th>Código</th><th>Item</th><th>Na nota</th><th>Contado</th><th>Diferença</th><th>Situação</th></tr></thead>
+  <tbody>
+  {% for item in nota.itens %}
+    <tr data-na-nota="{{ item.na_nota }}">
+      <td>{{ item.codigo }}</td>
+      <td>{{ item.descricao }}</td>
+      <td>{{ item.na_nota }} {{ item.unidade }}{{ "s" if item.na_nota != 1 }}</td>
+      <td><input type="number" min="0" inputmode="numeric" aria-label="Contado de {{ item.descricao }}" value="{{ item.contado if item.contado is not none else '' }}"></td>
+      <td class="diferenca">{% if item.diferenca is not none %}{{ "%+d" % item.diferenca if item.diferenca else "0" }}{% endif %}</td>
+      <td><span class="selo {{ item.situacao | replace(' ', '-') }}">{% if item.situacao == "falta" %}falta de {{ -item.diferenca }}{% elif item.situacao == "sobra" %}sobra de {{ item.diferenca }}{% else %}{{ item.situacao }}{% endif %}</span></td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+<p id="resumo">{{ contados }} de {{ nota.itens | length }} itens contados; {{ divergencias | length }} com diferença.</p>
+<p><button type="button" disabled>Fechar a conferência (em breve)</button></p>
+<p><a href="/estoque">Estoque em 3D</a> · <a href="/">Início</a></p>
+<script>
+  // Só no navegador: a conta da diferença enquanto o conferente digita (nada vai ao servidor).
+  const linhas = document.querySelectorAll("tbody tr");
+  function situacao(diferenca) {
+    if (diferenca === null) return ["a contar", "a-contar"];
+    if (diferenca < 0) return ["falta de " + -diferenca, "falta"];
+    if (diferenca > 0) return ["sobra de " + diferenca, "sobra"];
+    return ["confere", "confere"];
+  }
+  function recalcular() {
+    let contados = 0, diferentes = 0;
+    linhas.forEach((linha) => {
+      const campo = linha.querySelector("input");
+      const diferenca = campo.value === "" ? null : Number(campo.value) - Number(linha.dataset.naNota);
+      const [texto, classe] = situacao(diferenca);
+      linha.querySelector(".diferenca").textContent = diferenca === null ? "" : (diferenca > 0 ? "+" : "") + diferenca;
+      const selo = linha.querySelector(".selo");
+      selo.textContent = texto;
+      selo.className = "selo " + classe;
+      if (diferenca !== null) { contados += 1; if (diferenca !== 0) diferentes += 1; }
+    });
+    document.getElementById("resumo").textContent =
+      `${contados} de ${linhas.length} itens contados; ${diferentes} com diferença.`;
+  }
+  document.querySelectorAll("tbody input").forEach((campo) => campo.addEventListener("input", recalcular));
+</script>
+{% endblock %}

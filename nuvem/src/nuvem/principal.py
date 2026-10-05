@@ -35,6 +35,7 @@ from nuvem.portaria import rotas as portaria
 from nuvem.senhas import Senhas
 from nuvem.web import agendamentos as tela_de_agendamentos
 from nuvem.web import agendar as tela_do_link
+from nuvem.web import em_breve as telas_em_breve
 from nuvem.web import extrato as tela_do_extrato
 from nuvem.web import mensagens as tela_das_mensagens
 from nuvem.web import patio as tela_do_patio
@@ -45,7 +46,7 @@ from nuvem.web import rotas as web
 _registro = logging.getLogger(__name__)
 
 PASTA_ESTATICA = Path(web.__file__).parent / "estatico"
-"""Arquivos servidos como estão (o HTMX), em ``/estatico``."""
+"""Arquivos de terceiros servidos como estão (o HTMX e o three.js), em ``/estatico``."""
 
 
 def criar_app(configuracao: Configuracao | None = None, senhas: Senhas | None = None) -> FastAPI:
@@ -90,6 +91,7 @@ def criar_app(configuracao: Configuracao | None = None, senhas: Senhas | None = 
     app.include_router(tela_do_patio.roteador)
     app.include_router(tela_das_mensagens.roteador)
     app.include_router(tela_do_extrato.roteador)
+    app.include_router(telas_em_breve.roteador)
     app.include_router(tela_do_link.roteador)
     app.include_router(tela_de_agendamentos.roteador)
     tela_do_link.esconder_codigo_no_registro_de_acesso()

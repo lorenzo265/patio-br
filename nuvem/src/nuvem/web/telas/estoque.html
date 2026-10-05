@@ -1,0 +1,257 @@
+{% extends "base.html" %}
+{% block titulo %}Estoque em 3D (em breve){% endblock %}
+{% block cabeca %}
+<style>
+  body { max-width: 72rem; }
+  .em-breve { background: #fff4e0; border-left: 4px solid #b36b00; padding: 0.6rem 0.9rem; }
+  .estoque { display: grid; grid-template-columns: 18rem 1fr; gap: 1rem; }
+  @media (max-width: 48rem) { .estoque { grid-template-columns: 1fr; } }
+  #cena { width: 100%; height: 34rem; background: #eef1f4; border: 1px solid #ccc; touch-action: none; }
+  #lista { list-style: none; padding: 0; margin: 0.5rem 0; max-height: 22rem; overflow-y: auto; }
+  #lista li button { width: 100%; text-align: left; margin: 0.15rem 0; padding: 0.4rem 0.5rem;
+                     background: #fff; border: 1px solid #ccc; cursor: pointer; font-size: 0.95rem; }
+  #lista li button[aria-pressed="true"] { background: #1f3a4d; color: #fff; }
+  #escolhido { min-height: 4.5rem; }
+  .dica { font-size: 0.85rem; color: #555; }
+</style>
+<script type="importmap">
+{ "imports": { "three": "/estatico/three-0.186.1/three.module.js",
+               "three/addons/": "/estatico/three-0.186.1/addons/" } }
+</script>
+{% endblock %}
+{% block conteudo %}
+<p class="em-breve"><strong>Em breve.</strong> Esta tela mostra como será o estoque: o armazém em 3D e a busca que acende o lugar do item. Os dados são inventados.</p>
+<h1>Estoque em 3D</h1>
+<div class="estoque">
+  <div>
+    <label for="busca">Procurar um item</label>
+    <input id="busca" type="search" placeholder="ex.: café" autocomplete="off">
+    <ul id="lista">
+      {% for item in estoque.itens %}
+      <li><button type="button" data-indice="{{ loop.index0 }}" aria-pressed="false">{{ item.descricao }}</button></li>
+      {% endfor %}
+    </ul>
+    <div id="escolhido" aria-live="polite"><p class="dica">Escolha um item para ver onde ele está.</p></div>
+    <p class="dica">Arraste para girar; use a roda do mouse (ou dois dedos) para aproximar.</p>
+  </div>
+  <div id="cena" role="img" aria-label="O armazém em 3D: {{ estoque.ruas | length }} ruas de porta-paletes, com {{ estoque.predios }} prédios e {{ estoque.niveis }} níveis"></div>
+</div>
+<p><a href="/recebimento">Recebimento</a> · <a href="/">Início</a></p>
+<script type="application/json" id="dados-do-estoque">{{ dados | safe }}</script>
+<script type="module">
+  import * as THREE from "three";
+  import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+  const dados = JSON.parse(document.getElementById("dados-do-estoque").textContent);
+  const area = document.getElementById("cena");
+
+  // Medidas em metros, como num armazém de verdade.
+  const VAO = 2.8, ALTURA = 1.8, FUNDO = 1.2, CORREDOR = 3.4;
+  const PALETE = { largura: 1.0, altura: 1.2, fundo: 1.0 };
+  // Porta-paletes como nos armazéns: montantes azuis e longarinas laranja.
+  const COR = { item: 0x2f6f9f, outro: 0xc8a978, escolhido: 0xff6d00, montante: 0x2c5aa0,
+                longarina: 0xf28c28, madeira: 0x9c7a4f, faixa: 0xf2c200 };
+
+  let renderizador;
+  try {
+    renderizador = new THREE.WebGLRenderer({ antialias: true });
+  } catch (erro) {
+    area.textContent = "Este navegador não mostra 3D; o endereço do item aparece ao lado.";
+    throw erro;
+  }
+  renderizador.setPixelRatio(window.devicePixelRatio);
+  area.appendChild(renderizador.domElement);
+
+  const cena = new THREE.Scene();
+  cena.background = new THREE.Color(0xeef1f4);
+  const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 200);
+  const controles = new OrbitControls(camera, renderizador.domElement);
+  controles.enableDamping = true;
+  controles.maxPolarAngle = Math.PI / 2.1;
+
+  cena.add(new THREE.HemisphereLight(0xffffff, 0x8899aa, 2.2));
+  const sol = new THREE.DirectionalLight(0xffffff, 1.6);
+  sol.position.set(10, 20, 12);
+  cena.add(sol);
+
+  const largura = dados.predios * VAO;
+  const profundidade = dados.ruas.length * (FUNDO + CORREDOR);
+  const chao = new THREE.Mesh(
+    new THREE.PlaneGeometry(largura + 8, profundidade + 8),
+    new THREE.MeshStandardMaterial({ color: 0xc9ced3 }),
+  );
+  chao.rotation.x = -Math.PI / 2;
+  chao.position.set(largura / 2, 0, profundidade / 2 - CORREDOR / 2);
+  cena.add(chao);
+
+  // As faixas amarelas de cada corredor, no chão.
+  const faixa = new THREE.MeshBasicMaterial({ color: COR.faixa });
+  for (let r = 0; r < dados.ruas.length; r++) {
+    for (const lado of [-1, 1]) {
+      const linha = new THREE.Mesh(new THREE.PlaneGeometry(largura, 0.12), faixa);
+      linha.rotation.x = -Math.PI / 2;
+      linha.position.set(largura / 2, 0.01, r * (FUNDO + CORREDOR) + lado * (FUNDO / 2 + 0.3));
+      cena.add(linha);
+    }
+  }
+
+  function lugar(rua, predio, nivel) {
+    const r = dados.ruas.indexOf(rua);
+    return new THREE.Vector3(
+      (predio - 0.5) * VAO,
+      (nivel - 1) * ALTURA + PALETE.altura / 2 + 0.15,
+      r * (FUNDO + CORREDOR),
+    );
+  }
+
+  function rotulo(texto) {
+    const tela = document.createElement("canvas");
+    tela.width = 256; tela.height = 128;
+    const contexto = tela.getContext("2d");
+    contexto.fillStyle = "#1f3a4d";
+    contexto.beginPath();
+    contexto.roundRect(8, 8, 240, 112, 24);
+    contexto.fill();
+    contexto.fillStyle = "#ffffff";
+    contexto.font = "bold 64px system-ui, sans-serif";
+    contexto.textAlign = "center";
+    contexto.fillText(texto, 128, 86);
+    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(tela) }));
+    sprite.scale.set(2.6, 1.3, 1);
+    return sprite;
+  }
+
+  // A estrutura dos porta-paletes: montantes e longarinas de cada rua.
+  const montantes = new THREE.MeshStandardMaterial({ color: COR.montante });
+  const longarinas = new THREE.MeshStandardMaterial({ color: COR.longarina });
+  const alturaTotal = dados.niveis * ALTURA;
+  dados.ruas.forEach((rua, r) => {
+    const z = r * (FUNDO + CORREDOR);
+    for (let p = 0; p <= dados.predios; p++) {
+      for (const lado of [-FUNDO / 2, FUNDO / 2]) {
+        const montante = new THREE.Mesh(new THREE.BoxGeometry(0.1, alturaTotal, 0.1), montantes);
+        montante.position.set(p * VAO, alturaTotal / 2, z + lado);
+        cena.add(montante);
+      }
+    }
+    for (let n = 0; n < dados.niveis; n++) {
+      for (const lado of [-FUNDO / 2, FUNDO / 2]) {
+        const longarina = new THREE.Mesh(new THREE.BoxGeometry(largura, 0.12, 0.08), longarinas);
+        longarina.position.set(largura / 2, n * ALTURA + 0.1, z + lado);
+        cena.add(longarina);
+      }
+    }
+    const nome = rotulo("Rua " + rua);
+    nome.position.set(-1.8, 1.2, z);
+    cena.add(nome);
+  });
+
+  // Os paletes: os itens da lista e, nos outros lugares, paletes "de outros itens".
+  const ocupados = new Map(dados.itens.map((item, i) => [`${item.rua}-${item.predio}-${item.nivel}`, i]));
+  const caixa = new THREE.BoxGeometry(PALETE.largura, PALETE.altura, PALETE.fundo);
+  const base = new THREE.BoxGeometry(PALETE.largura + 0.1, 0.14, PALETE.fundo + 0.1);
+  const madeira = new THREE.MeshStandardMaterial({ color: COR.madeira });
+  const paletes = [];
+  dados.ruas.forEach((rua, r) => {
+    for (let p = 1; p <= dados.predios; p++) {
+      for (let n = 1; n <= dados.niveis; n++) {
+        const indice = ocupados.get(`${rua}-${p}-${n}`);
+        const cheio = indice !== undefined || (r * 31 + p * 7 + n * 3) % 5 !== 0;
+        if (!cheio) continue;
+        const material = new THREE.MeshStandardMaterial({
+          color: indice !== undefined ? COR.item : COR.outro, transparent: true, opacity: 1,
+        });
+        const palete = new THREE.Mesh(caixa, material);
+        palete.position.copy(lugar(rua, p, n));
+        palete.userData = { indice };
+        const estrado = new THREE.Mesh(base, madeira);
+        estrado.position.copy(palete.position).setY(palete.position.y - PALETE.altura / 2 - 0.07);
+        cena.add(palete, estrado);
+        paletes.push(palete);
+      }
+    }
+  });
+
+  // A seta que aponta o palete escolhido.
+  const seta = new THREE.Mesh(
+    new THREE.ConeGeometry(0.5, 1.1, 24),
+    new THREE.MeshStandardMaterial({ color: COR.escolhido, emissive: COR.escolhido, emissiveIntensity: 0.6 }),
+  );
+  seta.rotation.x = Math.PI;
+  seta.visible = false;
+  cena.add(seta);
+
+  const centro = new THREE.Vector3(largura / 2, alturaTotal / 3, profundidade / 2 - CORREDOR / 2);
+  camera.position.set(largura * 0.15, alturaTotal * 2.6, profundidade * 1.9);
+  controles.target.copy(centro);
+
+  // Ao escolher, a câmera desliza (sem girar) e chega mais perto do lugar do item.
+  let alvo = null;
+  let destinoDaCamera = null;
+  function escolher(indice) {
+    const item = dados.itens[indice];
+    paletes.forEach((palete) => {
+      const este = palete.userData.indice === indice;
+      palete.material.color.setHex(este ? COR.escolhido : palete.userData.indice !== undefined ? COR.item : COR.outro);
+      palete.material.emissive.setHex(este ? 0x552200 : 0x000000);
+      palete.material.opacity = este ? 1 : 0.45;
+    });
+    const posicao = lugar(item.rua, item.predio, item.nivel);
+    seta.position.set(posicao.x, alturaTotal + 0.8, posicao.z);
+    seta.visible = true;
+    alvo = posicao;
+    // Do alto, na frente do corredor do item: a vista passa por cima das ruas da frente.
+    destinoDaCamera = new THREE.Vector3(posicao.x + 2, alturaTotal + 6, posicao.z + 10);
+    document.querySelectorAll("#lista button").forEach((botao) => {
+      botao.setAttribute("aria-pressed", String(Number(botao.dataset.indice) === indice));
+    });
+    const predio = String(item.predio).padStart(2, "0");
+    document.getElementById("escolhido").innerHTML = "";
+    const titulo = document.createElement("p");
+    titulo.innerHTML = "<strong></strong>";
+    titulo.firstChild.textContent = item.descricao;
+    const endereco = document.createElement("p");
+    endereco.textContent = `Rua ${item.rua} · prédio ${predio} · nível ${item.nivel} · ${item.saldo} ${item.unidade}`;
+    document.getElementById("escolhido").append(titulo, endereco);
+  }
+
+  document.querySelectorAll("#lista button").forEach((botao) => {
+    botao.addEventListener("click", () => escolher(Number(botao.dataset.indice)));
+  });
+  const semAcento = (texto) => texto.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+  const busca = document.getElementById("busca");
+  busca.addEventListener("input", () => {
+    const procurado = semAcento(busca.value.trim());
+    const achados = [];
+    document.querySelectorAll("#lista li").forEach((li) => {
+      const botao = li.querySelector("button");
+      const achou = semAcento(botao.textContent).includes(procurado);
+      li.hidden = !achou;
+      if (achou) achados.push(Number(botao.dataset.indice));
+    });
+    if (procurado && achados.length === 1) escolher(achados[0]);
+  });
+
+  function ajustar() {
+    const { clientWidth: l, clientHeight: a } = area;
+    renderizador.setSize(l, a);
+    camera.aspect = l / a;
+    camera.updateProjectionMatrix();
+  }
+  window.addEventListener("resize", ajustar);
+  ajustar();
+
+  renderizador.setAnimationLoop((tempo) => {
+    if (alvo) {
+      controles.target.lerp(alvo, 0.06);
+      if (destinoDaCamera) {
+        camera.position.lerp(destinoDaCamera, 0.06);
+        if (camera.position.distanceTo(destinoDaCamera) < 0.05) destinoDaCamera = null;
+      }
+      seta.position.y = alturaTotal + 1.0 + Math.sin(tempo / 250) * 0.15;
+    }
+    controles.update();
+    renderizador.render(cena, camera);
+  });
+</script>
+{% endblock %}
