@@ -12,6 +12,7 @@ from tarefas.comandos import (
     RaizNaoEncontradaError,
     encontrar_raiz,
     etapas_do_check,
+    etapas_do_conhecimento,
     etapas_do_demo,
     etapas_do_demonstracao,
     etapas_do_down,
@@ -184,6 +185,12 @@ def test_semente_grava_os_dados_de_demonstracao_da_nuvem() -> None:
     (etapa,) = etapas_do_semente()
 
     assert etapa.argumentos[2:] == ("nuvem.semente",)
+
+
+def test_conhecimento_gera_o_vault_do_obsidian() -> None:
+    (etapa,) = etapas_do_conhecimento()
+
+    assert etapa.argumentos[2:] == ("tarefas.conhecimento",)
 
 
 def test_demonstracao_cria_a_empresa_de_demonstracao_da_nuvem() -> None:
