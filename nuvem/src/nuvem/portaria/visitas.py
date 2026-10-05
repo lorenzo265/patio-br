@@ -7,8 +7,9 @@
   recusado (``TransicaoInvalidaError``) e nada muda.
 - **O evento só se acrescenta:** o banco recusa alterar ou apagar.
 - **A composição** diz, de cada placa, se foi lida pela câmera ou inferida do agendamento (D-17).
-- **Quem grava** é a nuvem, a partir da passagem (o casamento, no mês 2): ``SiteDaVisita`` diz
-  onde. **Quem lê** passa o ``Acesso``.
+- **Quem grava** é a nuvem, a partir da passagem (o casamento) ou do porteiro (a resolução da
+  exceção e a chegada manual, em ``resolucao``): ``SiteDaVisita`` diz onde. **Quem lê** passa o
+  ``Acesso``.
 
 As funções gravam com ``flush``; o ``commit`` é de quem chama.
 """
@@ -39,16 +40,22 @@ from nuvem.portaria.modelos import (
 
 ABRE: dict[TipoDeEvento, EstadoDaVisita] = {
     "check_in": "NA_FILA",
+    "aceita_sem_agendamento": "NA_FILA",
     "excecao": "EXCECAO",
     "nao_veio": "NAO_VEIO",
 }
-"""Os eventos que abrem uma visita, e o estado em que ela nasce."""
+"""Os eventos que abrem uma visita, e o estado em que ela nasce (a chegada manual abre com
+``check_in`` ou ``aceita_sem_agendamento``, D-46)."""
 
 TRANSICOES: dict[tuple[EstadoDaVisita, TipoDeEvento], EstadoDaVisita] = {
     ("NA_FILA", "saiu_sem_atendimento"): "SAIU",
     ("EXCECAO", "saiu_sem_atendimento"): "SAIU",
+    ("EXCECAO", "check_in"): "NA_FILA",
+    ("EXCECAO", "aceita_sem_agendamento"): "NA_FILA",
+    ("EXCECAO", "recusada"): "RECUSADA",
+    ("EXCECAO", "placa_corrigida"): "EXCECAO",
 }
-"""De um estado, cada evento permitido e o estado seguinte (o mês 3 acrescenta o pátio)."""
+"""De um estado, cada evento permitido e o estado seguinte (o pátio vem na T42)."""
 
 ABERTOS: tuple[EstadoDaVisita, ...] = ("NA_FILA", "EXCECAO")
 """Os estados de quem ainda está no site (a saída fecha a visita aberta da placa)."""
@@ -65,7 +72,8 @@ class PlacaNaVisita(BaseModel):
 
     placa: Placa
     papel: Papel
-    como: Literal["lida", "inferida"]
+    como: Literal["lida", "inferida", "digitada"]
+    """Lida pela câmera, inferida do agendamento ou digitada pelo porteiro (D-46)."""
 
 
 @dataclass(frozen=True)
@@ -175,8 +183,12 @@ def registrar(
     passagem_id: UUID | None = None,
     dados: dict[str, Any] | None = None,
     usuario_id: int | None = None,
+    resolucao: str = "",
 ) -> Visita:
     """Registra um evento numa visita aberta e a leva ao estado seguinte.
+
+    Quando a visita sai de ``EXCECAO``, a exceção fica resolvida por quem registrou (vazio = o
+    sistema), com a ``resolucao`` (ou o nome do evento).
 
     Raises:
         TransicaoInvalidaError: se o evento não cabe no estado atual (nada muda).
@@ -189,8 +201,9 @@ def registrar(
     if novo == "SAIU":
         visita.saiu_em = momento
         visita.passagem_saida_id = passagem_id
-        if anterior == "EXCECAO":
-            _resolver_pelo_sistema(sessao, visita, "saiu", agora)
+    if anterior == "EXCECAO" and novo != "EXCECAO":
+        texto = resolucao or ("saiu" if novo == "SAIU" else evento)
+        _resolver_excecao(sessao, visita, texto, usuario_id, agora)
     _evento(sessao, visita, evento, momento, agora, passagem_id, dados, usuario_id)
     return visita
 
@@ -221,8 +234,8 @@ def _evento(
     sessao.flush()
 
 
-def _resolver_pelo_sistema(
-    sessao: Session, visita: Visita, resolucao: str, agora: datetime
+def _resolver_excecao(
+    sessao: Session, visita: Visita, resolucao: str, usuario_id: int | None, agora: datetime
 ) -> None:
     excecao = sessao.scalars(
         select(Excecao).where(
@@ -234,7 +247,22 @@ def _resolver_pelo_sistema(
     if excecao is not None:
         excecao.situacao = "resolvida"
         excecao.resolvida_em = agora
+        excecao.resolvida_por = usuario_id
         excecao.resolucao = resolucao
+
+
+def mudar_composicao(visita: Visita, placas: Sequence[PlacaNaVisita]) -> None:
+    """Troca as placas da visita (ex.: o porteiro corrigiu a placa numa exceção).
+
+    Raises:
+        ValueError: se a composição tiver dois cavalos ou a mesma placa duas vezes.
+    """
+    visita.composicao = _composicao(placas)
+
+
+def composicao_da_visita(visita: Visita) -> tuple[PlacaNaVisita, ...]:
+    """As placas da visita, como ``PlacaNaVisita``."""
+    return tuple(PlacaNaVisita.model_validate(placa) for placa in visita.composicao)
 
 
 def _composicao(placas: Sequence[PlacaNaVisita]) -> list[dict[str, Any]]:

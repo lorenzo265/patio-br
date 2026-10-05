@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block titulo %}Exceção da portaria{% endblock %}
+{% block conteudo %}
+<h1>Exceção da portaria</h1>
+<p>Chegada de {{ data }} <strong>{{ hora }}</strong> · {{ motivo }}</p>
+{% if aviso %}
+<p class="erro">{{ aviso }}</p>
+{% endif %}
+{% if resolvida %}
+<p><strong>Resolvida às {{ resolvida }}</strong></p>
+{% endif %}
+<p>Placas:
+  {% for placa in placas %}<strong>{{ placa.placa }}</strong> ({{ placa.papel }}){% if not loop.last %}, {% endif %}{% else %}<em>nenhuma lida</em>{% endfor %}
+</p>
+
+{% if aberta %}
+<h2>A placa está certa?</h2>
+{% for recorte in recortes %}
+<section id="recorte-{{ recorte.foto }}" style="border: 1px solid #ccc; padding: 0.75rem; margin-bottom: 0.75rem;">
+  <img src="/portaria/fotos/{{ excecao.passagem_id }}/{{ recorte.foto }}" alt="foto da placa (ainda não chegou?)" height="120">
+  {% if recorte.placa_lida %}
+  <p>O leitor leu <strong>{{ recorte.placa_lida }}</strong>.</p>
+  {% else %}
+  <p>O leitor não leu nenhuma placa nesta foto.</p>
+  {% endif %}
+  <form method="post" action="/portaria/excecoes/{{ excecao.id }}/conferir">
+    <input type="hidden" name="foto" value="{{ recorte.foto }}">
+    <label>Placa da foto
+      <input name="placa" required maxlength="8" autocomplete="off" autocapitalize="characters">
+    </label>
+    <button type="submit">Corrigir e casar de novo</button>
+  </form>
+</section>
+{% else %}
+<form method="post" action="/portaria/excecoes/{{ excecao.id }}/cavalo">
+  <label>Placa do cavalo
+    <input name="placa" required maxlength="8" autocomplete="off" autocapitalize="characters">
+  </label>
+  <button type="submit">Casar com esta placa</button>
+</form>
+{% endfor %}
+
+<h2>Qual é o agendamento?</h2>
+{% if opcoes %}
+<table>
+  <thead><tr><th>Agendamento</th><th>Placas esperadas</th><th>Janela</th><th>Motorista</th><th>Pontos</th><th></th></tr></thead>
+  <tbody>
+  {% for opcao in opcoes %}
+    <tr>
+      <td>{{ opcao.codigo }}</td><td>{{ opcao.placas }}</td><td>{{ opcao.janela }}</td><td>{{ opcao.motorista }}</td><td>{{ opcao.pontos }} pontos</td>
+      <td>
+        <form method="post" action="/portaria/excecoes/{{ excecao.id }}/agendamento">
+          <input type="hidden" name="agendamento_id" value="{{ opcao.id }}">
+          <button type="submit">É este</button>
+        </form>
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p><em>Nenhum agendamento perto desta hora.</em></p>
+{% endif %}
+
+<h2>Sem agendamento</h2>
+<form method="post" action="/portaria/excecoes/{{ excecao.id }}/sem-agendamento">
+  <button type="submit">Aceitar sem agendamento</button>
+</form>
+<form method="post" action="/portaria/excecoes/{{ excecao.id }}/recusar">
+  <button type="submit">Recusar a entrada</button>
+</form>
+{% endif %}
+<p><a href="/portaria?site={{ site_id }}">Voltar para a portaria</a></p>
+{% endblock %}

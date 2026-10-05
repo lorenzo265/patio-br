@@ -24,7 +24,7 @@ from nuvem.banco import obter_sessao
 from nuvem.cadastro import servico as cadastro
 from nuvem.cadastro.acesso import Acesso, exigir_papel
 from nuvem.erros import NaoEncontradoError
-from nuvem.portaria import conferencia, visitas
+from nuvem.portaria import conferencia, resolucao, visitas
 from nuvem.portaria import servico as portaria
 from nuvem.portaria.modelos import ConferenciaPlaca, Excecao, PassagemRecebida
 from nuvem.relogio import agora
@@ -98,7 +98,7 @@ def conferir(
 ) -> HTMLResponse | RedirectResponse:
     """Grava a placa certa de um recorte e volta para a página da conferência."""
     try:
-        conferencia.conferir(sessao, acesso, passagem_id, foto, placa, agora=momento)
+        resolucao.conferir_placa(sessao, acesso, passagem_id, foto, placa, agora=momento)
     except PlacaInvalidaError:
         erro = f"A placa “{placa.strip()}” {FORA_DO_FORMATO}."
         return _conferir(request, sessao, acesso, passagem_id, erro=erro)
