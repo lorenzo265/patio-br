@@ -344,8 +344,9 @@ def test_banco_recusa_apagar_um_evento(
 
 
 def test_banco_recusa_esvaziar_a_tabela_de_eventos(sessao: Session) -> None:
+    # Com CASCADE, a chave estrangeira das mensagens não para o TRUNCATE antes do gatilho.
     with pytest.raises(DBAPIError) as erro:
-        sessao.execute(text("truncate evento"))
+        sessao.execute(text("truncate evento cascade"))
 
     assert sqlstate(erro.value) == SQLSTATE_SO_ACRESCENTA
 

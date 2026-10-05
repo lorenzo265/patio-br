@@ -9,6 +9,7 @@
 - **"Não veio"** (SDD 5.2): a cada 5 minutos, o agendamento ativo sem visita, com a janela
   vencida há mais que a tolerância, ganha a visita em ``NAO_VEIO``. Um worker de cada vez (trava
   do PostgreSQL).
+- **Mensagens ao motorista** (D-47): a cada volta, as que faltam (``mensagens.preparar``).
 
 O worker roda em outro processo (``python -m nuvem.worker``).
 """
@@ -36,6 +37,7 @@ from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from nuvem.agendamento import servico as agendamentos
 from nuvem.banco import Base, texto_de_lista
+from nuvem.mensagens import servico as mensagens
 from nuvem.portaria import visitas
 from nuvem.portaria.casamento import TOLERANCIA_PADRAO, processar_passagem
 from nuvem.portaria.modelos import Visita
@@ -259,7 +261,7 @@ def rodar(
     relogio: Callable[[], datetime] = agora_de_verdade,
     dormir: Callable[[float], None] = time.sleep,
 ) -> None:
-    """Executa as tarefas e confere o "não veio" até ``parar`` ser ligado.
+    """Executa as tarefas, confere o "não veio" e prepara as mensagens até ``parar`` ser ligado.
 
     Um erro inesperado (ex.: o banco fora do ar) fica registrado, e o laço segue.
     """
@@ -275,6 +277,8 @@ def rodar(
                     ultimo_nao_veio = momento
                     if abertas:
                         _registro.info('"não veio": %d visitas', abertas)
+                mensagens.preparar(sessao, agora=momento)
+                sessao.commit()
         except Exception:
             _registro.exception("erro no laço do worker; ele segue")
             dormir(PAUSA_DEPOIS_DE_ERRO)

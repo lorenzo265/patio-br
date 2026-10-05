@@ -35,6 +35,7 @@ from nuvem.portaria import rotas as portaria
 from nuvem.senhas import Senhas
 from nuvem.web import agendamentos as tela_de_agendamentos
 from nuvem.web import agendar as tela_do_link
+from nuvem.web import mensagens as tela_das_mensagens
 from nuvem.web import patio as tela_do_patio
 from nuvem.web import portaria as tela_da_portaria
 from nuvem.web import resolucao as tela_de_resolucao
@@ -86,6 +87,7 @@ def criar_app(configuracao: Configuracao | None = None, senhas: Senhas | None = 
     app.include_router(tela_da_portaria.roteador)
     app.include_router(tela_de_resolucao.roteador)
     app.include_router(tela_do_patio.roteador)
+    app.include_router(tela_das_mensagens.roteador)
     app.include_router(tela_do_link.roteador)
     app.include_router(tela_de_agendamentos.roteador)
     tela_do_link.esconder_codigo_no_registro_de_acesso()

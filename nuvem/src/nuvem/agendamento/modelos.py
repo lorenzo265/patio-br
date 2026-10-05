@@ -55,6 +55,8 @@ class Agendamento(Base):
         CheckConstraint("link_id IS NULL OR origem = 'link'", name="link_so_na_origem_link"),
         # A tela e o casamento procuram os agendamentos de um site por dia.
         Index("ix_agendamento_site_id_janela_inicio", "site_id", "janela_inicio"),
+        # A confirmação ao motorista procura os agendamentos mudados há pouco (D-47).
+        Index("ix_agendamento_atualizado_em", "atualizado_em"),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)

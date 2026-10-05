@@ -6,7 +6,7 @@
     {% if doca.caminhao %}
     {% set c = doca.caminhao %}
     <p><strong>{{ c.placas }}</strong> · {{ c.situacao }} · {{ c.tempo }} desde a chegada</p>
-    <p>{{ c.agendamento }} {{ c.tipo }}</p>
+    <p>{{ c.agendamento }} {{ c.tipo }}{% if c.agendamento_id %} · <a href="/mensagens/agendamentos/{{ c.agendamento_id }}">mensagens</a>{% endif %}</p>
     {% if c.alerta %}<p class="erro">{{ c.alerta }}</p>{% endif %}
     {% if c.estado == "CHAMADA" %}
     <form method="post" action="/patio/visitas/{{ c.visita_id }}/comecar"><button type="submit">Começar</button></form>
@@ -31,7 +31,7 @@
       <td><strong>{{ c.placas }}</strong></td>
       <td>{{ c.chegada }}</td>
       <td>{{ c.tempo }}{% if c.alerta %} <span class="erro">{{ c.alerta }}</span>{% endif %}</td>
-      <td>{{ c.agendamento }} {{ c.tipo }}</td>
+      <td>{{ c.agendamento }} {{ c.tipo }}{% if c.agendamento_id %} · <a href="/mensagens/agendamentos/{{ c.agendamento_id }}">mensagens</a>{% endif %}</td>
       <td><a href="/patio/visitas/{{ c.visita_id }}/chamar">Chamar</a></td>
     </tr>
   {% endfor %}

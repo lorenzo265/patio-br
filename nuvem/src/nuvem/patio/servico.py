@@ -17,7 +17,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
-from sqlalchemy import select
+from sqlalchemy import func, select, tuple_
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import Session
 
@@ -56,6 +56,7 @@ class CaminhaoNoPatio:
     visita_id: int
     estado: EstadoDaVisita
     placas: tuple[str, ...]
+    agendamento_id: int | None
     agendamento: str | None
     """O código do agendamento; vazio se entrou sem agendamento."""
     tipo: Tipo | None
@@ -154,6 +155,25 @@ def obter_caminhao(
     ids = [visita.agendamento_id] if visita.agendamento_id is not None else []
     nomes = {d.id: d.nome for d in _docas_do_site(sessao, acesso, visita.site_id)}
     return _caminhao(visita, agendamentos.resumos(sessao, acesso, ids), nomes, agora)
+
+
+def posicao_na_fila(sessao: Session, visita: Visita) -> int:
+    """A posição do caminhão na fila do site: 1 mais quantos chegaram antes e ainda esperam.
+
+    Para o aviso do check-in ao motorista (D-47); quem chama já tem a visita. Quem chegou na
+    mesma hora fica atrás de quem entrou antes no sistema, como no quadro.
+    """
+    na_frente = sessao.scalar(
+        select(func.count())
+        .select_from(Visita)
+        .where(
+            Visita.empresa_id == visita.empresa_id,
+            Visita.site_id == visita.site_id,
+            Visita.estado == "NA_FILA",
+            tuple_(Visita.chegou_em, Visita.id) < tuple_(visita.chegou_em, visita.id),
+        )
+    )
+    return (na_frente or 0) + 1
 
 
 # --- Mover ------------------------------------------------------------------------------------
@@ -310,6 +330,7 @@ def _caminhao(
         visita_id=visita.id,
         estado=visita.estado,
         placas=_placas(visita),
+        agendamento_id=visita.agendamento_id,
         agendamento=resumo.codigo if resumo else None,
         tipo=resumo.tipo if resumo else None,
         chegou_em=chegada,

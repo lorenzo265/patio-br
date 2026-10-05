@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block titulo %}Mensagens aos motoristas · {{ site.nome }}{% endblock %}
+{% block conteudo %}
+<h1>Mensagens aos motoristas · {{ site.nome }}</h1>
+{% if outros_sites %}
+<p>Outros sites: {% for outro in outros_sites %}<a href="/mensagens?site={{ outro.id }}">{{ outro.nome }}</a>{% if not loop.last %} · {% endif %}{% endfor %}</p>
+{% endif %}
+<p>Demonstração: as mensagens ficam guardadas aqui, e nada é enviado ao motorista.</p>
+{% if conversas %}
+<table>
+  <thead><tr><th>Agendamento</th><th>Última mensagem</th><th>Quando</th><th></th></tr></thead>
+  <tbody>
+  {% for c in conversas %}
+    <tr>
+      <td><strong>{{ c.codigo }}</strong> {{ c.tipo }}</td>
+      <td>{{ c.ultima }}</td>
+      <td>{{ c.quando }}</td>
+      <td><a href="/mensagens/agendamentos/{{ c.agendamento_id }}">ver no celular ({{ c.quantas }})</a></td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p>Nenhuma mensagem ainda.</p>
+{% endif %}
+<p><a href="/">Início</a></p>
+{% endblock %}

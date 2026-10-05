@@ -358,6 +358,41 @@ def ativos_que_terminaram(sessao: Session, *, de: datetime, ate: datetime) -> li
     )
 
 
+def para_confirmar(
+    sessao: Session, *, mudados_desde: datetime, agora: datetime
+) -> list[Agendamento]:
+    """Os agendamentos ativos com celular, de todos os sites, criados ou mudados desde
+    ``mudados_desde`` e cuja janela ainda não terminou.
+
+    Para a confirmação ao motorista (D-47), que o worker prepara para a plataforma inteira.
+    """
+    return list(
+        sessao.scalars(
+            select(Agendamento)
+            .where(
+                Agendamento.situacao == "ativo",
+                Agendamento.motorista_celular.is_not(None),
+                Agendamento.atualizado_em >= mudados_desde,
+                Agendamento.janela_fim > agora,
+            )
+            .order_by(Agendamento.id)
+        )
+    )
+
+
+def com_celular(sessao: Session, agendamento_ids: Sequence[int]) -> dict[int, Agendamento]:
+    """Os agendamentos com celular entre estes, de todos os sites, por id.
+
+    Para os avisos ao motorista (D-47): quem chama tirou os ids dos eventos das visitas.
+    """
+    linhas = sessao.scalars(
+        select(Agendamento).where(
+            Agendamento.id.in_(agendamento_ids), Agendamento.motorista_celular.is_not(None)
+        )
+    )
+    return {agendamento.id: agendamento for agendamento in linhas}
+
+
 def listar(
     sessao: Session, acesso: Acesso, site_id: int, *, de: datetime, ate: datetime
 ) -> list[Agendamento]:

@@ -1,7 +1,7 @@
 # SDD — patio-br (nome provisório)
 
 **Documento de desenho do software (SDD) do MVP do piloto**
-Versão 0.32 · 2026-10-05 · Situação: aprovado como base; itens em aberto na seção 12
+Versão 0.33 · 2026-10-05 · Situação: aprovado como base; itens em aberto na seção 12
 
 ---
 
@@ -246,7 +246,7 @@ Um módulo só usa outro pelas funções de serviço dele, nunca acessando as ta
 | `agendamento` | agendamentos e **conectores**: link próprio, planilha, API genérica | (usa o do cliente) |
 | `portaria` | recebe passagens, casa com agendamento, check-in, exceções, saída | Gate Management |
 | `patio` | fila, chamada, docas, início e fim | Dispatch / Dock (manual) |
-| `mensagens` | WhatsApp oficial (Meta) e SMS de reserva | Driver communication |
+| `mensagens` | mensagens ao motorista: canal de demonstração (mês 3), WhatsApp oficial (Meta) e SMS de reserva (mês 4) | Driver communication |
 | `alertas` | perto de 5h, chegada sem agendamento, câmera ou caixa fora do ar | parte do YOS |
 | `extrato` | indicadores e extrato mensal em R$ | Analytics / ROI |
 | `prova` | trilha de eventos que não se edita | Chain of custody |
@@ -463,7 +463,7 @@ acadêmico (`docs/validacao/fontes-de-placas.md`). Por isso:
 | `Evento` | visita, tipo, horário, autor (sistema ou usuário), dados, foto (pela passagem) — **só se acrescenta**: o banco recusa alterar ou apagar |
 | `Excecao` | visita, passagem, motivo, candidatos (agendamento e pontos), situação (aberta ou resolvida), resolução, quem resolveu |
 | `ConferenciaPlaca` | passagem, foto (o recorte da placa), placa lida, placa conferida, quem, quando — **só se acrescenta**: conferir de novo é outro registro, e o último vale (D-42) |
-| `Mensagem` | visita, canal, modelo, situação (enviada, entregue, lida, falhou), custo |
+| `Mensagem` | agendamento, evento que a gerou (vazio na confirmação), modelo (confirmação, na fila, chamada, pode sair), para (o celular), texto pronto, canal (demonstração; WhatsApp e SMS no mês 4), situação (guardada; no mês 4: enviada, entregue, lida, falhou), custo (mês 4) — uma por evento e uma confirmação por celular do agendamento (D-47) |
 | `ParametrosSite` | custo mensal de um ponto de portaria, postos antes/depois, valor da estadia (R$/t·h), franquia (h), tolerância de janela, horas para alerta, custo hora-doca (opcional) |
 | `Extrato` | site, mês, números calculados, versão da regra de cálculo |
 | `CaixaBorda` | site, versão instalada, último contato, saúde, chave de acesso (só o resumo), ativada em, revogada em |
@@ -954,6 +954,7 @@ do cuidado de cargas (D-43).
 | D-44 | O treino do leitor começa com **placas sintéticas e bases abertas**: placas Mercosul geradas por programa, a base Artificial Mercosur (CC BY 4.0) e, para o detector, bases abertas de fora (Open Images, CCPD), guardando só a região da placa (D-39) | decisão do Lorenzo em 05/10, pela opção 1 do `[ABERTO-18]`: não usa dado pessoal e começa já; um estudo de 2025 com placas brasileiras acertou 94,5% com só 10% das placas reais e muitas sintéticas, contra 18% sem as sintéticas | esperar as placas reais (o treino parado até o site parceiro) |
 | D-45 | O mês 3 vira a **demonstração comercial na internet**: o produto funcionando e com marca própria, num endereço público, só com dados inventados; cada empresa visitada recebe um link e ganha uma empresa de demonstração só dela. Os indicadores, o extrato e a segurança para a internet vêm do mês 4; a caixa de borda com saúde e atualização, a trilha de prova completa e os alertas vão para o mês 4 | pedido do Lorenzo em 05/10: para apresentar a ideia às empresas, o sistema precisa estar funcionando e bonito, para impressionar e mostrar que somos sérios; o site parceiro foi adiado, e as conversas vêm antes dele | apresentar com as telas cruas; uma maquete só de imagens (não mostra o produto funcionando) |
 | D-46 | A **chegada manual não abre exceção**: o porteiro escolhe o agendamento entre as sugestões (pelos pontos das placas que digitou) ou nenhum, e a visita nasce na fila. **Corrigir a placa numa exceção aberta casa de novo** (o que a D-42 deixou para o mês 3). A placa que o porteiro escreveu fica marcada como "digitada" na composição | o porteiro está ali e decide na hora; uma exceção para ele mesmo resolver seria um passo a mais. Casar de novo com a placa certa poupa a busca do agendamento à mão. "Digitada" separa o que a câmera leu do que a pessoa escreveu, e o check-in feito por uma pessoa (o evento tem autor) não conta como automático no extrato | a chegada manual virar exceção; a placa corrigida valer só como rótulo (D-42), com o porteiro procurando o agendamento |
+| D-47 | As **mensagens ao motorista nascem dos eventos, pelo worker**: a confirmação, de cada agendamento ativo com celular que ainda não terminou; "na fila, posição X", do check-in; "vá para a doca", da chamada; "pode sair", do fim na doca. O worker olha os eventos dos últimos 30 minutos e os agendamentos criados ou mudados no último dia; cada evento gera uma mensagem só, e cada celular de um agendamento, uma confirmação (o banco confere). O texto fica pronto na mensagem, sem o nome do motorista. No mês 3 o canal é o de demonstração, que só guarda; no mês 4 o canal do WhatsApp manda a mesma mensagem, só com a autorização do motorista (seção 8.3), e anota a situação | o módulo `mensagens` fica fora da portaria e do pátio e usa só as funções de serviço deles (seção 3.3); aviso velho não sai ("vá para a doca 7" uma hora depois atrapalha); o texto guardado é o que o motorista leu, e o nome dele não se repete em outra tabela | gravar a mensagem na mesma transação do evento (exata na hora, mas a portaria e o pátio passariam a depender das mensagens); montar o texto só na hora de mostrar (a tela mudaria o que já foi mandado) |
 
 ---
 
@@ -1046,3 +1047,4 @@ do cuidado de cargas (D-43).
 | 0.30 | 2026-10-05 | plano do mês 3 refeito como a demonstração comercial na internet (D-45; `docs/planos/2026-12-plano-mes-3.md`): ambiente de demonstração, telas do celular do motorista e da visão do recebimento e do estoque, segurança antes da internet, cronograma; novo `[ABERTO-21]` (fontes OFL) (seções 6.2, 7.1, 8.2, 10, 11 e 12) |
 | 0.31 | 2026-10-05 | portaria definitiva (T41): a placa corrigida numa exceção casa de novo e a chegada manual sem exceção (D-46); placa "digitada" na composição (seções 5.1, 5.2 e 11) |
 | 0.32 | 2026-10-05 | pátio e docas (T42): chamada, início, fim e cancelamento da chamada, uma doca por caminhão, a saída de quem passou pela doca e o alerta das 4 horas (seção 5.2) |
+| 0.33 | 2026-10-05 | mensagens do motorista (T43): nascem dos eventos pelo worker, no canal de demonstração (D-47); a entidade `Mensagem` e o módulo `mensagens` (seções 3.3, 5.1 e 11) |

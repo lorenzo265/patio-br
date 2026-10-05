@@ -134,10 +134,13 @@ class Evento(Base):
 
     __tablename__ = "evento"
     __table_args__ = (
+        pode_ser_pai(),
         do_pai_na_mesma_empresa("visita"),
         do_pai_na_mesma_empresa("usuario"),
         do_pai_na_mesma_empresa("passagem"),
         Index("ix_evento_visita_id", "visita_id"),
+        # As mensagens ao motorista procuram os eventos recentes (D-47).
+        Index("ix_evento_registrado_em", "registrado_em"),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)

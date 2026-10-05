@@ -317,6 +317,30 @@ def eventos_da_visita(sessao: Session, acesso: Acesso, visita_id: int) -> list[E
     )
 
 
+def eventos_recentes(
+    sessao: Session, tipos: Sequence[TipoDeEvento], *, desde: datetime
+) -> list[tuple[Evento, Visita]]:
+    """Os eventos destes tipos registrados desde ``desde``, de todos os sites, com a visita, na
+    ordem em que foram registrados; só os das visitas com agendamento.
+
+    Para os avisos ao motorista (D-47), que o worker prepara para a plataforma inteira.
+    """
+    return list(
+        sessao.execute(
+            select(Evento, Visita)
+            .join(
+                Visita, and_(Visita.id == Evento.visita_id, Visita.empresa_id == Evento.empresa_id)
+            )
+            .where(
+                Evento.tipo.in_(tipos),
+                Evento.registrado_em >= desde,
+                Visita.agendamento_id.is_not(None),
+            )
+            .order_by(Evento.id)
+        )
+    )
+
+
 def excecoes_abertas(sessao: Session, acesso: Acesso, site_id: int) -> list[Excecao]:
     """As exceções abertas de um site, da chegada mais antiga para a mais nova.
 
