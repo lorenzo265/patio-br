@@ -58,6 +58,8 @@ def pode_ser_pai() -> UniqueConstraint:
 SQLSTATE_CHAVE_ESTRANGEIRA = "23503"
 SQLSTATE_CHECK = "23514"
 SQLSTATE_UNICIDADE = "23505"
+SQLSTATE_SO_ACRESCENTA = "23001"
+"""O gatilho ``so_acrescenta`` recusou alterar ou apagar uma linha de prova (SDD 5.5)."""
 
 
 def sqlstate(erro: DBAPIError) -> str | None:

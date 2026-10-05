@@ -1,7 +1,7 @@
 # SDD — patio-br (nome provisório)
 
 **Documento de desenho do software (SDD) do MVP do piloto**
-Versão 0.23 · 2026-10-04 · Situação: aprovado como base; itens em aberto na seção 12
+Versão 0.24 · 2026-10-04 · Situação: aprovado como base; itens em aberto na seção 12
 
 ---
 
@@ -444,9 +444,9 @@ O banco público brasileiro (RodoSol-ALPR) só permite uso acadêmico. Por isso:
 | `MudancaAgendamento` | agendamento, quando, tipo (criado, alterado, cancelado), por onde (a origem do conector ou o painel), quem (usuário, se houver), o que era e o que ficou — **só se acrescenta** |
 | `Veiculo` | placa, tipo (cavalo, reboque, caminhão simples); campo de posição no pátio reservado para o modo B |
 | `Passagem` | formato da seção 3.2 |
-| `Visita` | site, agendamento (opcional), composição confirmada (cada placa marcada como lida ou inferida), estado, horários de cada etapa, doca |
-| `Evento` | visita, tipo, horário, autor (sistema ou usuário), dados, foto — **só se acrescenta** |
-| `Excecao` | passagem, motivo, candidatos, situação, resolução, quem resolveu |
+| `Visita` | site, agendamento (opcional; no máximo uma visita por agendamento), passagens de entrada e de saída, composição confirmada (cada placa marcada como lida ou inferida), estado, horários de cada etapa, doca |
+| `Evento` | visita, tipo, horário, autor (sistema ou usuário), dados, foto (pela passagem) — **só se acrescenta**: o banco recusa alterar ou apagar |
+| `Excecao` | visita, passagem, motivo, candidatos (agendamento e pontos), situação (aberta ou resolvida), resolução, quem resolveu |
 | `Mensagem` | visita, canal, modelo, situação (enviada, entregue, lida, falhou), custo |
 | `ParametrosSite` | custo mensal de um ponto de portaria, postos antes/depois, valor da estadia (R$/t·h), franquia (h), tolerância de janela, horas para alerta, custo hora-doca (opcional) |
 | `Extrato` | site, mês, números calculados, versão da regra de cálculo |
@@ -470,6 +470,14 @@ passagem sem casamento ─▶ EXCECAO ─porteiro resolve─┘   (ou RECUSADA)
 - Visita sem agendamento (o porteiro aceita uma exceção sem agendamento) é criada já em
   `NA_FILA`, com `agendamento = vazio`.
 - Saída sem passar pela doca é registrada como `SAIU` com o evento "saiu sem atendimento".
+- **A visita nasce na chegada** (D-35): a entrada que casou cria a visita em `NA_FILA`; a que
+  não casou, em `EXCECAO`, junto com a `Excecao` (motivo e candidatos). No prazo do "não veio",
+  o agendamento sem visita ganha uma, em `NAO_VEIO`. Antes disso, o `AGENDADA` do diagrama é o
+  agendamento ativo que ainda não tem visita.
+- O porteiro resolve a exceção na própria visita (mês 3): liga a um agendamento, ou aceita sem
+  agendamento, e ela vai para `NA_FILA`; ou recusa, e ela vai para `RECUSADA`. Se o caminhão
+  sai antes, a visita vai para `SAIU` e a exceção fica resolvida pelo sistema ("saiu").
+- Toda mudança de estado vem com um evento; uma mudança fora do diagrama é recusada.
 
 ### 5.3 Casamento da chegada com o agendamento
 
@@ -508,6 +516,7 @@ Pontuação inicial (os pesos e o limite são ajustados com os dados do mês 2 �
 
 - **Reenvio seguro:** passagem com `id` repetido é ignorada.
 - **Prova:** horários e fotos não se editam. Correção = evento novo; a leitura original fica.
+  O banco recusa alterar ou apagar um evento da visita ou uma mudança de agendamento.
 - **Separação de clientes:** nenhuma consulta sem filtro de empresa; testes tentam furar isso.
   O banco também garante: cada tabela filha aponta para o pai pela dupla (pai, empresa), então
   não aceita, por exemplo, uma portaria de uma empresa num site de outra.
@@ -857,6 +866,7 @@ folga.
 | D-32 | O agendamento tem situação própria, só ativo ou cancelado; o andamento da chegada (`AGENDADA`, `NA_FILA`, `NAO_VEIO`...) é da visita (seção 5.2) | o agendamento muda pela origem (a planilha reimportada, o link) até o caminhão chegar; se carregasse os estados da chegada, um reenvio da planilha poderia mexer num check-in já feito | o agendamento com os estados da visita |
 | D-33 | O mesmo `codigo_externo` da mesma origem, no mesmo site, atualiza o agendamento, e a mudança fica registrada | o gestor reimporta a planilha do dia várias vezes, com correções; recusar a repetida o obrigaria a apagar e criar de novo, e duplicar deixaria dois candidatos iguais no casamento | recusar o código repetido; criar outro agendamento |
 | D-34 | O código do link da transportadora vai no endereço, e não num campo para digitar; o banco guarda só o resumo, e o registro de acesso o esconde | a transportadora abre o link no celular, direto da mensagem, sem copiar nada; o código é longo (sorteado pela nuvem) e o resumo basta para conferir | um código curto para digitar numa página fixa (mais um passo, e curto é fácil de adivinhar) |
+| D-35 | A visita nasce na chegada (ou no prazo do "não veio"), e não junto com o agendamento; o `AGENDADA` é o agendamento ativo sem visita | o módulo de agendamento não precisa conhecer a portaria (seção 3.3); mudar ou cancelar um agendamento antes da chegada não mexe em visita nenhuma; toda entrada vira visita na hora, e a exceção já tem onde guardar os eventos e a foto | criar a visita em `AGENDADA` junto com o agendamento (o agendamento cria e cancela visitas, e o cancelamento precisaria de um estado fora do diagrama) |
 
 ---
 
@@ -935,3 +945,4 @@ folga.
 | 0.21 | 2026-10-04 | link da transportadora (T28): o código no endereço (D-34), validade, limite, horário de operação do site e as regras da janela pelo link (seções 3.4, 5.1, 8.2 e 11) |
 | 0.22 | 2026-10-04 | importação de planilha (T29): colunas do modelo, valores, arquivo e relatório por linha; openpyxl e defusedxml na stack (seções 3.4 e 6.1) |
 | 0.23 | 2026-10-04 | tela de agendamentos (T30): lista do dia ou da semana, cancelamento e revogação de links (seção 6.2) |
+| 0.24 | 2026-10-04 | visita, eventos e exceções (T31): a visita nasce na chegada (D-35), exceção na própria visita, eventos que o banco não deixa alterar (seções 5.1, 5.2, 5.5 e 11) |
