@@ -35,6 +35,7 @@ from nuvem.portaria import rotas as portaria
 from nuvem.senhas import Senhas
 from nuvem.web import agendamentos as tela_de_agendamentos
 from nuvem.web import agendar as tela_do_link
+from nuvem.web import demonstracao as tela_da_demonstracao
 from nuvem.web import em_breve as telas_em_breve
 from nuvem.web import extrato as tela_do_extrato
 from nuvem.web import mensagens as tela_das_mensagens
@@ -73,6 +74,7 @@ def criar_app(configuracao: Configuracao | None = None, senhas: Senhas | None = 
     app.state.cifra = Cifra(configuracao.chave_cifra)
     app.state.armazenamento = ArmazenamentoLocal(configuracao.pasta_fotos, app.state.cifra)
     app.state.cookie_seguro = configuracao.cookie_seguro
+    app.state.tem_demonstracao = configuracao.tem_demonstracao
     app.state.url_publica = str(configuracao.url_publica) if configuracao.url_publica else None
     app.add_api_route("/saude", saude, methods=["GET"])
     app.add_exception_handler(NaoEncontradoError, _nao_encontrado)
@@ -92,6 +94,7 @@ def criar_app(configuracao: Configuracao | None = None, senhas: Senhas | None = 
     app.include_router(tela_das_mensagens.roteador)
     app.include_router(tela_do_extrato.roteador)
     app.include_router(telas_em_breve.roteador)
+    app.include_router(tela_da_demonstracao.roteador)
     app.include_router(tela_do_link.roteador)
     app.include_router(tela_de_agendamentos.roteador)
     tela_do_link.esconder_codigo_no_registro_de_acesso()

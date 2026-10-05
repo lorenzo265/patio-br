@@ -1,7 +1,7 @@
 # SDD — patio-br (nome provisório)
 
 **Documento de desenho do software (SDD) do MVP do piloto**
-Versão 0.34 · 2026-10-05 · Situação: aprovado como base; itens em aberto na seção 12
+Versão 0.35 · 2026-10-05 · Situação: aprovado como base; itens em aberto na seção 12
 
 ---
 
@@ -701,7 +701,7 @@ Serve para desenvolver sem câmera, para os testes de ponta a ponta e para simul
 | Local | `docker compose up` | PostgreSQL, API, worker, simulador |
 | Homologação | nuvem, máquina pequena | testar cada versão antes do cliente |
 | Produção | AWS São Paulo | o piloto |
-| Demonstração | nuvem, máquina pequena (Lightsail em São Paulo) | apresentar o produto às empresas, só com dados inventados; cada empresa visitada ganha uma empresa de demonstração, apagada depois (D-45) |
+| Demonstração | nuvem, máquina pequena (Lightsail em São Paulo) | apresentar o produto às empresas, só com dados inventados; cada empresa visitada ganha uma empresa de demonstração, apagada depois (D-45); a nuvem roda com `PATIO_AMBIENTE=demonstracao`, e só nele (e no local) existe o dia de demonstração (D-49) |
 
 ### 7.2 Nuvem (AWS, sa-east-1)
 
@@ -979,6 +979,7 @@ do cuidado de cargas (D-43).
 | D-46 | A **chegada manual não abre exceção**: o porteiro escolhe o agendamento entre as sugestões (pelos pontos das placas que digitou) ou nenhum, e a visita nasce na fila. **Corrigir a placa numa exceção aberta casa de novo** (o que a D-42 deixou para o mês 3). A placa que o porteiro escreveu fica marcada como "digitada" na composição | o porteiro está ali e decide na hora; uma exceção para ele mesmo resolver seria um passo a mais. Casar de novo com a placa certa poupa a busca do agendamento à mão. "Digitada" separa o que a câmera leu do que a pessoa escreveu, e o check-in feito por uma pessoa (o evento tem autor) não conta como automático no extrato | a chegada manual virar exceção; a placa corrigida valer só como rótulo (D-42), com o porteiro procurando o agendamento |
 | D-47 | As **mensagens ao motorista nascem dos eventos, pelo worker**: a confirmação, de cada agendamento ativo com celular que ainda não terminou; "na fila, posição X", do check-in; "vá para a doca", da chamada; "pode sair", do fim na doca. O worker olha os eventos dos últimos 30 minutos e os agendamentos criados ou mudados no último dia; cada evento gera uma mensagem só, e cada celular de um agendamento, uma confirmação (o banco confere). O texto fica pronto na mensagem, sem o nome do motorista. No mês 3 o canal é o de demonstração, que só guarda; no mês 4 o canal do WhatsApp manda a mesma mensagem, só com a autorização do motorista (seção 8.3), e anota a situação | o módulo `mensagens` fica fora da portaria e do pátio e usa só as funções de serviço deles (seção 3.3); aviso velho não sai ("vá para a doca 7" uma hora depois atrapalha); o texto guardado é o que o motorista leu, e o nome dele não se repete em outra tabela | gravar a mensagem na mesma transação do evento (exata na hora, mas a portaria e o pátio passariam a depender das mensagens); montar o texto só na hora de mostrar (a tela mudaria o que já foi mandado) |
 | D-48 | O **extrato** segue a versão 1 da regra (seção 5.4): o mês são as visitas que chegaram nele; a estadia é de quem foi liberado na doca; a exposição sem toneladas fica fora e é contada; a economia soma a estadia evitada (por visita, contra a linha de base), a portaria (postos × custo mensal) e, com o custo hora-doca, as horas de doca a mais. O mês fechado é guardado na primeira vez que é pedido; o mês em curso é parcial. A **linha de base** é uma tabela por site, com a origem: na demonstração, "exemplo", gravada pela semente e marcada assim na tela | a seção 5.4 dizia o que medir, mas não de quais visitas nem como comparar meses de tamanhos diferentes; por visita, a comparação vale para qualquer movimento. Guardar na primeira vez dispensa outra tarefa no worker e deixa o extrato igual depois, mesmo que os parâmetros mudem | contar a estadia de todas as visitas (quem saiu sem doca não tem fim de estadia); comparar totais do mês (mês fraco pareceria economia); gerar o extrato por uma tarefa no virar do mês |
+| D-49 | O **dia de demonstração roda dentro da nuvem, no worker**, e no relógio de verdade. A empresa de demonstração tem tudo de uma empresa (site, portaria, faixas, câmeras, docas, pessoas) e uma caixa de borda de mentira, e ganha um mês de visitas passadas e uma linha de base de exemplo coerente com elas. "Começar o dia" fecha o que ficou aberto, grava a manhã como se já tivesse acontecido (caminhões que saíram, que estão na doca e que esperam na fila há horas) e, nos 5 minutos seguintes, manda as chegadas a cada poucos segundos pelo caminho da caixa (receber e casar), com fotos de placa desenhadas; o líder automático chama, começa, termina e manda os liberados à saída. Uma das chegadas tem a placa lida errada e vira exceção para a pessoa resolver. Os celulares usam o DDD 23, que não existe: nenhum número pode ser de alguém | um relógio acelerado mostraria esperas de segundos, ou exigiria um relógio falso em toda a nuvem (o login inclusive); um simulador por visitante pesaria na máquina pequena da demonstração; a manhã pronta mostra esperas, alertas e números de um dia real | o dia inteiro em 5 minutos, com o relógio acelerado; o simulador como um processo à parte para cada visitante |
 
 ---
 
@@ -1017,6 +1018,7 @@ do cuidado de cargas (D-43).
 | **Exceção** | uma passagem que o sistema não conseguiu casar com segurança; o porteiro resolve |
 | **Casamento** | ligar uma passagem a um agendamento do dia |
 | **Estadia** | valor devido ao transportador quando carga/descarga passa de 5h (Lei 11.442) |
+| **Líder automático** | no dia de demonstração, o programa que faz o papel do líder de pátio: chama para as docas, começa, termina e manda à saída |
 | **Franquia** | as horas que o caminhão espera sem gerar estadia (5 horas, pela lei); a estadia conta o que passa dela |
 | **Linha de base** | as medidas do site antes de o sistema operar, usadas para calcular a economia |
 | **Modo sombra** | período em que o sistema roda sem substituir o processo manual, só medindo |
@@ -1074,3 +1076,4 @@ do cuidado de cargas (D-43).
 | 0.32 | 2026-10-05 | pátio e docas (T42): chamada, início, fim e cancelamento da chamada, uma doca por caminhão, a saída de quem passou pela doca e o alerta das 4 horas (seção 5.2) |
 | 0.33 | 2026-10-05 | mensagens do motorista (T43): nascem dos eventos pelo worker, no canal de demonstração (D-47); a entidade `Mensagem` e o módulo `mensagens` (seções 3.3, 5.1 e 11) |
 | 0.34 | 2026-10-05 | painel e extrato (T44): como cada conta é feita, a economia em R$, o mês fechado guardado e a linha de base por site (D-48); entidades `ParametrosSite`, `LinhaDeBase` e `Extrato`; "franquia" no glossário (seções 5.1, 5.4, 6.2, 11 e 13) |
+| 0.35 | 2026-10-05 | o dia de demonstração (T45): no worker e no relógio de verdade, com a manhã pronta, o líder automático, uma exceção para resolver e celulares de DDD que não existe (D-49); o ambiente `demonstracao` (seções 7.1, 11 e 13) |

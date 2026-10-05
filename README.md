@@ -40,6 +40,7 @@ No dia a dia:
 uv run tarefas up            # sobe os bancos (15432 e 15433, o de testes), a API (18000) e o worker
 uv run tarefas migrar        # aplica as migrações no banco de desenvolvimento
 uv run tarefas semente       # grava os dados de demonstração (duas empresas inventadas)
+uv run tarefas demonstracao  # a empresa de demonstração, com um mês de histórico (D-49)
 uv run tarefas modelos       # baixa os modelos do leitor v0 para modelos/ (fora do Git)
 uv run tarefas demo          # a demonstração do mês 1: sobe, semeia e manda passagens
 uv run tarefas check         # estilo, formato, tipos e testes (o mesmo que a CI vai rodar)
@@ -84,6 +85,12 @@ uv run simulador --demonstracao --passagens amostra
 
 A demonstração do mês 1 inteira, do zero, num comando só: `uv run tarefas demo` (passo a passo
 em [`docs/guias/demo-mes-1.md`](docs/guias/demo-mes-1.md)).
+
+O dia de demonstração (D-49): `uv run tarefas demonstracao` cria a "Distribuidora Exemplo
+(demonstração)", com um mês de histórico (precisa da semente). Com a API e o worker rodando
+(`python -m nuvem.worker`), entre como `gestor@demonstracao.example` (a senha da semente) e abra
+"Dia de demonstração": a manhã aparece pronta e, nos 5 minutos seguintes, os caminhões chegam e o
+líder automático trabalha.
 
 Quando um PR acrescenta variável ao `.env.exemplo`, copie-o de novo para `.env`.
 

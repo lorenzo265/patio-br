@@ -138,6 +138,63 @@ def gravar(
     return _atualizar(sessao, site, origem, existente, dados, agora)
 
 
+@dataclass(frozen=True)
+class AgendamentoInventado:
+    """Um agendamento inventado para a demonstração (D-49): sem motorista, com o celular de um DDD
+    que não existe (por isso não passa pelo ``DadosDoAgendamento``, que recusa o DDD)."""
+
+    codigo_externo: str
+    janela_inicio: datetime
+    janela_fim: datetime
+    tipo: Tipo
+    placa_cavalo: str
+    toneladas: Decimal | None
+    motorista_celular: str
+
+
+def gravar_inventados(
+    sessao: Session, site: SiteDoAgendamento, lista: Sequence[AgendamentoInventado]
+) -> list[int]:
+    """Grava de uma vez os agendamentos inventados da demonstração, cada um com a mudança
+    "criado" (pela planilha, um dia antes da janela). Só para a demonstração.
+
+    Returns:
+        Os ids, na ordem da ``lista``.
+    """
+    if not lista:
+        return []
+    linhas: list[dict[str, Any]] = [
+        {
+            "empresa_id": site.empresa_id, "site_id": site.site_id, "origem": "planilha",
+            "codigo_externo": a.codigo_externo, "situacao": "ativo", "link_id": None,
+            "janela_inicio": a.janela_inicio, "janela_fim": a.janela_fim, "tipo": a.tipo,
+            "placa_cavalo": a.placa_cavalo, "placas_reboques": [], "motorista_nome": None,
+            "motorista_celular": a.motorista_celular, "whatsapp_autorizado_em": None,
+            "toneladas": a.toneladas, "chave_nfe": None,
+            "criado_em": a.janela_inicio - timedelta(days=1),
+            "atualizado_em": a.janela_inicio - timedelta(days=1),
+        }
+        for a in lista
+    ]  # fmt: skip
+    ids = list(
+        sessao.scalars(
+            insert(Agendamento).returning(Agendamento.id, sort_by_parameter_order=True), linhas
+        )
+    )
+    sessao.execute(
+        insert(MudancaAgendamento),
+        [
+            {
+                "empresa_id": site.empresa_id, "agendamento_id": id_, "tipo": "criado",
+                "momento": linha["criado_em"], "via": "planilha", "usuario_id": None,
+                "antes": None, "depois": {"codigo_externo": linha["codigo_externo"]},
+            }
+            for id_, linha in zip(ids, linhas, strict=True)
+        ],
+    )  # fmt: skip
+    return ids
+
+
 def importar[Entrada](
     sessao: Session,
     site: SiteDoAgendamento,

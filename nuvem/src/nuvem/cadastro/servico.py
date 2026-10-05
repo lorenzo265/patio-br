@@ -90,6 +90,34 @@ def listar_docas(sessao: Session, acesso: Acesso, site_id: int) -> list[Doca]:
     )
 
 
+def pessoas_do_site(sessao: Session, acesso: Acesso, site_id: int, papel: Papel) -> list[Usuario]:
+    """As pessoas ativas de um papel ligadas a um site que o usuário vê, da mais antiga.
+
+    Raises:
+        NaoEncontradoError: se o site não existir ou não for visível para este usuário.
+    """
+    site = obter_site(sessao, acesso, site_id)
+    return list(
+        sessao.scalars(
+            select(Usuario)
+            .join(
+                UsuarioSite,
+                and_(
+                    UsuarioSite.usuario_id == Usuario.id,
+                    UsuarioSite.empresa_id == Usuario.empresa_id,
+                ),
+            )
+            .where(
+                Usuario.empresa_id == acesso.empresa_id,
+                UsuarioSite.site_id == site.id,
+                Usuario.papel == papel,
+                Usuario.ativo,
+            )
+            .order_by(Usuario.id)
+        )
+    )
+
+
 def nomes_das_faixas(sessao: Session, acesso: Acesso, site_id: int) -> dict[int, str]:
     """Os nomes das faixas de um site que o usuário vê, por id.
 

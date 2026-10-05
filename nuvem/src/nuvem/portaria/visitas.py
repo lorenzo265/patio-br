@@ -21,7 +21,7 @@ from typing import Any, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
-from sqlalchemy import and_, exists, func, or_, select
+from sqlalchemy import and_, exists, func, insert, or_, select
 from sqlalchemy.orm import Session
 
 from contratos.passagem import Papel
@@ -278,6 +278,108 @@ def _composicao(placas: Sequence[PlacaNaVisita]) -> list[dict[str, Any]]:
     if len({placa.placa for placa in placas}) < len(placas):
         raise ValueError("a composição tem a mesma placa duas vezes")
     return [placa.model_dump() for placa in placas]
+
+
+@dataclass(frozen=True)
+class VisitaInventada:
+    """Uma visita inventada para a demonstração (D-49), até onde ela chegou: só chegou, foi
+    chamada, está na doca, foi liberada ou saiu."""
+
+    agendamento_id: int
+    placa: str
+    chegada: datetime
+    automatica: bool
+    """O check-in foi do sistema (sem pessoa) ou do porteiro."""
+    chamada: datetime | None = None
+    doca_id: int | None = None
+    doca: str | None = None
+    inicio: datetime | None = None
+    fim: datetime | None = None
+    saida: datetime | None = None
+
+
+def gravar_inventadas(
+    sessao: Session,
+    site: SiteDaVisita,
+    lista: Sequence[VisitaInventada],
+    *,
+    porteiro_id: int,
+    lider_id: int,
+) -> list[int]:
+    """Grava de uma vez as visitas inventadas da demonstração, com os eventos de cada etapa
+    (o check-in do sistema ou do porteiro; a chamada, o início e o fim pelo líder; a saída pelo
+    sistema). Só para a demonstração.
+
+    Returns:
+        Os ids, na ordem da ``lista``.
+    """
+    if not lista:
+        return []
+    etapas = [_etapas_inventadas(v, porteiro_id, lider_id) for v in lista]
+    linhas = [
+        {
+            "empresa_id": site.empresa_id, "site_id": site.site_id,
+            "agendamento_id": v.agendamento_id, "estado": passos[-1][1],
+            "composicao": [{"placa": v.placa, "papel": "cavalo", "como": "lida"}],
+            "chegou_em": v.chegada, "saiu_em": v.saida, "passagem_entrada_id": None,
+            "passagem_saida_id": None, "criada_em": v.chegada, "doca_id": v.doca_id,
+            "chamada_em": v.chamada, "na_doca_em": v.inicio, "liberada_em": v.fim,
+        }
+        for v, passos in zip(lista, etapas, strict=True)
+    ]  # fmt: skip
+    gravar = insert(Visita).returning(Visita.id, sort_by_parameter_order=True)
+    ids = list(sessao.scalars(gravar, linhas))
+    sessao.execute(
+        insert(Evento),
+        [
+            {
+                "empresa_id": site.empresa_id, "visita_id": id_, "tipo": tipo, "estado": estado,
+                "momento": momento, "registrado_em": momento, "usuario_id": usuario_id,
+                "passagem_id": None, "dados": dados,
+            }
+            for id_, passos in zip(ids, etapas, strict=True)
+            for tipo, estado, momento, usuario_id, dados in passos
+        ],
+    )  # fmt: skip
+    return ids
+
+
+def _etapas_inventadas(
+    visita: VisitaInventada, porteiro_id: int, lider_id: int
+) -> list[tuple[TipoDeEvento, EstadoDaVisita, datetime, int | None, dict[str, Any]]]:
+    quem_fez_o_check_in = None if visita.automatica else porteiro_id
+    passos: list[tuple[TipoDeEvento, EstadoDaVisita, datetime, int | None, dict[str, Any]]] = [
+        ("check_in", "NA_FILA", visita.chegada, quem_fez_o_check_in,
+         {"agendamento_id": visita.agendamento_id}),
+    ]  # fmt: skip
+    if visita.chamada is not None:
+        dados = {"doca_id": visita.doca_id, "doca": visita.doca}
+        passos.append(("chamada", "CHAMADA", visita.chamada, lider_id, dados))
+    if visita.inicio is not None:
+        passos.append(("inicio_na_doca", "NA_DOCA", visita.inicio, lider_id, {}))
+    if visita.fim is not None:
+        passos.append(("fim_na_doca", "LIBERADA", visita.fim, lider_id, {}))
+    if visita.saida is not None:
+        passos.append(("saiu", "SAIU", visita.saida, None, {}))
+    return passos
+
+
+def abertas_do_site(sessao: Session, site: SiteDaVisita) -> list[Visita]:
+    """As visitas ainda abertas de um site (quem ainda está nele), da chegada mais antiga.
+
+    Para a demonstração, que fecha o dia anterior antes de começar outro.
+    """
+    return list(
+        sessao.scalars(
+            select(Visita)
+            .where(
+                Visita.empresa_id == site.empresa_id,
+                Visita.site_id == site.site_id,
+                Visita.estado.in_(ABERTOS),
+            )
+            .order_by(Visita.chegou_em, Visita.id)
+        )
+    )
 
 
 # --- Ler --------------------------------------------------------------------------------------

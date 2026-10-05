@@ -10,6 +10,8 @@
   vencida há mais que a tolerância, ganha a visita em ``NAO_VEIO``. Um worker de cada vez (trava
   do PostgreSQL).
 - **Mensagens ao motorista** (D-47): a cada volta, as que faltam (``mensagens.preparar``).
+- **Dia de demonstração** (D-49): a cada volta, se o ambiente tiver, as chegadas e o líder
+  automático.
 
 O worker roda em outro processo (``python -m nuvem.worker``).
 """
@@ -260,8 +262,12 @@ def rodar(
     *,
     relogio: Callable[[], datetime] = agora_de_verdade,
     dormir: Callable[[float], None] = time.sleep,
+    demonstracao: Callable[[Session, datetime], int] | None = None,
 ) -> None:
     """Executa as tarefas, confere o "não veio" e prepara as mensagens até ``parar`` ser ligado.
+
+    Com ``demonstracao`` (só nos ambientes que têm o dia de demonstração, D-49), ela roda antes,
+    a cada volta: as passagens que ela manda casam na mesma volta.
 
     Um erro inesperado (ex.: o banco fora do ar) fica registrado, e o laço segue.
     """
@@ -270,6 +276,9 @@ def rodar(
         try:
             with abrir_sessao() as sessao:
                 momento = relogio()
+                if demonstracao is not None:
+                    demonstracao(sessao, momento)
+                    sessao.commit()
                 executadas = executar_pendentes(sessao, agora=momento)
                 if ultimo_nao_veio is None or momento - ultimo_nao_veio >= INTERVALO_DO_NAO_VEIO:
                     abertas = conferir_nao_veio(sessao, agora=momento)

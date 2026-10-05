@@ -100,6 +100,7 @@ def inicio(request: Request, sessao: SessaoDaRequisicao, quem: QuemPede) -> HTML
             "pode_trocar_porteiro": quem.papel in ("porteiro", "gestor"),
             "pode_agendar": quem.papel == "gestor",
             "ve_o_patio": quem.papel in ("patio", "gestor"),
+            "ve_a_demonstracao": quem.papel == "gestor" and request.app.state.tem_demonstracao,
         }
     else:
         administrador = sessao.get(Administrador, quem.administrador_id)
