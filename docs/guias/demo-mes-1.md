@@ -81,6 +81,11 @@ check-in automático, exceção com os candidatos e saída.
    A tela se atualiza sozinha a cada 2 segundos. Os agendamentos ficam em
    <http://localhost:18000/agendamentos>, com o e-mail `gestor@empresa-a.example`.
 
+6. **Confira uma placa:** na coluna "Conferência", clique em **conferir**. A página mostra a foto
+   de cada placa ao lado do que o leitor leu. **Está certa** confirma; para corrigir, digite a
+   placa da foto e clique em **Corrigir**. De volta à portaria, a lista mostra "placa certa" ou
+   "corrigida: ..." (SDD D-42).
+
 ## Ver passagens chegando com a tela aberta
 
 Com a tela aberta, rode o simulador de novo noutro terminal:
