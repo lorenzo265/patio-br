@@ -54,10 +54,17 @@ TRANSICOES: dict[tuple[EstadoDaVisita, TipoDeEvento], EstadoDaVisita] = {
     ("EXCECAO", "aceita_sem_agendamento"): "NA_FILA",
     ("EXCECAO", "recusada"): "RECUSADA",
     ("EXCECAO", "placa_corrigida"): "EXCECAO",
+    ("NA_FILA", "chamada"): "CHAMADA",
+    ("CHAMADA", "chamada_cancelada"): "NA_FILA",
+    ("CHAMADA", "inicio_na_doca"): "NA_DOCA",
+    ("NA_DOCA", "fim_na_doca"): "LIBERADA",
+    ("CHAMADA", "saiu_sem_atendimento"): "SAIU",
+    ("NA_DOCA", "saiu"): "SAIU",
+    ("LIBERADA", "saiu"): "SAIU",
 }
-"""De um estado, cada evento permitido e o estado seguinte (o pátio vem na T42)."""
+"""De um estado, cada evento permitido e o estado seguinte."""
 
-ABERTOS: tuple[EstadoDaVisita, ...] = ("NA_FILA", "EXCECAO")
+ABERTOS: tuple[EstadoDaVisita, ...] = ("NA_FILA", "EXCECAO", "CHAMADA", "NA_DOCA", "LIBERADA")
 """Os estados de quem ainda está no site (a saída fecha a visita aberta da placa)."""
 
 

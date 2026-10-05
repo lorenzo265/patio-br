@@ -431,10 +431,12 @@ def _saida(sessao: Session, site: SiteDaVisita, passagem: Passagem, agora: datet
     if escolhida is None:
         return Processada("saida_sem_visita", None)
     visita = next(v for v in abertas if v.id == escolhida)
+    # Quem passou pela doca sai normalmente; quem não chegou a ela, "saiu sem atendimento".
+    atendida = visita.estado in ("NA_DOCA", "LIBERADA")
     visitas.registrar(
         sessao,
         visita,
-        "saiu_sem_atendimento",
+        "saiu" if atendida else "saiu_sem_atendimento",
         momento=passagem.inicio,
         agora=agora,
         passagem_id=passagem.id,

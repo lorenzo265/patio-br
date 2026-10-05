@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block titulo %}Pátio · {{ site.nome }}{% endblock %}
+{% block cabeca %}
+<script src="/estatico/htmx-2.0.11.min.js" defer></script>
+<style>body { max-width: 64rem; }</style>
+{% endblock %}
+{% block conteudo %}
+<h1>Pátio · {{ site.nome }}</h1>
+{% if outros_sites %}
+<p>Outros sites: {% for outro in outros_sites %}<a href="/patio?site={{ outro.id }}">{{ outro.nome }}</a>{% if not loop.last %} · {% endif %}{% endfor %}</p>
+{% endif %}
+<div id="quadro" hx-get="/patio/quadro?site={{ site.id }}" hx-trigger="load, every 3s">
+  <p>Carregando o pátio…</p>
+</div>
+<p><a href="/">Início</a></p>
+{% endblock %}

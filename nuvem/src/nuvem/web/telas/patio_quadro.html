@@ -1,0 +1,51 @@
+<h2>Docas</h2>
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); gap: 0.75rem;">
+  {% for doca in docas %}
+  <article style="border: 1px solid #ccc; padding: 0.75rem;">
+    <p><strong>{{ doca.nome }}</strong></p>
+    {% if doca.caminhao %}
+    {% set c = doca.caminhao %}
+    <p><strong>{{ c.placas }}</strong> · {{ c.situacao }} · {{ c.tempo }} desde a chegada</p>
+    <p>{{ c.agendamento }} {{ c.tipo }}</p>
+    {% if c.alerta %}<p class="erro">{{ c.alerta }}</p>{% endif %}
+    {% if c.estado == "CHAMADA" %}
+    <form method="post" action="/patio/visitas/{{ c.visita_id }}/comecar"><button type="submit">Começar</button></form>
+    <form method="post" action="/patio/visitas/{{ c.visita_id }}/cancelar-chamada"><button type="submit">Não veio: cancelar a chamada</button></form>
+    {% else %}
+    <form method="post" action="/patio/visitas/{{ c.visita_id }}/terminar"><button type="submit">Terminar</button></form>
+    {% endif %}
+    {% else %}
+    <p>livre</p>
+    {% endif %}
+  </article>
+  {% endfor %}
+</div>
+
+<h2>Fila</h2>
+{% if fila %}
+<table>
+  <thead><tr><th>Placas</th><th>Chegada</th><th>Espera</th><th>Agendamento</th><th></th></tr></thead>
+  <tbody>
+  {% for c in fila %}
+    <tr>
+      <td><strong>{{ c.placas }}</strong></td>
+      <td>{{ c.chegada }}</td>
+      <td>{{ c.tempo }}{% if c.alerta %} <span class="erro">{{ c.alerta }}</span>{% endif %}</td>
+      <td>{{ c.agendamento }} {{ c.tipo }}</td>
+      <td><a href="/patio/visitas/{{ c.visita_id }}/chamar">Chamar</a></td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p>Ninguém na fila.</p>
+{% endif %}
+
+{% if liberados %}
+<h2>Liberados, esperando a saída</h2>
+<ul>
+  {% for c in liberados %}
+  <li><strong>{{ c.placas }}</strong> · chegou às {{ c.chegada }} · {{ c.tempo }} no site</li>
+  {% endfor %}
+</ul>
+{% endif %}

@@ -24,7 +24,7 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from nuvem.agendamento.conectores import Conector, Recusado
-from nuvem.agendamento.formato import DadosDoAgendamento
+from nuvem.agendamento.formato import DadosDoAgendamento, Tipo
 from nuvem.agendamento.modelos import (
     Agendamento,
     MudancaAgendamento,
@@ -393,6 +393,26 @@ def codigos_externos(
         )
     )
     return {agendamento_id: codigo for agendamento_id, codigo in linhas}
+
+
+@dataclass(frozen=True)
+class Resumo:
+    """O que as telas mostram de um agendamento ao lado de uma visita."""
+
+    codigo: str
+    tipo: Tipo
+
+
+def resumos(sessao: Session, acesso: Acesso, agendamento_ids: Sequence[int]) -> dict[int, Resumo]:
+    """O código e o tipo de cada agendamento (dos sites que o usuário vê), por id."""
+    linhas = sessao.execute(
+        select(Agendamento.id, Agendamento.codigo_externo, Agendamento.tipo).where(
+            Agendamento.empresa_id == acesso.empresa_id,
+            Agendamento.site_id.in_(acesso.sites),
+            Agendamento.id.in_(agendamento_ids),
+        )
+    )
+    return {agendamento_id: Resumo(codigo, tipo) for agendamento_id, codigo, tipo in linhas}
 
 
 def mudancas(sessao: Session, acesso: Acesso, agendamento_id: int) -> list[MudancaAgendamento]:
