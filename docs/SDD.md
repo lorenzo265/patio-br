@@ -1,7 +1,7 @@
 # SDD — patio-br (nome provisório)
 
 **Documento de desenho do software (SDD) do MVP do piloto**
-Versão 0.29 · 2026-10-05 · Situação: aprovado como base; itens em aberto na seção 12
+Versão 0.30 · 2026-10-05 · Situação: aprovado como base; itens em aberto na seção 12
 
 ---
 
@@ -603,7 +603,9 @@ licença deles é conferida à mão, como a dos modelos.
 | Gestor | gestor | indicadores (espera média, visitas acima de 5h, % de check-in automático, uso de docas); extrato do mês (PDF e planilha) |
 | Agendamentos | gestor | lista do dia ou da semana, no fuso do site, com o cancelamento; importar planilha com modelo e relatório de erros por linha; gerar e revogar links da transportadora (o endereço aparece uma vez só, ao gerar) |
 | Link da transportadora | transportadora | formulário curto para celular: placas, motorista, celular, janela, toneladas, NF-e opcional |
-| Administração | nós | empresas, sites, câmeras, caixas (saúde), usuários, parâmetros, rotulagem |
+| Celular do motorista | demonstração | as mensagens que o motorista receberia, numa tela em forma de celular; o canal de demonstração não envia nada (D-45) |
+| Recebimento e estoque | demonstração | telas "em breve", com dados de exemplo, para mostrar a visão (D-43 e D-45) |
+| Administração | nós | empresas, sites, câmeras, caixas (saúde), usuários, parâmetros, rotulagem, links de demonstração |
 
 ### 6.3 Repositório
 
@@ -661,6 +663,7 @@ Serve para desenvolver sem câmera, para os testes de ponta a ponta e para simul
 | Local | `docker compose up` | PostgreSQL, API, worker, simulador |
 | Homologação | nuvem, máquina pequena | testar cada versão antes do cliente |
 | Produção | AWS São Paulo | o piloto |
+| Demonstração | nuvem, máquina pequena (Lightsail em São Paulo) | apresentar o produto às empresas, só com dados inventados; cada empresa visitada ganha uma empresa de demonstração, apagada depois (D-45) |
 
 ### 7.2 Nuvem (AWS, sa-east-1)
 
@@ -802,7 +805,8 @@ Serve para desenvolver sem câmera, para os testes de ponta a ponta e para simul
   (`Referrer-Policy: no-referrer`).
 - HTTPS em tudo; banco e fotos cifrados; senhas de câmera cifradas.
 - Dependências checadas a cada build.
-- **Antes da produção (mês 4)**, decidido em 04/10:
+- **Antes de abrir para a internet**, decidido em 04/10 (vem para o mês 3, com a demonstração,
+  D-45):
   - limite de login também por endereço IP, junto com a hospedagem (atrás de um proxy, o IP
     real vem de um cabeçalho que precisa ser de confiança);
   - código anti-CSRF nos formulários do painel (hoje, o `SameSite=Lax` do cookie e a recusa
@@ -853,14 +857,15 @@ folga.
 |---|---|---|---|
 | 1. Out | repositório, CI, Docker local, `contratos/`, esqueleto da nuvem (cadastro, login, empresas), simulador básico; kit de bancada com leitor v0 em vídeo gravado | pedir verificação da empresa na Meta; conta AWS; modelo de contrato e acordo LGPD; começar 15–25 conversas; achar o site parceiro; comprar hardware | vídeo gravado → passagem → aparece no painel |
 | 2. Nov | kit gravando no site parceiro; rotular 3–5 mil placas; treinar detector e OCR v1; régua fixa; agendamento (link + planilha) e casamento | conversas; oferta de piloto anual pré-pago | **teste técnico: nosso leitor × comercial** |
-| 3. Dez | telas de portaria e pátio; estados da visita; trilha de prova; alertas; borda com fila offline, saúde, atualização, ativação | — | fluxo completo no simulador, com falhas |
-| 4. Jan | WhatsApp e SMS; indicadores e extrato; base de treino; frota de borda; produção na AWS com backups e monitoramento | fechar o piloto pago | versão do piloto em homologação |
+| 3. Dez | **demonstração comercial na internet** (D-45): visual próprio; portaria e pátio definitivos; painel e extrato em R$; mensagens do motorista simuladas; visão do recebimento e do estoque; link de demonstração por empresa | apresentar às empresas | **demonstração no ar** |
+| 4. Jan | WhatsApp e SMS; trilha de prova completa; alertas; base de treino; caixa de borda com saúde, atualização e contêiner; frota de borda; produção na AWS com backups e monitoramento | fechar o piloto pago | versão do piloto em homologação |
 | 5. Fev | 6 câmeras e caixa definitiva no site; modo sombra 2–4 semanas; ajustes e retreino | linha de base do extrato | acerto real medido |
 | 6. Mar | check-in automático ligado; WhatsApp ativo; primeiro extrato real | apresentar o extrato | **decisão seguir / iterar / parar** (até 31/03/2027) |
 
 **Mudança de 05/10:** o site parceiro ficou para depois. O Lorenzo quer o produto mais
 completo antes de levá-lo ao site. A gravação e o teste técnico saem do mês 2, e as primeiras
-placas vêm de outra fonte (`[ABERTO-18]`). O cronograma é refeito com o próximo plano.
+placas vêm de outra fonte (`[ABERTO-18]`). Na mesma data, o mês 3 virou a demonstração
+comercial na internet (D-45, `docs/planos/2026-12-plano-mes-3.md`).
 
 **Depois de março:** se a decisão for seguir, começa o desenho do recebimento, do estoque e
 do cuidado de cargas (D-43).
@@ -932,6 +937,7 @@ do cuidado de cargas (D-43).
 | D-42 | O porteiro **confere a placa** de qualquer passagem, e não só a das exceções: a tela mostra o recorte ao lado da leitura, e ele confirma ou digita a placa certa. A conferência é um registro novo (a leitura e a foto não mudam, seção 5.5), e a última vale. Ela não muda a visita: o "corrigir" da fila de exceções, que casa de novo, vem com a resolução das exceções (mês 3) | pedido do Lorenzo em 05/10: compara a leitura com a placa certa no dia a dia e gera rótulos para o treino (seção 4.6), inclusive dos acertos | conferir só nas exceções (poucos rótulos, e só dos erros) |
 | D-43 | Recebimento, estoque (com busca e visão 3D do armazém) e cuidado de cargas e controle de entregas **entram no projeto como módulos para depois do piloto aprovado**, e não agora. Funcionam só com o sistema, sem câmera; onde houver câmera, ela ajuda | decisão do Lorenzo em 05/10: o recebimento é a ponte natural entre quem chega e o que chega, e liga o cliente aos fornecedores que já agendam pela nossa ferramenta; no estoque, a aposta é que muitas empresas estão insatisfeitas com o sistema que usam, e um produto muito fácil de usar abre espaço (a validar); esperar o pátio aprovado mantém o foco do piloto | começar já (tira o foco do piloto); deixar de fora (perde a ponte com os fornecedores) |
 | D-44 | O treino do leitor começa com **placas sintéticas e bases abertas**: placas Mercosul geradas por programa, a base Artificial Mercosur (CC BY 4.0) e, para o detector, bases abertas de fora (Open Images, CCPD), guardando só a região da placa (D-39) | decisão do Lorenzo em 05/10, pela opção 1 do `[ABERTO-18]`: não usa dado pessoal e começa já; um estudo de 2025 com placas brasileiras acertou 94,5% com só 10% das placas reais e muitas sintéticas, contra 18% sem as sintéticas | esperar as placas reais (o treino parado até o site parceiro) |
+| D-45 | O mês 3 vira a **demonstração comercial na internet**: o produto funcionando e com marca própria, num endereço público, só com dados inventados; cada empresa visitada recebe um link e ganha uma empresa de demonstração só dela. Os indicadores, o extrato e a segurança para a internet vêm do mês 4; a caixa de borda com saúde e atualização, a trilha de prova completa e os alertas vão para o mês 4 | pedido do Lorenzo em 05/10: para apresentar a ideia às empresas, o sistema precisa estar funcionando e bonito, para impressionar e mostrar que somos sérios; o site parceiro foi adiado, e as conversas vêm antes dele | apresentar com as telas cruas; uma maquete só de imagens (não mostra o produto funcionando) |
 
 ---
 
@@ -952,6 +958,7 @@ do cuidado de cargas (D-43).
 | ABERTO-18 | Placas reais para o leitor, com o site parceiro adiado (seção 4.6). O treino começa com placas sintéticas e bases abertas (D-44). Falta decidir: a régua fixa com cerca de 1.000 placas reais (proposta: fotografar a frota própria parada de transportadoras e locadoras, com carta de autorização) e a coleta própria para treinar (proposta: gravar em 1 a 3 portões de conhecidos, com o sim do advogado) (`docs/validacao/fontes-de-placas.md`) | com o Lorenzo e o advogado, antes da régua e do treino com placas reais |
 | ABERTO-19 | Recebimento: de onde vêm os itens da NF-e (o XML que o fornecedor manda, o certificado digital do cliente ou outro caminho) e como o resultado volta ao sistema do cliente (`docs/validacao/recebimento-e-estoque.md`) | no desenho do módulo, depois do piloto aprovado |
 | ABERTO-20 | Estoque e cuidado de cargas: estoque próprio (endereços, saldo, busca, visão 3D) ou ligado ao sistema do cliente; o que entra em "cuidado de cargas e controle de entregas" e se inclui a conferência de carga e lacre da Fase 3 | no desenho dos módulos, depois do piloto aprovado |
+| ABERTO-21 | Fontes tipográficas no painel: as boas fontes livres usam a licença SIL OFL 1.1, que a regra da seção 6.1 não cita. Proposta: aceitar a OFL 1.1 para fontes usadas sem modificação (como o MPL-2.0), com os arquivos em `nuvem/src/nuvem/web/estatico/` e licença e resumo no `LEIA-ME.md` | com o Lorenzo, antes do visual próprio (mês 3, E4) |
 
 ---
 
@@ -1020,3 +1027,4 @@ do cuidado de cargas (D-43).
 | 0.27 | 2026-10-04 | simulador com agendamentos (T35): `--agendamentos`, passagem pelo sentido, resultado do casamento na tela da portaria (seções 6.2 e 6.4) |
 | 0.28 | 2026-10-05 | decisões de 05/10: região de gravação (D-39), ambiente de treino (D-40) e leitor comercial (D-41), que fecham os `[ABERTO-15]` a `[ABERTO-17]`; D-38 confirmada; conferência da placa pelo porteiro (D-42); site parceiro adiado e as primeiras placas em aberto (`[ABERTO-18]`) (seções 4.5, 4.6, 5.1, 6.2, 8.3, 10, 11, 12 e 13) |
 | 0.29 | 2026-10-05 | recebimento, estoque e cuidado de cargas como módulos para depois do piloto aprovado, sem exigir câmera (D-43); novos `[ABERTO-19]` e `[ABERTO-20]`; o treino começa com placas sintéticas (D-44), e as placas reais para testar entram no `[ABERTO-18]` (seções 1.3, 2.3, 3.5, 10, 11, 12 e 13) |
+| 0.30 | 2026-10-05 | plano do mês 3 refeito como a demonstração comercial na internet (D-45; `docs/planos/2026-12-plano-mes-3.md`): ambiente de demonstração, telas do celular do motorista e da visão do recebimento e do estoque, segurança antes da internet, cronograma; novo `[ABERTO-21]` (fontes OFL) (seções 6.2, 7.1, 8.2, 10, 11 e 12) |
