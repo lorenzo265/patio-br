@@ -161,16 +161,19 @@ testes.
 
 #### T45. O dia de demonstração
 
-**Objetivo:** um dia inteiro de caminhões em cerca de 5 minutos, mais um mês de histórico.
+**Objetivo:** ~~um dia inteiro de caminhões em cerca de 5 minutos~~ a manhã já pronta e o resto
+do dia ao vivo em cerca de 5 minutos, mais um mês de histórico. *Mudou na execução (D-49): no
+relógio de verdade, as esperas e os alertas aparecem como num dia real; com o relógio acelerado,
+seriam de segundos.*
 
-**Arquivos:** `nuvem/src/nuvem/demonstracao/` (novo), o simulador, testes.
+**Arquivos:** `nuvem/src/nuvem/demonstracao/` (novo), ~~o simulador~~ o worker (D-49), testes.
 
 **Regras:**
 - A semente da demonstração grava um mês de visitas passadas (para o painel e o extrato ter
   números) e os agendamentos do dia.
-- "Começar o dia" manda as passagens no tempo acelerado, com fotos de placa desenhadas; um
-  "líder automático" chama para as docas e termina as cargas, e deixa uma exceção para a
-  pessoa resolver.
+- "Começar o dia" grava a manhã e manda as passagens ~~no tempo acelerado~~ a cada poucos
+  segundos, com fotos de placa desenhadas; um "líder automático" chama para as docas e termina
+  as cargas, e deixa uma exceção para a pessoa resolver.
 - Só dados inventados; nada disso existe fora do ambiente de demonstração.
 
 **Commit:** `feat(demonstracao): dia acelerado e histórico do mês`
