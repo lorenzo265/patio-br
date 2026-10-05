@@ -436,18 +436,21 @@ class Resumo:
 
     codigo: str
     tipo: Tipo
+    toneladas: Decimal | None
 
 
 def resumos(sessao: Session, acesso: Acesso, agendamento_ids: Sequence[int]) -> dict[int, Resumo]:
-    """O código e o tipo de cada agendamento (dos sites que o usuário vê), por id."""
+    """O código, o tipo e as toneladas de cada agendamento (dos sites que o usuário vê), por id."""
     linhas = sessao.execute(
-        select(Agendamento.id, Agendamento.codigo_externo, Agendamento.tipo).where(
+        select(
+            Agendamento.id, Agendamento.codigo_externo, Agendamento.tipo, Agendamento.toneladas
+        ).where(
             Agendamento.empresa_id == acesso.empresa_id,
             Agendamento.site_id.in_(acesso.sites),
             Agendamento.id.in_(agendamento_ids),
         )
     )
-    return {agendamento_id: Resumo(codigo, tipo) for agendamento_id, codigo, tipo in linhas}
+    return {id_: Resumo(codigo, tipo, toneladas) for id_, codigo, tipo, toneladas in linhas}
 
 
 def mudancas(sessao: Session, acesso: Acesso, agendamento_id: int) -> list[MudancaAgendamento]:

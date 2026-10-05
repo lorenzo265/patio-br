@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block titulo %}Painel · {{ site.nome }}{% endblock %}
+{% block cabeca %}
+<style>
+  body { max-width: 64rem; }
+  .cartoes { display: grid; grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr)); gap: 0.75rem; }
+  .cartao { border: 1px solid #ccc; padding: 0.75rem; }
+  .cartao strong { display: block; font-size: 1.6rem; }
+  .barras { display: flex; align-items: flex-end; gap: 2px; height: 8rem; border-bottom: 1px solid #999; }
+  .barras div { flex: 1; background: #1f3a4d; min-height: 1px; }
+  .barras.espera div { background: #b36b00; }
+  .eixo { display: flex; justify-content: space-between; font-size: 0.8rem; color: #555; }
+  .base { color: #555; }
+  .economia { font-size: 1.4rem; }
+</style>
+{% endblock %}
+{% block conteudo %}
+<h1>Painel · {{ site.nome }}</h1>
+{% if outros_sites %}
+<p>Outros sites: {% for outro in outros_sites %}<a href="/painel?site={{ outro.id }}">{{ outro.nome }}</a>{% if not loop.last %} · {% endif %}{% endfor %}</p>
+{% endif %}
+
+<h2>Hoje ({{ hoje }})</h2>
+<div class="cartoes">
+  <div class="cartao">Chegadas<strong>{{ dia.visitas }}</strong></div>
+  <div class="cartao">Check-in automático<strong>{{ dia.automatico }}</strong></div>
+  <div class="cartao">Espera média<strong>{{ dia.espera }}</strong></div>
+  <div class="cartao">Na fila agora<strong>{{ na_fila }}</strong></div>
+  <div class="cartao">Docas ocupadas<strong>{{ docas_ocupadas }} de {{ docas }}</strong></div>
+</div>
+
+<h2>{{ mes_nome }} até agora</h2>
+{% if base %}
+<p class="base">{{ base.rotulo }} ({{ base.detalhe }}): {{ base.periodo }}.</p>
+{% else %}
+<p class="base">Sem linha de base: o mês aparece sozinho, sem comparação.</p>
+{% endif %}
+<table>
+  <thead><tr><th>Medida</th><th>Linha de base</th><th>{{ mes_nome }}</th></tr></thead>
+  <tbody>
+  {% for l in linhas %}
+    <tr><td>{{ l.nome }}</td><td>{{ l.base }}</td><td><strong>{{ l.mes }}</strong></td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% if economia %}<p class="economia">Economia até agora: <strong>{{ economia }}</strong></p>{% endif %}
+<p><a href="/extrato?site={{ site.id }}&mes={{ mes_param }}">Ver o extrato do mês</a></p>
+
+<h3>Chegadas por dia</h3>
+<div class="barras" role="img" aria-label="Chegadas por dia">
+  {% for b in barras %}<div style="height: {{ b.altura_chegadas }}%" title="{{ b.dia }}: {{ b.chegadas }} {{ 'chegada' if b.chegadas == 1 else 'chegadas' }}"></div>{% endfor %}
+</div>
+<div class="eixo"><span>{{ barras[0].dia }}</span><span>{{ barras[-1].dia }}</span></div>
+
+<h3>Espera média por dia</h3>
+<div class="barras espera" role="img" aria-label="Espera média por dia">
+  {% for b in barras %}<div style="height: {{ b.altura_espera }}%" title="{{ b.dia }}: {{ b.espera }}"></div>{% endfor %}
+</div>
+<div class="eixo"><span>{{ barras[0].dia }}</span><span>{{ barras[-1].dia }}</span></div>
+
+<p><a href="/">Início</a></p>
+{% endblock %}

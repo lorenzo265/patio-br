@@ -4,7 +4,8 @@ Duas empresas inventadas, para ver a separação na prática:
 
 - **Empresa A**: o site "CD Exemplo" (aberto das 6h às 22h; uma portaria com uma faixa de
   entrada e uma de saída, três câmeras e duas docas), mais o site "CD Exemplo 2", que ninguém da
-  A vê; no CD Exemplo, um gestor, um líder de pátio e dois porteiros (dia e noite);
+  A vê; no CD Exemplo, um gestor, um líder de pátio e dois porteiros (dia e noite), e os
+  parâmetros do extrato com uma linha de base **de exemplo** (D-48), marcada assim na tela;
 - **Empresa B**: o site "CD Outra Empresa", com uma câmera, um gestor e um porteiro;
 - **Administração** (nós): uma pessoa, fora das duas empresas.
 
@@ -16,7 +17,8 @@ nada. Só para desenvolvimento e demonstração; nunca em produção.
 """
 
 from dataclasses import dataclass
-from datetime import time
+from datetime import UTC, datetime, time, timedelta
+from decimal import Decimal
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -36,6 +38,8 @@ from nuvem.cadastro.modelos import (
 )
 from nuvem.cifra import Cifra
 from nuvem.config import ConfiguracaoInvalidaError, ler_configuracao
+from nuvem.extrato import servico as extrato
+from nuvem.extrato.contas import Medidas, Parametros
 from nuvem.senhas import Senhas
 
 CNPJ_A = "DEMO0000000A00"
@@ -50,6 +54,26 @@ SENHA_DA_DEMONSTRACAO = "demonstracao-local"
 
 PIN_DA_DEMONSTRACAO = "135790"
 """PIN inventado dos porteiros da demonstração."""
+
+PARAMETROS_DE_EXEMPLO = Parametros(
+    postos_antes=Decimal(3), postos_depois=Decimal(2), custo_mensal_do_posto=Decimal("21500.00")
+)
+"""Três pontos de portaria 24 horas, um a menos depois, pelo menor custo da seção 1.1 do SDD."""
+
+LINHA_DE_BASE_DE_EXEMPLO = Medidas(
+    visitas=682,  # 22 por dia em julho
+    automaticas=0,
+    chamadas=670,
+    espera_total=timedelta(minutes=670 * 160),  # 2h40 de espera média
+    liberadas=664,
+    estadia_total=timedelta(minutes=664 * 265),  # 4h25 de estadia média
+    acima_da_franquia=126,  # 19%
+    exposicao=Decimal("10290.00"),  # cada uma: ~1h10 acima da franquia, 28 t, R$ 2,50
+    sem_toneladas=0,
+    horas_de_doca=Decimal("575.4"),  # 58% das horas disponíveis
+    horas_disponiveis=Decimal(31 * 16 * 2),  # 31 dias, das 6h às 22h, 2 docas
+)
+"""Números inventados de um mês antes do sistema, para a demonstração ter com o que comparar."""
 
 
 @dataclass(frozen=True)
@@ -96,6 +120,13 @@ def semear(sessao: Session, cifra: Cifra, senhas: Senhas) -> Demonstracao | None
     _camera(sessao, cifra, saida, "Saída 1 — traseira", "tras", "10.0.0.13")
     for nome in ("Doca 1", "Doca 2"):
         servico.criar_doca(sessao, site_a, nome=nome)
+    agora = datetime.now(UTC)
+    extrato.gravar_parametros(sessao, site_a, PARAMETROS_DE_EXEMPLO, agora=agora)
+    extrato.gravar_linha_de_base(
+        sessao, site_a, "exemplo",
+        de=datetime(2026, 7, 1, 3, tzinfo=UTC), ate=datetime(2026, 8, 1, 3, tzinfo=UTC),
+        medidas=LINHA_DE_BASE_DE_EXEMPLO, agora=agora,
+    )  # fmt: skip
 
     def pessoa_a(nome: str, email: str, papel: Papel) -> Usuario:
         return _pessoa(sessao, senhas, empresa_a, site_a, nome, f"{email}@empresa-a.example", papel)
