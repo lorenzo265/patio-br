@@ -357,3 +357,83 @@ def test_lista_os_porteiros_para_a_troca(sessao: Session, cenario: Demonstracao)
     porteiros = login.porteiros_da_troca(sessao, cenario.gestor_a.id)
 
     assert porteiros == [cenario.porteiro_a, cenario.porteiro_a_noite]
+
+
+# --- Limite por endereço (D-55) ------------------------------------------------------------
+
+ENDERECO = "203.0.113.7"
+"""Da faixa de documentação: não é de ninguém."""
+
+
+def _errar_do_endereco(
+    sessao: Session, senhas: Senhas, vezes: int, endereco: str = ENDERECO
+) -> None:
+    # Cada erro com um e-mail diferente: o limite por e-mail nunca chega.
+    for numero in range(vezes):
+        with pytest.raises(login.LoginRecusadoError):
+            login.entrar(
+                sessao, senhas, email=f"tentativa{numero}@empresa-a.example", senha=SENHA_ERRADA,
+                agora=AGORA, endereco=endereco,
+            )  # fmt: skip
+
+
+def test_vinte_erros_bloqueiam_o_endereco_mesmo_com_a_senha_certa(
+    sessao: Session, cenario: Demonstracao, senhas: Senhas
+) -> None:
+    _errar_do_endereco(sessao, senhas, vezes=20)
+
+    with pytest.raises(login.MuitasTentativasError):
+        login.entrar(
+            sessao, senhas, email=cenario.gestor_a.email, senha=SENHA_DA_DEMONSTRACAO,
+            agora=AGORA, endereco=ENDERECO,
+        )  # fmt: skip
+
+
+def test_dezenove_erros_ainda_deixam_o_endereco_entrar(
+    sessao: Session, cenario: Demonstracao, senhas: Senhas
+) -> None:
+    _errar_do_endereco(sessao, senhas, vezes=19)
+
+    assert login.entrar(
+        sessao, senhas, email=cenario.gestor_a.email, senha=SENHA_DA_DEMONSTRACAO, agora=AGORA,
+        endereco=ENDERECO,
+    )  # fmt: skip
+
+
+def test_erros_de_um_endereco_nao_bloqueiam_outro(
+    sessao: Session, cenario: Demonstracao, senhas: Senhas
+) -> None:
+    _errar_do_endereco(sessao, senhas, vezes=20)
+
+    assert login.entrar(
+        sessao, senhas, email=cenario.gestor_a.email, senha=SENHA_DA_DEMONSTRACAO, agora=AGORA,
+        endereco="198.51.100.9",
+    )  # fmt: skip
+
+
+def test_entrar_com_a_senha_certa_nao_zera_os_erros_do_endereco(
+    sessao: Session, cenario: Demonstracao, senhas: Senhas
+) -> None:
+    # Senão, quem tem uma conta poderia tentar a senha dos outros sem parar.
+    _errar_do_endereco(sessao, senhas, vezes=19)
+    login.entrar(
+        sessao, senhas, email=cenario.gestor_a.email, senha=SENHA_DA_DEMONSTRACAO, agora=AGORA,
+        endereco=ENDERECO,
+    )  # fmt: skip
+    _errar_do_endereco(sessao, senhas, vezes=1)
+
+    with pytest.raises(login.MuitasTentativasError):
+        login.entrar(
+            sessao, senhas, email=cenario.gestor_b.email, senha=SENHA_DA_DEMONSTRACAO,
+            agora=AGORA, endereco=ENDERECO,
+        )  # fmt: skip
+
+
+def test_o_endereco_tambem_fica_so_como_resumo(
+    sessao: Session, cenario: Demonstracao, senhas: Senhas
+) -> None:
+    _errar_do_endereco(sessao, senhas, vezes=1)
+
+    gravados = sessao.execute(text("select alvo_resumo from tentativa_login")).scalars().all()
+    assert len(gravados) == 2  # o e-mail e o endereço
+    assert not any(ENDERECO in alvo for alvo in gravados)

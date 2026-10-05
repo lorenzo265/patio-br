@@ -21,6 +21,7 @@ from nuvem.cadastro.acesso import COOKIE_DA_SESSAO, Acesso, QuemPede, exigir_pap
 from nuvem.cadastro.modelos import Administrador, Empresa, Usuario
 from nuvem.relogio import agora
 from nuvem.senhas import Senhas, obter_senhas
+from nuvem.web import csrf
 
 roteador = APIRouter(include_in_schema=False)
 telas = Jinja2Templates(directory=Path(__file__).parent / "telas")
@@ -44,7 +45,18 @@ def tela(
     quem = getattr(request.state, "quem", None)
     if request.app.state.tem_demonstracao and isinstance(quem, Acesso):
         contexto = {"papel_na_demonstracao": quem.papel, **contexto}
+    codigo_csrf = csrf.codigo_do_pedido(request)
+    if codigo_csrf is not None:
+        contexto = {"csrf": codigo_csrf, **contexto}
     return telas.TemplateResponse(request, nome, contexto, status_code=codigo)
+
+
+def endereco_de(request: Request) -> str | None:
+    """O endereço IP de quem pede: do cabeçalho de confiança, se configurado (D-55)."""
+    cabecalho = request.app.state.cabecalho_do_ip
+    if cabecalho and request.headers.get(cabecalho):
+        return request.headers[cabecalho].split(",")[0].strip()
+    return request.client.host if request.client else None
 
 
 @roteador.get("/entrar")
@@ -68,7 +80,9 @@ def entrar(
         contexto = {"email": "", "erro": "Entre por esta tela."}
         return tela(request, "entrar.html", contexto, status.HTTP_403_FORBIDDEN)
     try:
-        codigo = login.entrar(sessao, senhas, email=email, senha=senha, agora=momento)
+        codigo = login.entrar(
+            sessao, senhas, email=email, senha=senha, agora=momento, endereco=endereco_de(request)
+        )
     except login.MuitasTentativasError:
         contexto = {"email": email, "erro": f"{ESPERE} Depois, tente de novo."}
         return tela(request, "entrar.html", contexto, status.HTTP_429_TOO_MANY_REQUESTS)

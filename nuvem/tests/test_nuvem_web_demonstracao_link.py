@@ -27,6 +27,7 @@ from nuvem.web.agendar import EsconderCodigoDoLink
 pytestmark = pytest.mark.integracao
 
 Entrar = Callable[..., TestClient]
+ComCsrf = Callable[[TestClient], TestClient]
 
 AGORA = datetime(2026, 10, 5, 17, 0, tzinfo=UTC)
 ADMINISTRACAO = "admin@patio-br.example"
@@ -51,8 +52,8 @@ def _empresas(sessao: Session) -> int:
     return sessao.scalar(select(func.count()).select_from(Empresa)) or 0
 
 
-def _entrar_pelo_link(app: FastAPI, codigo: str) -> TestClient:
-    cliente = TestClient(app)
+def _entrar_pelo_link(app: FastAPI, codigo: str, com_csrf: ComCsrf | None = None) -> TestClient:
+    cliente = com_csrf(TestClient(app)) if com_csrf else TestClient(app)
     resposta = cliente.post(f"/demonstracao/link/{codigo}", follow_redirects=False)
     assert (resposta.status_code, resposta.headers["location"]) == (303, "/demonstracao")
     return cliente
@@ -128,8 +129,8 @@ def test_a_faixa_de_papel_aparece_para_quem_entrou(app: FastAPI, codigo: str) ->
     assert re.search(r'value="gestor"[^>]*aria-pressed="true"', texto)
 
 
-def test_trocar_de_papel_pela_faixa(app: FastAPI, codigo: str) -> None:
-    cliente = _entrar_pelo_link(app, codigo)
+def test_trocar_de_papel_pela_faixa(app: FastAPI, codigo: str, com_csrf: ComCsrf) -> None:
+    cliente = _entrar_pelo_link(app, codigo, com_csrf)
 
     resposta = cliente.post(
         "/demonstracao/papel", data={"papel": "porteiro"}, follow_redirects=False
@@ -153,8 +154,8 @@ def test_trocar_de_papel_pede_login(app: FastAPI, cenario: Demonstracao) -> None
     assert (resposta.status_code, resposta.headers["location"]) == (303, "/entrar")
 
 
-def test_papel_que_nao_existe_e_recusado(app: FastAPI, codigo: str) -> None:
-    cliente = _entrar_pelo_link(app, codigo)
+def test_papel_que_nao_existe_e_recusado(app: FastAPI, codigo: str, com_csrf: ComCsrf) -> None:
+    cliente = _entrar_pelo_link(app, codigo, com_csrf)
 
     resposta = cliente.post("/demonstracao/papel", data={"papel": "administracao"})
 

@@ -241,6 +241,7 @@ outro site faça o navegador postar formulários aqui com o cookie. O login, que
 cookie, recusa o envio que o navegador marca como vindo de outro site (``Sec-Fetch-Site``).
 
 - **`tela`**: Desenha uma tela do painel.
+- **`endereco_de`**: O endereço IP de quem pede: do cabeçalho de confiança, se configurado ([[D-55]]).
 - **`tela_de_entrar`**: O formulário de e-mail e senha.
 - **`entrar`**: Confere e-mail e senha; se baterem, abre a sessão e leva ao início.
 - **`sair`**: Fecha a sessão no servidor e apaga o cookie.

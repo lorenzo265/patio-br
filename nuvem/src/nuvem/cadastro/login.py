@@ -27,6 +27,8 @@ VALIDADE_DA_SESSAO = timedelta(hours=12)
 JANELA_DAS_TENTATIVAS = timedelta(minutes=15)
 MAXIMO_DE_ERROS = 5
 """No máximo 5 erros por alvo (e-mail ou porteiro) a cada 15 minutos."""
+MAXIMO_DE_ERROS_POR_ENDERECO = 20
+"""E no máximo 20 por endereço IP (D-55): uma rede pode ter várias pessoas."""
 
 Conta = Usuario | Administrador
 
@@ -53,27 +55,48 @@ def conta_por_email(sessao: Session, email: str) -> Conta | None:
     return sessao.scalar(select(Administrador).where(Administrador.email == email))
 
 
-def entrar(sessao: Session, senhas: Senhas, *, email: str, senha: str, agora: datetime) -> str:
+def entrar(
+    sessao: Session,
+    senhas: Senhas,
+    *,
+    email: str,
+    senha: str,
+    agora: datetime,
+    endereco: str | None = None,
+) -> str:
     """Confere e-mail e senha e abre uma sessão.
+
+    Args:
+        endereco: o endereço IP de quem tenta; com ele, vale também o limite por endereço, que a
+            senha certa não zera (quem tem uma conta não tenta a senha dos outros sem parar).
 
     Returns:
         O código da sessão, para o cookie (o banco guarda só o resumo dele).
 
     Raises:
-        MuitasTentativasError: se o e-mail errou demais nos últimos 15 minutos (mesmo com a
-            senha certa agora).
+        MuitasTentativasError: se o e-mail (ou o endereço) errou demais nos últimos 15 minutos
+            (mesmo com a senha certa agora).
         LoginRecusadoError: se a conta não existir, estiver desativada, não tiver senha ou a
             senha não conferir. O erro fica gravado para o limite de tentativas.
     """
+    alvos = []
+    if endereco is not None:
+        # Sempre o endereço antes do e-mail: duas travas na mesma ordem nunca se esperam em roda.
+        alvo_do_endereco = resumo_rapido(f"ip:{endereco}")
+        _recusar_se_bloqueado(sessao, alvo_do_endereco, agora, MAXIMO_DE_ERROS_POR_ENDERECO)
+        alvos.append(alvo_do_endereco)
     alvo = resumo_rapido(f"email:{normalizar_email(email)}")
     _recusar_se_bloqueado(sessao, alvo, agora)
+    alvos.append(alvo)
     conta = conta_por_email(sessao, email)
     if conta is None or not conta.ativo or conta.senha_resumo is None:
         senhas.gastar_o_mesmo_tempo(senha)
-        _registrar_erro(sessao, alvo, agora)
+        for errado in alvos:
+            _registrar_erro(sessao, errado, agora)
         raise LoginRecusadoError
     if not senhas.confere(conta.senha_resumo, senha):
-        _registrar_erro(sessao, alvo, agora)
+        for errado in alvos:
+            _registrar_erro(sessao, errado, agora)
         raise LoginRecusadoError
     if senhas.precisa_refazer(conta.senha_resumo):
         conta.senha_resumo = senhas.resumir(senha)
@@ -192,7 +215,9 @@ def abrir_sessao(sessao: Session, conta: Conta, agora: datetime) -> str:
     return codigo
 
 
-def _recusar_se_bloqueado(sessao: Session, alvo: str, agora: datetime) -> None:
+def _recusar_se_bloqueado(
+    sessao: Session, alvo: str, agora: datetime, maximo: int = MAXIMO_DE_ERROS
+) -> None:
     # Uma tentativa por vez para o mesmo alvo. Sem a trava, pedidos ao mesmo tempo contariam os
     # erros antes de qualquer um gravar o seu, e todos passariam do limite.
     sessao.execute(select(func.pg_advisory_xact_lock(_chave_da_trava(alvo))))
@@ -204,7 +229,7 @@ def _recusar_se_bloqueado(sessao: Session, alvo: str, agora: datetime) -> None:
             TentativaLogin.momento > agora - JANELA_DAS_TENTATIVAS,
         )
     )
-    if erros is not None and erros >= MAXIMO_DE_ERROS:
+    if erros is not None and erros >= maximo:
         raise MuitasTentativasError
 
 

@@ -59,6 +59,14 @@ class Configuracao(BaseSettings):
     errado. Fora do ambiente local, só ``https://``.
     """
 
+    cabecalho_do_ip: str | None = None
+    """O cabeçalho de onde vem o endereço de quem pede, atrás de um proxy de confiança (D-55).
+
+    Ex.: ``x-real-ip`` na Vercel, que ela mesma escreve. Sem ele, vale o endereço da conexão:
+    sem um proxy que reescreva o cabeçalho, qualquer um o escreveria para fugir do limite de
+    login por endereço.
+    """
+
     @property
     def cookie_seguro(self) -> bool:
         """Se o cookie da sessão só pode andar por HTTPS (``Secure``)."""

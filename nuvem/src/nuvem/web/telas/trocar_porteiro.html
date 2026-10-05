@@ -5,6 +5,7 @@
 {% if erro %}<p class="erro" role="alert">{{ erro }}</p>{% endif %}
 {% if porteiros %}
 <form method="post" action="/trocar-porteiro">
+  <input type="hidden" name="_csrf" value="{{ csrf }}">
   <label>Quem assume
     <select name="porteiro_id" required>
       {% for porteiro in porteiros %}
