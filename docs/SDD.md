@@ -1,7 +1,7 @@
 # SDD — patio-br (nome provisório)
 
 **Documento de desenho do software (SDD) do MVP do piloto**
-Versão 0.35 · 2026-10-05 · Situação: aprovado como base; itens em aberto na seção 12
+Versão 0.36 · 2026-10-05 · Situação: aprovado como base; itens em aberto na seção 12
 
 ---
 
@@ -627,10 +627,12 @@ PyAV do PyPI fica de fora). A CI não vê bibliotecas nativas: quem acrescenta u
 confere a roda. Os créditos que essas licenças pedem ficam em `borda/AVISOS-DE-TERCEIROS.md`
 (ex.: o do OpenSSL que vem no OpenCV, D-31).
 
-Arquivos de terceiros que o painel serve (o HTMX, licença Zero-Clause BSD) ficam no repositório,
-em `nuvem/src/nuvem/web/estatico/`, com a versão no nome, a licença e o hash conferido, e não
-num CDN: o tablet da portaria não depende de outro servidor. A CI não vê esses arquivos; a
-licença deles é conferida à mão, como a dos modelos.
+Arquivos de terceiros que o painel serve (o HTMX, licença Zero-Clause BSD; o three.js, MIT)
+ficam no repositório, em `nuvem/src/nuvem/web/estatico/`, com a versão no nome, a licença e o
+hash conferido, e não num CDN: o tablet da portaria não depende de outro servidor. Um teste
+confere o hash de cada arquivo listado no `LEIA-ME.md` de lá; a licença é conferida à mão, como
+a dos modelos. **Fontes tipográficas** com a licença SIL OFL 1.1 são aceitas quando usadas sem
+modificação (D-50), do mesmo jeito: os arquivos em `estatico/`, com a licença e o resumo.
 
 ### 6.2 Telas do MVP
 
@@ -701,7 +703,7 @@ Serve para desenvolver sem câmera, para os testes de ponta a ponta e para simul
 | Local | `docker compose up` | PostgreSQL, API, worker, simulador |
 | Homologação | nuvem, máquina pequena | testar cada versão antes do cliente |
 | Produção | AWS São Paulo | o piloto |
-| Demonstração | nuvem, máquina pequena (Lightsail em São Paulo) | apresentar o produto às empresas, só com dados inventados; cada empresa visitada ganha uma empresa de demonstração, apagada depois (D-45); a nuvem roda com `PATIO_AMBIENTE=demonstracao`, e só nele (e no local) existe o dia de demonstração (D-49) |
+| Demonstração | a API como função da Vercel e o banco e as fotos no Supabase, os dois em São Paulo (D-51) | apresentar o produto às empresas, só com dados inventados; cada empresa visitada ganha uma empresa de demonstração, apagada depois (D-45); a nuvem roda com `PATIO_AMBIENTE=demonstracao`, e só nele (e no local) existe o dia de demonstração (D-49) |
 
 ### 7.2 Nuvem (AWS, sa-east-1)
 
@@ -980,6 +982,9 @@ do cuidado de cargas (D-43).
 | D-47 | As **mensagens ao motorista nascem dos eventos, pelo worker**: a confirmação, de cada agendamento ativo com celular que ainda não terminou; "na fila, posição X", do check-in; "vá para a doca", da chamada; "pode sair", do fim na doca. O worker olha os eventos dos últimos 30 minutos e os agendamentos criados ou mudados no último dia; cada evento gera uma mensagem só, e cada celular de um agendamento, uma confirmação (o banco confere). O texto fica pronto na mensagem, sem o nome do motorista. No mês 3 o canal é o de demonstração, que só guarda; no mês 4 o canal do WhatsApp manda a mesma mensagem, só com a autorização do motorista (seção 8.3), e anota a situação | o módulo `mensagens` fica fora da portaria e do pátio e usa só as funções de serviço deles (seção 3.3); aviso velho não sai ("vá para a doca 7" uma hora depois atrapalha); o texto guardado é o que o motorista leu, e o nome dele não se repete em outra tabela | gravar a mensagem na mesma transação do evento (exata na hora, mas a portaria e o pátio passariam a depender das mensagens); montar o texto só na hora de mostrar (a tela mudaria o que já foi mandado) |
 | D-48 | O **extrato** segue a versão 1 da regra (seção 5.4): o mês são as visitas que chegaram nele; a estadia é de quem foi liberado na doca; a exposição sem toneladas fica fora e é contada; a economia soma a estadia evitada (por visita, contra a linha de base), a portaria (postos × custo mensal) e, com o custo hora-doca, as horas de doca a mais. O mês fechado é guardado na primeira vez que é pedido; o mês em curso é parcial. A **linha de base** é uma tabela por site, com a origem: na demonstração, "exemplo", gravada pela semente e marcada assim na tela | a seção 5.4 dizia o que medir, mas não de quais visitas nem como comparar meses de tamanhos diferentes; por visita, a comparação vale para qualquer movimento. Guardar na primeira vez dispensa outra tarefa no worker e deixa o extrato igual depois, mesmo que os parâmetros mudem | contar a estadia de todas as visitas (quem saiu sem doca não tem fim de estadia); comparar totais do mês (mês fraco pareceria economia); gerar o extrato por uma tarefa no virar do mês |
 | D-49 | O **dia de demonstração roda dentro da nuvem, no worker**, e no relógio de verdade. A empresa de demonstração tem tudo de uma empresa (site, portaria, faixas, câmeras, docas, pessoas) e uma caixa de borda de mentira, e ganha um mês de visitas passadas e uma linha de base de exemplo coerente com elas. "Começar o dia" fecha o que ficou aberto, grava a manhã como se já tivesse acontecido (caminhões que saíram, que estão na doca e que esperam na fila há horas) e, nos 5 minutos seguintes, manda as chegadas a cada poucos segundos pelo caminho da caixa (receber e casar), com fotos de placa desenhadas; o líder automático chama, começa, termina e manda os liberados à saída. Uma das chegadas tem a placa lida errada e vira exceção para a pessoa resolver. Os celulares usam o DDD 23, que não existe: nenhum número pode ser de alguém | um relógio acelerado mostraria esperas de segundos, ou exigiria um relógio falso em toda a nuvem (o login inclusive); um simulador por visitante pesaria na máquina pequena da demonstração; a manhã pronta mostra esperas, alertas e números de um dia real | o dia inteiro em 5 minutos, com o relógio acelerado; o simulador como um processo à parte para cada visitante |
+| D-50 | **Fontes com a licença SIL OFL 1.1** entram no painel quando usadas sem modificação, como o MPL-2.0: os arquivos ficam em `nuvem/src/nuvem/web/estatico/`, com a licença e o hash no `LEIA-ME.md`. Fecha o `[ABERTO-21]` | decisão do Lorenzo em 05/10; as boas fontes livres (as do Google Fonts) usam a OFL, que deixa usar, embutir e distribuir, e só pede que a fonte modificada mude de nome | só fontes do sistema (sem identidade); servir de um CDN (o painel não depende de outro servidor, seção 6.1) |
+| D-51 | **A demonstração na internet roda na Vercel e no Supabase**, e não numa máquina na Lightsail: a API como função da Vercel (o runtime Python roda o FastAPI) e o PostgreSQL e as fotos no Supabase, os dois em São Paulo. Sem processo que fica rodando, o worker vira um **tique**: as telas, ao se atualizar, fazem a nuvem avançar o que estiver pendente (o casamento e o dia de demonstração), um tique de cada vez (trava do PostgreSQL). As fotos vão para o Supabase Storage, porque o disco da Vercel não fica. A produção do piloto (seção 7.2) não muda agora; volta a ser vista no mês 4 | decisão do Lorenzo em 05/10: um primeiro deploy simples, sem máquina para cuidar (os dois serviços cuidam do servidor, do HTTPS e dos backups). Regras dos planos em 10/2026: a Vercel Hobby é só para uso pessoal, não comercial (Pro: US$ 20 por pessoa/mês), e o cron dela roda no máximo uma vez por dia (no Pro, uma por minuto); o Supabase Free pausa o projeto depois de uma semana sem uso (Pro: a partir de US$ 25/mês, sem pausa); o pooler do Supabase em modo transação não aceita prepared statements | a máquina na Lightsail (US$ 12/mês, mas com servidor, HTTPS e backups por nossa conta); o worker num serviço à parte (mais uma conta e mais um custo) |
+| D-52 | **Um link de demonstração por empresa visitada**, gerado pela administração e válido por 7 dias (o código guardado só como resumo, como o link da transportadora, D-34). Quem abre ganha uma empresa de demonstração só dela (a da T45, D-49) e entra como gestor; ela é apagada depois. Sem cadastro aberto ao público | decisão do Lorenzo em 05/10: cada conversa comercial ganha a sua demonstração, sem uma empresa ver o que outra fez | uma demonstração única para todos (uma empresa veria o que a outra mexeu); cadastro aberto (expõe a demonstração a qualquer um) |
 
 ---
 
@@ -987,7 +992,7 @@ do cuidado de cargas (D-43).
 
 | # | Item | Como e quando decidir |
 |---|---|---|
-| ABERTO-01 | Nome do produto | antes das primeiras conversas comerciais (mês 1) |
+| ABERTO-01 | Nome do produto (e a identidade visual: cores, fontes, marca) | numa sessão à parte, com o prompt de `docs/prompts/identidade-visual.md`, antes do visual próprio (T40) |
 | ABERTO-02 | Pesos e limite do casamento (seção 5.3) | com os dados rotulados do mês 2 |
 | ABERTO-03 | Detector: D-FINE-N ou YOLOX-Tiny | no teste técnico: acerto e quadros por segundo no N150 |
 | ABERTO-04 | Prazos de guarda de dados | com advogado, no mês 1 |
@@ -1000,7 +1005,6 @@ do cuidado de cargas (D-43).
 | ABERTO-18 | Placas reais para o leitor, com o site parceiro adiado (seção 4.6). O treino começa com placas sintéticas e bases abertas (D-44). Falta decidir: a régua fixa com cerca de 1.000 placas reais (proposta: fotografar a frota própria parada de transportadoras e locadoras, com carta de autorização) e a coleta própria para treinar (proposta: gravar em 1 a 3 portões de conhecidos, com o sim do advogado) (`docs/validacao/fontes-de-placas.md`) | com o Lorenzo e o advogado, antes da régua e do treino com placas reais |
 | ABERTO-19 | Recebimento: de onde vêm os itens da NF-e (o XML que o fornecedor manda, o certificado digital do cliente ou outro caminho) e como o resultado volta ao sistema do cliente (`docs/validacao/recebimento-e-estoque.md`) | no desenho do módulo, depois do piloto aprovado |
 | ABERTO-20 | Estoque e cuidado de cargas: estoque próprio (endereços, saldo, busca, visão 3D) ou ligado ao sistema do cliente; o que entra em "cuidado de cargas e controle de entregas" e se inclui a conferência de carga e lacre da Fase 3 | no desenho dos módulos, depois do piloto aprovado |
-| ABERTO-21 | Fontes tipográficas no painel: as boas fontes livres usam a licença SIL OFL 1.1, que a regra da seção 6.1 não cita. Proposta: aceitar a OFL 1.1 para fontes usadas sem modificação (como o MPL-2.0), com os arquivos em `nuvem/src/nuvem/web/estatico/` e licença e resumo no `LEIA-ME.md` | com o Lorenzo, antes do visual próprio (mês 3, E4) |
 
 ---
 
@@ -1077,3 +1081,4 @@ do cuidado de cargas (D-43).
 | 0.33 | 2026-10-05 | mensagens do motorista (T43): nascem dos eventos pelo worker, no canal de demonstração (D-47); a entidade `Mensagem` e o módulo `mensagens` (seções 3.3, 5.1 e 11) |
 | 0.34 | 2026-10-05 | painel e extrato (T44): como cada conta é feita, a economia em R$, o mês fechado guardado e a linha de base por site (D-48); entidades `ParametrosSite`, `LinhaDeBase` e `Extrato`; "franquia" no glossário (seções 5.1, 5.4, 6.2, 11 e 13) |
 | 0.35 | 2026-10-05 | o dia de demonstração (T45): no worker e no relógio de verdade, com a manhã pronta, o líder automático, uma exceção para resolver e celulares de DDD que não existe (D-49); o ambiente `demonstracao` (seções 7.1, 11 e 13) |
+| 0.36 | 2026-10-05 | decisões de 05/10 à noite: fontes OFL (D-50, fecha o `[ABERTO-21]`), a demonstração na Vercel e no Supabase (D-51) e o link de 7 dias por empresa (D-52); o nome e a identidade visual vão para uma sessão à parte (`[ABERTO-01]`) (seções 6.1, 7.1, 11 e 12) |

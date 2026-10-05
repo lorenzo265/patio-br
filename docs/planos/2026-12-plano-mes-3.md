@@ -47,12 +47,12 @@ de login por endereço).
 
 ## 2. Antes de começar: decisões do Lorenzo
 
-| # | Decisão | Trava | Recomendação |
-|---|---|---|---|
-| E1 | **Nome e cores** (`[ABERTO-01]`). Três caminhos estão na página "Marca do patio-br". | o visual (T40) e o domínio (T47) | escolher um; depois, consultar a marca no INPI e o domínio .com.br |
-| E2 | **Onde hospedar a demonstração.** É preciso uma conta e um domínio. | a demonstração na internet (T47) | **AWS Lightsail em São Paulo**, o mesmo que o SDD 7.2 prevê para a produção, numa máquina de 2 GB (US$ 12/mês), e o domínio no registro.br (cerca de R$ 40/ano). A conta é do Lorenzo; eu preparo tudo e passo os passos |
-| E3 | **Como a pessoa entra.** | T48 | **um link por empresa visitada**, gerado pela administração e válido por 7 dias. Quem abre ganha uma empresa de demonstração só dela, apagada depois. Sem cadastro aberto ao público |
-| E4 | **Fontes tipográficas no painel.** As boas fontes livres usam a licença SIL OFL 1.1, que a regra de licenças ainda não cita (`[ABERTO-21]`). | o visual (T40) | aceitar a OFL 1.1 para fontes usadas sem modificação, como o MPL-2.0; os arquivos ficam em `nuvem/src/nuvem/web/estatico/`, com licença e resumo no `LEIA-ME.md` |
+| # | Decisão | Trava | Recomendação | Decidido em 05/10 |
+|---|---|---|---|---|
+| E1 | **Nome e cores** (`[ABERTO-01]`). Três caminhos estão na página "Marca do patio-br". | o visual (T40) e o domínio (T47) | escolher um; depois, consultar a marca no INPI e o domínio .com.br | **numa sessão à parte**, que decide a identidade visual inteira com as skills de design e já faz a T40 (prompt em `docs/prompts/identidade-visual.md`) |
+| E2 | **Onde hospedar a demonstração.** É preciso uma conta e um domínio. | a demonstração na internet (T47) | ~~**AWS Lightsail em São Paulo**, o mesmo que o SDD 7.2 prevê para a produção, numa máquina de 2 GB (US$ 12/mês), e o domínio no registro.br (cerca de R$ 40/ano)~~ | **Vercel e Supabase** (D-51): um primeiro deploy simples, sem máquina para cuidar. A T47 muda (ver abaixo) |
+| E3 | **Como a pessoa entra.** | T48 | **um link por empresa visitada**, gerado pela administração e válido por 7 dias. Quem abre ganha uma empresa de demonstração só dela, apagada depois. Sem cadastro aberto ao público | **aprovado** (D-52) |
+| E4 | **Fontes tipográficas no painel.** As boas fontes livres usam a licença SIL OFL 1.1, que a regra de licenças ainda não cita (`[ABERTO-21]`). | o visual (T40) | aceitar a OFL 1.1 para fontes usadas sem modificação, como o MPL-2.0; os arquivos ficam em `nuvem/src/nuvem/web/estatico/`, com licença e resumo no `LEIA-ME.md` | **aprovado** (D-50) |
 
 ---
 
@@ -197,19 +197,33 @@ seriam de segundos.*
 
 #### T47. Demonstração na internet
 
-**Objetivo:** o endereço público, seguro e barato.
+**Objetivo:** o endereço público, seguro e simples, na Vercel e no Supabase (D-51).
 
-**Depende de:** E1 (o domínio) e E2 (a conta).
+**Depende de:** E1 (o domínio) e as contas da Vercel e do Supabase (N17).
 
-**Arquivos:** `infra/demonstracao/` (o compose da máquina e o Caddy), um comando para publicar,
-`docs/guias/demonstracao-na-internet.md`.
+**Arquivos:** ~~`infra/demonstracao/` (o compose da máquina e o Caddy)~~ a entrada da Vercel
+(`vercel.json` e o `app` que ela carrega), o armazenamento de fotos no Supabase Storage, o tique
+que substitui o worker, um comando para migrar o banco do Supabase,
+`docs/guias/demonstracao-na-internet.md`. *Mudou com a E2 (D-51): sem máquina, sem Caddy.*
 
 **Regras:**
 - **Antes de abrir para a internet** (vem do mês 4, SDD 8.2): código anti-CSRF nos formulários,
   limite de login também por endereço e o comando para criar a administração.
-- HTTPS pelo Caddy; segredos só na máquina, nunca no repositório.
-- O ambiente de demonstração recusa passagem de caixa de verdade e só tem dados da semente.
-- As empresas de demonstração vencidas são apagadas toda noite.
+- **A API como função da Vercel**, na região de São Paulo; o banco é o PostgreSQL do Supabase,
+  em São Paulo. O pooler em modo transação não aceita prepared statements: conferir o pg8000
+  nele; se não der, o pooler em modo sessão.
+- **Sem worker** (a Vercel não tem processo que fica rodando): o tique. Quando uma tela se
+  atualiza, a nuvem roda o que estiver pendente (o casamento e o dia de demonstração), um tique
+  de cada vez, com a trava do PostgreSQL. O ambiente de demonstração recebe passagens só do dia
+  de demonstração.
+- **Fotos no Supabase Storage** (pela API S3), e não no disco: o disco da Vercel não fica.
+- HTTPS pela Vercel; segredos só nas variáveis de ambiente da Vercel, nunca no repositório.
+- O ambiente de demonstração recusa passagem de caixa de verdade e só tem dados inventados.
+- As empresas de demonstração vencidas são apagadas uma vez por dia (o cron da Vercel, que no
+  plano Hobby roda uma vez por dia).
+- **Planos (decisão do Lorenzo ao abrir as contas):** a Vercel Hobby é só para uso pessoal, não
+  comercial; para apresentar a empresas, o Pro (US$ 20/mês). O Supabase Free pausa o projeto
+  depois de uma semana sem uso; o Pro (a partir de US$ 25/mês) não pausa.
 
 **Commit:** `infra: demonstração na internet`
 
@@ -235,7 +249,7 @@ seriam de segundos.*
 | # | Tarefa | Por quê | Resolve |
 |---|---|---|---|
 | N16 | Escolher o nome e as cores (E1), consultar o INPI e registrar o domínio | a marca e o endereço da demonstração | E1, T40, T47 |
-| N17 | Abrir a conta da AWS (E2) e passar o acesso pelo cofre de segredos do ambiente | publicar a demonstração | T47 |
+| N17 | ~~Abrir a conta da AWS (E2)~~ Abrir as contas da Vercel e do Supabase (D-51), escolher os planos e passar o acesso pelo cofre de segredos do ambiente | publicar a demonstração | T47 |
 | N18 | Listar as empresas para apresentar e marcar as conversas | o motivo da demonstração | o comercial |
 
 ---
@@ -250,7 +264,7 @@ seriam de segundos.*
 
 ## 7. Checklist de "mês 3 pronto"
 
-- [ ] E1 a E4 decididas e registradas no SDD.
+- [x] E2 a E4 decididas e registradas no SDD (D-50 a D-52); E1 numa sessão à parte.
 - [ ] Visual próprio em todas as telas, no computador e no celular.
 - [ ] Exceção resolvida pela tela; registro manual.
 - [ ] Pátio e docas com chamada, início e fim.
