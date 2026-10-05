@@ -17,6 +17,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
 
+from nuvem.agendamento import rotas as agendamento
 from nuvem.armazenamento import ArmazenamentoLocal
 from nuvem.banco import criar_motor, obter_sessao
 from nuvem.cadastro.rotas import roteador as rotas_do_cadastro
@@ -76,6 +77,7 @@ def criar_app(configuracao: Configuracao | None = None, senhas: Senhas | None = 
     app.include_router(frota.roteador_borda)
     app.include_router(frota.roteador_admin)
     app.include_router(portaria.roteador_borda)
+    app.include_router(agendamento.roteador)
     app.include_router(web.roteador)
     app.include_router(tela_da_portaria.roteador)
     app.mount("/estatico", StaticFiles(directory=PASTA_ESTATICA), name="estatico")

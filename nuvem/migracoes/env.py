@@ -9,6 +9,7 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy import Connection
 
+from nuvem.agendamento import modelos as _modelos_do_agendamento  # noqa: F401
 from nuvem.banco import Base, criar_motor
 from nuvem.cadastro import modelos as _modelos_do_cadastro  # noqa: F401  (registra as tabelas)
 from nuvem.config import ConfiguracaoInvalidaError, ler_configuracao
