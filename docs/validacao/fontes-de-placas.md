@@ -114,6 +114,13 @@ régua fixa (SDD 4.7): nunca entra no treino e fica em `dados/`, fora do Git.
   guarda e contato).
 - **Carros de conhecidos:** consentimento por escrito, para uma finalidade definida e revogável
   (LGPD, art. 8º); um termo de uma página basta.
+- **Fotos de carros na rua, ao acaso:** fotografar em lugar público não é proibido, mas, como é
+  para a empresa, a LGPD vale (a exceção do art. 4º é só para uso particular e sem fim
+  econômico). Sem consentimento, a base seria o legítimo interesse, com relatório escrito e o
+  sim do advogado; o dono do carro não espera virar dado de treino. Se o advogado aprovar:
+  carros parados, nenhuma pessoa na foto, só o recorte da placa (D-39), sem a localização da foto
+  (apagar os dados de GPS) nem a hora, e o original apagado depois do recorte. Uma base de
+  placas que vaze serve para clonar placas.
 
 **Tamanho do teste** (intervalo de 95% para um acerto de 97%):
 

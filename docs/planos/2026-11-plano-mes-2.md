@@ -401,7 +401,7 @@ contrato do cliente autorizar (SDD 4.6 e 8.3).
 | N12 | **Montar a oferta de piloto anual pré-pago** e levá-la às conversas | o comercial do mês 2 (SDD 10) | `[ABERTO-06]` |
 | ~~N13~~ | ~~**Combinar com o site parceiro o registro manual** das chegadas durante a gravação (hora, placas, agendamento)~~ (adiada em 05/10) | é o gabarito da composição e do casamento | T36, T37 |
 | N14 | **Fechar o que ficou da trilha do mês 1** (N1 a N8) | Meta, AWS e advogado têm prazo longo | `[ABERTO-01]`, `[ABERTO-04]`, `[ABERTO-07]` |
-| N15 | **Levar ao advogado** (acrescentada em 05/10): gravar em portões de conhecidos, o leitor comercial na nuvem (D-41) e a cláusula do treino no contrato (SDD 8.3) | a coleta própria e o uso das conferências no treino dependem do sim | `[ABERTO-18]`, `[ABERTO-07]` |
+| N15 | **Levar ao advogado** (acrescentada em 05/10): gravar em portões de conhecidos, fotografar placas na rua, o leitor comercial na nuvem (D-41) e a cláusula do treino no contrato (SDD 8.3) | a coleta própria e o uso das conferências no treino dependem do sim | `[ABERTO-18]`, `[ABERTO-07]` |
 
 ---
 
