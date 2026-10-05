@@ -17,3 +17,8 @@ dist/
 .mypy_cache/
 .ruff_cache/
 .pytest_cache/
+
+# Vault do Obsidian: só a configuração básica entra; a janela e os plugins são de cada pessoa
+knowledge/.obsidian/*
+!knowledge/.obsidian/app.json
+knowledge/.trash/
