@@ -141,6 +141,27 @@ def caixa_da_chave(sessao: Session, chave: str) -> AcessoDaCaixa | None:
     return AcessoDaCaixa(caixa_id=caixa.id, empresa_id=caixa.empresa_id, site_id=caixa.site_id)
 
 
+def caixa_do_site(sessao: Session, *, empresa_id: int, site_id: int) -> AcessoDaCaixa | None:
+    """A primeira caixa não revogada de um site, ou ``None``.
+
+    Para a demonstração (D-49), que manda as passagens como a caixa do site; quem chama já sabe
+    o site.
+    """
+    caixa = sessao.scalars(
+        select(CaixaBorda)
+        .where(
+            CaixaBorda.empresa_id == empresa_id,
+            CaixaBorda.site_id == site_id,
+            CaixaBorda.revogada_em.is_(None),
+        )
+        .order_by(CaixaBorda.id)
+        .limit(1)
+    ).one_or_none()
+    if caixa is None:
+        return None
+    return AcessoDaCaixa(caixa_id=caixa.id, empresa_id=caixa.empresa_id, site_id=caixa.site_id)
+
+
 def configuracao(sessao: Session, cifra: Cifra, caixa: AcessoDaCaixa) -> ConfiguracaoDaCaixa:
     """As faixas e câmeras do site da caixa (com a senha das câmeras decifrada)."""
     faixas = cadastro.faixas_para_a_borda(

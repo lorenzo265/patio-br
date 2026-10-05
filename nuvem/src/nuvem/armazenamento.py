@@ -112,6 +112,19 @@ class Armazenamento(Protocol):
         """
         ...
 
+    def guardar(self, caixa_id: int, ref: str, conteudo: bytes) -> bool:
+        """Guarda uma foto feita pela própria nuvem (as desenhadas da demonstração, D-49).
+
+        Returns:
+            ``True`` se a foto é nova; ``False`` se a mesma foto já estava guardada.
+
+        Raises:
+            RefInvalidoError: se o ``ref`` fugir da regra.
+            FotoNaoJpegError: se a foto não for JPEG.
+            FotoDiferenteError: se já houver outra foto neste ``ref``.
+        """
+        ...
+
 
 class ArmazenamentoLocal:
     """Fotos numa pasta do disco; o endereço de envio aponta para a própria API."""
@@ -160,6 +173,12 @@ class ArmazenamentoLocal:
         """Devolve a foto, ou ``None`` se ela ainda não chegou."""
         caminho = self._caminho(caixa_id, ref)
         return caminho.read_bytes() if caminho.is_file() else None
+
+    def guardar(self, caixa_id: int, ref: str, conteudo: bytes) -> bool:
+        """Guarda uma foto feita pela própria nuvem (as desenhadas da demonstração, D-49)."""
+        if not conteudo.startswith(_INICIO_DO_JPEG):
+            raise FotoNaoJpegError("a foto precisa ser JPEG")
+        return self._gravar_sem_trocar(self._caminho(caixa_id, ref), conteudo)
 
     def _caminho(self, caixa_id: int, ref: str) -> Path:
         validar_ref(ref)

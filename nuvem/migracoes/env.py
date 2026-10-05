@@ -14,6 +14,7 @@ from nuvem.agendamento import modelos as _modelos_do_agendamento  # noqa: F401
 from nuvem.banco import Base, criar_motor
 from nuvem.cadastro import modelos as _modelos_do_cadastro  # noqa: F401  (registra as tabelas)
 from nuvem.config import ConfiguracaoInvalidaError, ler_configuracao
+from nuvem.demonstracao import modelos as _modelos_da_demonstracao  # noqa: F401
 from nuvem.extrato import modelos as _modelos_do_extrato  # noqa: F401
 from nuvem.frota import modelos as _modelos_da_frota  # noqa: F401
 from nuvem.mensagens import modelos as _modelos_das_mensagens  # noqa: F401

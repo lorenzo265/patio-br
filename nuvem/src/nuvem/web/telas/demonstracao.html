@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block titulo %}Dia de demonstração · {{ site.nome }}{% endblock %}
+{% block cabeca %}
+{% if dia and dia.rodando %}<meta http-equiv="refresh" content="5">{% endif %}
+<style>
+  .telas { display: grid; grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr)); gap: 0.75rem; margin: 1rem 0; }
+  .telas a { display: block; border: 1px solid #ccc; padding: 0.9rem; text-decoration: none; }
+  .telas a strong { display: block; font-size: 1.1rem; }
+  .nota { color: #555; }
+</style>
+{% endblock %}
+{% block conteudo %}
+<h1>Dia de demonstração · {{ site.nome }}</h1>
+{% if dia and dia.rodando %}
+<p><strong>O dia está rodando</strong> desde {{ comecou }}: {{ dia.enviadas }} de {{ dia.chegadas }} chegadas; termina às {{ termina }}.</p>
+{% elif dia %}
+<p>O último dia começou em {{ comecou }} e já terminou; o pátio ficou como estava.</p>
+{% endif %}
+{% if not dia or not dia.rodando %}
+<form method="post" action="/demonstracao/comecar">
+  <input type="hidden" name="site" value="{{ site.id }}">
+  <button type="submit">Começar o dia</button>
+</form>
+<p class="nota">A manhã já aparece pronta (quem saiu, quem está na doca e quem espera na fila) e, nos 5 minutos seguintes, os caminhões chegam a cada 10 segundos e o líder automático chama, começa e termina. Um deles chega com a placa lida errada: resolva a exceção na portaria. Tudo é inventado.</p>
+{% endif %}
+<div class="telas">
+  <a href="/portaria?site={{ site.id }}"><strong>Portaria</strong>as chegadas com a foto e a exceção</a>
+  <a href="/patio?site={{ site.id }}"><strong>Pátio e docas</strong>a fila, as docas e os alertas</a>
+  <a href="/mensagens?site={{ site.id }}"><strong>Celular do motorista</strong>as mensagens de cada caminhão</a>
+  <a href="/painel?site={{ site.id }}"><strong>Painel e extrato</strong>o dia, o mês e a economia</a>
+</div>
+<p><a href="/">Início</a></p>
+{% endblock %}

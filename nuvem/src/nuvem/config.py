@@ -15,7 +15,7 @@ from nuvem.cifra import Cifra
 
 PREFIXO = "PATIO_"
 
-Ambiente = Literal["local", "homologacao", "producao"]
+Ambiente = Literal["local", "demonstracao", "homologacao", "producao"]
 
 
 class Configuracao(BaseSettings):
@@ -37,10 +37,11 @@ class Configuracao(BaseSettings):
     """
 
     ambiente: Ambiente = "producao"
-    """Onde a nuvem roda: ``local``, ``homologacao`` ou ``producao``.
+    """Onde a nuvem roda: ``local``, ``demonstracao``, ``homologacao`` ou ``producao``.
 
     Só no ``local`` o cookie da sessão vai sem ``Secure`` (o ambiente local é http://localhost).
-    O padrão é ``producao``: esquecer a variável nunca deixa a produção menos segura.
+    Só no ``local`` e na ``demonstracao`` existe o dia de demonstração (D-49). O padrão é
+    ``producao``: esquecer a variável nunca deixa a produção menos segura.
     """
 
     pasta_fotos: Path = Path("dados/fotos")
@@ -62,6 +63,11 @@ class Configuracao(BaseSettings):
     def cookie_seguro(self) -> bool:
         """Se o cookie da sessão só pode andar por HTTPS (``Secure``)."""
         return self.ambiente != "local"
+
+    @property
+    def tem_demonstracao(self) -> bool:
+        """Se o dia de demonstração existe neste ambiente (D-49)."""
+        return self.ambiente in ("local", "demonstracao")
 
     @field_validator("chave_cifra")
     @classmethod

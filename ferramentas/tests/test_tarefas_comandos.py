@@ -13,6 +13,7 @@ from tarefas.comandos import (
     encontrar_raiz,
     etapas_do_check,
     etapas_do_demo,
+    etapas_do_demonstracao,
     etapas_do_down,
     etapas_do_migrar,
     etapas_do_modelos,
@@ -183,6 +184,12 @@ def test_semente_grava_os_dados_de_demonstracao_da_nuvem() -> None:
     (etapa,) = etapas_do_semente()
 
     assert etapa.argumentos[2:] == ("nuvem.semente",)
+
+
+def test_demonstracao_cria_a_empresa_de_demonstracao_da_nuvem() -> None:
+    (etapa,) = etapas_do_demonstracao()
+
+    assert etapa.argumentos[2:] == ("nuvem.demonstracao",)
 
 
 def test_demo_sobe_migra_semeia_e_roda_o_simulador_com_as_amostras() -> None:
