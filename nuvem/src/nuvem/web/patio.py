@@ -175,6 +175,7 @@ def _caminhao(caminhao: CaminhaoNoPatio, fuso: ZoneInfo) -> dict[str, Any]:
         "estado": caminhao.estado,
         "situacao": ESTADO_NA_TELA.get(caminhao.estado, caminhao.estado),
         "placas": ", ".join(caminhao.placas),
+        "agendamento_id": caminhao.agendamento_id,
         "agendamento": caminhao.agendamento or "sem agendamento",
         "tipo": caminhao.tipo or "",
         "chegada": caminhao.chegou_em.astimezone(fuso).strftime("%H:%M"),

@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block titulo %}Celular do motorista · {{ codigo }}{% endblock %}
+{% block cabeca %}
+<script src="/estatico/htmx-2.0.11.min.js" defer></script>
+<style>
+  .celular { width: 22rem; max-width: 100%; height: 40rem; margin: 1rem auto; box-sizing: border-box;
+             border: 0.6rem solid #1f2328; border-radius: 2.5rem; overflow: hidden;
+             display: flex; flex-direction: column; background: #ece8e1; }
+  .celular header { background: #1f3a4d; color: #fff; padding: 1.2rem 1rem 0.8rem; }
+  .celular header strong { display: block; font-size: 1.05rem; }
+  .celular header span { font-size: 0.8rem; opacity: 0.8; }
+  /* De baixo para cima: a mensagem mais nova fica à vista, como num celular. */
+  .tela { flex: 1; overflow-y: auto; display: flex; flex-direction: column-reverse; padding: 0.75rem; }
+  .dia { text-align: center; margin: 0.75rem 0 0.25rem; }
+  .dia span { background: #d7e4ec; border-radius: 0.5rem; padding: 0.15rem 0.6rem; font-size: 0.8rem; }
+  .balao { background: #fff; border-radius: 0 0.75rem 0.75rem 0.75rem; padding: 0.5rem 0.7rem;
+           margin: 0.4rem 2.5rem 0 0; box-shadow: 0 1px 1px rgba(0, 0, 0, 0.12); }
+  .balao p { margin: 0; line-height: 1.35; }
+  .balao .hora { display: block; text-align: right; font-size: 0.72rem; color: #667; margin-top: 0.2rem; }
+  .vazio { text-align: center; color: #556; }
+  .legenda { text-align: center; color: #555; font-size: 0.9rem; }
+</style>
+{% endblock %}
+{% block conteudo %}
+<div class="celular">
+  <header><strong>{{ site.nome }}</strong><span>avisos da fila e da doca</span></header>
+  <div class="tela">
+    <div hx-get="/mensagens/agendamentos/{{ agendamento_id }}/conversa" hx-trigger="load, every 3s">
+      <p class="vazio">Carregando…</p>
+    </div>
+  </div>
+</div>
+<p class="legenda">Agendamento {{ codigo }} · {% if para %}celular {{ para }}{% else %}O agendamento não tem celular: as mensagens novas não têm para onde ir.{% endif %}</p>
+<p class="legenda">Demonstração: as mensagens ficam guardadas aqui, e nada é enviado ao motorista.</p>
+<p class="legenda"><a href="/mensagens?site={{ site.id }}">Outras conversas</a> · <a href="/">Início</a></p>
+{% endblock %}

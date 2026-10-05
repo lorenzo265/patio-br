@@ -53,7 +53,7 @@
   {% for a in agendamentos %}
     <tr{% if a.situacao == "cancelado" %} class="cancelado"{% endif %}>
       <td>{{ a.dia }}</td><td>{{ a.janela }}</td><td>{{ a.codigo }}</td><td>{{ a.origem }}</td><td>{{ a.tipo }}</td>
-      <td>{{ a.placas }}</td><td>{{ a.motorista }}</td><td>{{ a.celular }}</td><td>{{ a.toneladas }}</td><td>{{ a.situacao }}</td>
+      <td>{{ a.placas }}</td><td>{{ a.motorista }}</td><td>{{ a.celular }}{% if a.celular %} <a href="/mensagens/agendamentos/{{ a.id }}">mensagens</a>{% endif %}</td><td>{{ a.toneladas }}</td><td>{{ a.situacao }}</td>
       <td>{% if a.situacao == "ativo" %}<form class="linha" method="post" action="/agendamentos/{{ a.id }}/cancelar" onsubmit="return confirm('Cancelar o agendamento {{ a.codigo }}?')"><button type="submit">cancelar</button></form>{% endif %}</td>
     </tr>
   {% endfor %}

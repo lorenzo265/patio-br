@@ -1,0 +1,6 @@
+{% for b in baloes %}
+{% if b.novo_dia %}<p class="dia"><span>{{ b.dia }}</span></p>{% endif %}
+<div class="balao"><p>{{ b.texto }}</p><span class="hora">{{ b.hora }}</span></div>
+{% else %}
+<p class="vazio">Nenhuma mensagem ainda.</p>
+{% endfor %}
