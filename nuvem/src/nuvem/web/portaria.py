@@ -1,7 +1,8 @@
-"""Tela crua da portaria (T12): as últimas passagens do site, atualizadas a cada 2 segundos.
+"""Tela crua da portaria (T12 e T34): as últimas passagens e as exceções abertas do site.
 
-A página traz o HTMX, que busca a lista (``/portaria/passagens``) ao abrir e a cada 2
-segundos. A atualização empurrada pelo servidor (SSE) vem com a tela definitiva, no mês 3.
+A página traz o HTMX, que busca as listas (``/portaria/passagens`` e ``/portaria/excecoes``) ao
+abrir e a cada 2 segundos. A atualização empurrada pelo servidor (SSE) e a resolução das
+exceções vêm com a tela definitiva, no mês 3.
 """
 
 from typing import Annotated, Any
@@ -12,12 +13,15 @@ from fastapi import APIRouter, Depends, Request, Response
 from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
 
+from nuvem.agendamento import servico as agendamentos
 from nuvem.armazenamento import Armazenamento, obter_armazenamento
 from nuvem.banco import obter_sessao
 from nuvem.cadastro import servico as cadastro
 from nuvem.cadastro.acesso import Acesso, exigir_papel
+from nuvem.erros import NaoEncontradoError
 from nuvem.portaria import servico as portaria
-from nuvem.portaria.modelos import PassagemRecebida
+from nuvem.portaria import visitas
+from nuvem.portaria.modelos import Excecao, PassagemRecebida
 from nuvem.web.rotas import tela
 
 roteador = APIRouter(prefix="/portaria", include_in_schema=False)
@@ -56,6 +60,25 @@ def lista_de_passagens(
     return tela(request, "portaria_passagens.html", {"passagens": linhas})
 
 
+MOTIVO_NA_TELA = {
+    "sem_placa": "nenhuma placa lida",
+    "sem_candidato": "sem agendamento com estas placas",
+    "pontos_baixos": "parecido com um agendamento, mas sem segurança",
+    "candidatos_proximos": "mais de um agendamento possível",
+}
+
+
+@roteador.get("/excecoes")
+def lista_de_excecoes(
+    request: Request, sessao: SessaoDaRequisicao, acesso: AcessoDaPortaria, site: int
+) -> HTMLResponse:
+    """As exceções abertas do site, da chegada mais antiga para a mais nova (só ver)."""
+    excecoes = visitas.excecoes_abertas(sessao, acesso, site)
+    fuso = ZoneInfo(cadastro.obter_site(sessao, acesso, site).fuso)
+    cartoes = [_cartao(sessao, acesso, excecao, fuso) for excecao in excecoes]
+    return tela(request, "portaria_excecoes.html", {"excecoes": cartoes})
+
+
 @roteador.get("/fotos/{passagem_id}/{indice}")
 def foto(
     sessao: SessaoDaRequisicao,
@@ -69,11 +92,52 @@ def foto(
     return Response(conteudo, media_type="image/jpeg", headers={"Cache-Control": CACHE_DA_FOTO})
 
 
+def _cartao(sessao: Session, acesso: Acesso, excecao: Excecao, fuso: ZoneInfo) -> dict[str, Any]:
+    visita = visitas.obter_visita(sessao, acesso, excecao.visita_id)
+    passagem = portaria.obter_passagem(sessao, acesso, excecao.passagem_id)
+    chegada = (visita.chegou_em or visita.criada_em).astimezone(fuso)
+    return {
+        "id": excecao.id,
+        "passagem_id": str(passagem.id),
+        "data": chegada.strftime("%d/%m"),
+        "hora": chegada.strftime("%H:%M:%S"),
+        "motivo": MOTIVO_NA_TELA[excecao.motivo],
+        "placas": visita.composicao,
+        "foto": _foto_da_placa(passagem),
+        "candidatos": [
+            candidato
+            for item in excecao.candidatos
+            if (candidato := _candidato(sessao, acesso, item, fuso)) is not None
+        ],
+    }
+
+
+def _candidato(
+    sessao: Session, acesso: Acesso, item: dict[str, Any], fuso: ZoneInfo
+) -> dict[str, Any] | None:
+    try:
+        agendamento = agendamentos.obter(sessao, acesso, item["agendamento_id"])
+    except NaoEncontradoError:
+        return None  # o porteiro não vê este site (não deveria acontecer)
+    inicio = agendamento.janela_inicio.astimezone(fuso)
+    fim = agendamento.janela_fim.astimezone(fuso)
+    return {
+        "codigo": agendamento.codigo_externo,
+        "placas": ", ".join([agendamento.placa_cavalo, *agendamento.placas_reboques]),
+        "janela": f"{inicio:%d/%m} {inicio:%H:%M} às {fim:%H:%M}",
+        "motorista": agendamento.motorista_nome or "",
+        "pontos": item["pontos"],
+    }
+
+
+def _foto_da_placa(passagem: PassagemRecebida) -> int | None:
+    fotos = passagem.como_veio["fotos"]
+    return next((i for i, f in enumerate(fotos) if f["tipo"] == "placa"), None)
+
+
 def _linha(passagem: PassagemRecebida, fuso: ZoneInfo, faixas: dict[int, str]) -> dict[str, Any]:
     # O horário vai no fuso do site: é o que o porteiro vê no relógio da parede.
     inicio = passagem.inicio.astimezone(fuso)
-    fotos = passagem.como_veio["fotos"]
-    foto_da_placa = next((i for i, f in enumerate(fotos) if f["tipo"] == "placa"), None)
     return {
         "id": str(passagem.id),
         "data": inicio.strftime("%d/%m"),
@@ -88,5 +152,5 @@ def _linha(passagem: PassagemRecebida, fuso: ZoneInfo, faixas: dict[int, str]) -
             }
             for placa in passagem.como_veio["placas"]
         ],
-        "foto": foto_da_placa,
+        "foto": _foto_da_placa(passagem),
     }

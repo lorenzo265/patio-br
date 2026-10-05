@@ -121,6 +121,24 @@ def ultimas_passagens(
     )
 
 
+def obter_passagem(sessao: Session, acesso: Acesso, passagem_id: UUID) -> PassagemRecebida:
+    """Uma passagem de um site que o usuário vê.
+
+    Raises:
+        NaoEncontradoError: se a passagem não existir ou não for visível para este usuário.
+    """
+    passagem = sessao.scalar(
+        select(PassagemRecebida).where(
+            PassagemRecebida.id == passagem_id,
+            PassagemRecebida.empresa_id == acesso.empresa_id,
+            PassagemRecebida.site_id.in_(acesso.sites),
+        )
+    )
+    if passagem is None:
+        raise NaoEncontradoError(f"passagem {passagem_id}")
+    return passagem
+
+
 def foto_da_passagem(
     sessao: Session,
     acesso: Acesso,

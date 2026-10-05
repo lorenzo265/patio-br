@@ -1,0 +1,27 @@
+{% if excecoes %}
+{% for excecao in excecoes %}
+<article id="excecao-{{ excecao.id }}" style="border: 1px solid #c90; padding: 0.75rem; margin-bottom: 0.75rem;">
+  <p><strong>{{ excecao.data }} {{ excecao.hora }}</strong> · {{ excecao.motivo }}</p>
+  <p>Placas lidas:
+    {% for placa in excecao.placas %}<strong>{{ placa.placa }}</strong> ({{ placa.papel }}){% if not loop.last %}, {% endif %}{% else %}<em>nenhuma</em>{% endfor %}
+  </p>
+  {% if excecao.foto is not none %}
+  <img src="/portaria/fotos/{{ excecao.passagem_id }}/{{ excecao.foto }}" alt="foto da placa (ainda não chegou?)" height="80" loading="lazy">
+  {% endif %}
+  {% if excecao.candidatos %}
+  <table>
+    <thead><tr><th>Candidato</th><th>Placas esperadas</th><th>Janela</th><th>Motorista</th><th>Pontos</th></tr></thead>
+    <tbody>
+    {% for candidato in excecao.candidatos %}
+      <tr><td>{{ candidato.codigo }}</td><td>{{ candidato.placas }}</td><td>{{ candidato.janela }}</td><td>{{ candidato.motorista }}</td><td>{{ candidato.pontos }} pontos</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p><em>Nenhum candidato.</em></p>
+  {% endif %}
+</article>
+{% endfor %}
+{% else %}
+<p>Nenhuma exceção aberta.</p>
+{% endif %}
