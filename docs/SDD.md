@@ -1,7 +1,7 @@
 # SDD — patio-br (nome provisório)
 
 **Documento de desenho do software (SDD) do MVP do piloto**
-Versão 0.30 · 2026-10-05 · Situação: aprovado como base; itens em aberto na seção 12
+Versão 0.31 · 2026-10-05 · Situação: aprovado como base; itens em aberto na seção 12
 
 ---
 
@@ -459,7 +459,7 @@ acadêmico (`docs/validacao/fontes-de-placas.md`). Por isso:
 | `MudancaAgendamento` | agendamento, quando, tipo (criado, alterado, cancelado), por onde (a origem do conector ou o painel), quem (usuário, se houver), o que era e o que ficou — **só se acrescenta** |
 | `Veiculo` | placa, tipo (cavalo, reboque, caminhão simples); campo de posição no pátio reservado para o modo B |
 | `Passagem` | formato da seção 3.2 |
-| `Visita` | site, agendamento (opcional; no máximo uma visita por agendamento), passagens de entrada e de saída, composição confirmada (cada placa marcada como lida ou inferida), estado, horários de cada etapa, doca |
+| `Visita` | site, agendamento (opcional; no máximo uma visita por agendamento), passagens de entrada e de saída, composição confirmada (cada placa marcada como lida, inferida ou digitada pelo porteiro), estado, horários de cada etapa, doca |
 | `Evento` | visita, tipo, horário, autor (sistema ou usuário), dados, foto (pela passagem) — **só se acrescenta**: o banco recusa alterar ou apagar |
 | `Excecao` | visita, passagem, motivo, candidatos (agendamento e pontos), situação (aberta ou resolvida), resolução, quem resolveu |
 | `ConferenciaPlaca` | passagem, foto (o recorte da placa), placa lida, placa conferida, quem, quando — **só se acrescenta**: conferir de novo é outro registro, e o último vale (D-42) |
@@ -493,6 +493,13 @@ passagem sem casamento ─▶ EXCECAO ─porteiro resolve─┘   (ou RECUSADA)
 - O porteiro resolve a exceção na própria visita (mês 3): liga a um agendamento, ou aceita sem
   agendamento, e ela vai para `NA_FILA`; ou recusa, e ela vai para `RECUSADA`. Se o caminhão
   sai antes, a visita vai para `SAIU` e a exceção fica resolvida pelo sistema ("saiu").
+- **Corrigir a placa numa exceção aberta** (conferindo a foto, D-42, ou digitando a do cavalo,
+  quando não há foto) roda o casamento de novo: casou com segurança, a visita vai para
+  `NA_FILA`, e a exceção fica resolvida por quem corrigiu; senão, a exceção fica com o motivo e
+  os candidatos novos (D-46).
+- **Chegada manual** (a câmera não registrou): o porteiro digita as placas, vê os agendamentos
+  sugeridos pelos pontos (seção 5.3) e escolhe um, ou nenhum. Não abre exceção: a visita nasce
+  em `NA_FILA`, sem passagem, com o porteiro como autor (D-46).
 - Toda mudança de estado vem com um evento; uma mudança fora do diagrama é recusada.
 
 ### 5.3 Casamento da chegada com o agendamento
@@ -938,6 +945,7 @@ do cuidado de cargas (D-43).
 | D-43 | Recebimento, estoque (com busca e visão 3D do armazém) e cuidado de cargas e controle de entregas **entram no projeto como módulos para depois do piloto aprovado**, e não agora. Funcionam só com o sistema, sem câmera; onde houver câmera, ela ajuda | decisão do Lorenzo em 05/10: o recebimento é a ponte natural entre quem chega e o que chega, e liga o cliente aos fornecedores que já agendam pela nossa ferramenta; no estoque, a aposta é que muitas empresas estão insatisfeitas com o sistema que usam, e um produto muito fácil de usar abre espaço (a validar); esperar o pátio aprovado mantém o foco do piloto | começar já (tira o foco do piloto); deixar de fora (perde a ponte com os fornecedores) |
 | D-44 | O treino do leitor começa com **placas sintéticas e bases abertas**: placas Mercosul geradas por programa, a base Artificial Mercosur (CC BY 4.0) e, para o detector, bases abertas de fora (Open Images, CCPD), guardando só a região da placa (D-39) | decisão do Lorenzo em 05/10, pela opção 1 do `[ABERTO-18]`: não usa dado pessoal e começa já; um estudo de 2025 com placas brasileiras acertou 94,5% com só 10% das placas reais e muitas sintéticas, contra 18% sem as sintéticas | esperar as placas reais (o treino parado até o site parceiro) |
 | D-45 | O mês 3 vira a **demonstração comercial na internet**: o produto funcionando e com marca própria, num endereço público, só com dados inventados; cada empresa visitada recebe um link e ganha uma empresa de demonstração só dela. Os indicadores, o extrato e a segurança para a internet vêm do mês 4; a caixa de borda com saúde e atualização, a trilha de prova completa e os alertas vão para o mês 4 | pedido do Lorenzo em 05/10: para apresentar a ideia às empresas, o sistema precisa estar funcionando e bonito, para impressionar e mostrar que somos sérios; o site parceiro foi adiado, e as conversas vêm antes dele | apresentar com as telas cruas; uma maquete só de imagens (não mostra o produto funcionando) |
+| D-46 | A **chegada manual não abre exceção**: o porteiro escolhe o agendamento entre as sugestões (pelos pontos das placas que digitou) ou nenhum, e a visita nasce na fila. **Corrigir a placa numa exceção aberta casa de novo** (o que a D-42 deixou para o mês 3). A placa que o porteiro escreveu fica marcada como "digitada" na composição | o porteiro está ali e decide na hora; uma exceção para ele mesmo resolver seria um passo a mais. Casar de novo com a placa certa poupa a busca do agendamento à mão. "Digitada" separa o que a câmera leu do que a pessoa escreveu, e o check-in feito por uma pessoa (o evento tem autor) não conta como automático no extrato | a chegada manual virar exceção; a placa corrigida valer só como rótulo (D-42), com o porteiro procurando o agendamento |
 
 ---
 
@@ -1028,3 +1036,4 @@ do cuidado de cargas (D-43).
 | 0.28 | 2026-10-05 | decisões de 05/10: região de gravação (D-39), ambiente de treino (D-40) e leitor comercial (D-41), que fecham os `[ABERTO-15]` a `[ABERTO-17]`; D-38 confirmada; conferência da placa pelo porteiro (D-42); site parceiro adiado e as primeiras placas em aberto (`[ABERTO-18]`) (seções 4.5, 4.6, 5.1, 6.2, 8.3, 10, 11, 12 e 13) |
 | 0.29 | 2026-10-05 | recebimento, estoque e cuidado de cargas como módulos para depois do piloto aprovado, sem exigir câmera (D-43); novos `[ABERTO-19]` e `[ABERTO-20]`; o treino começa com placas sintéticas (D-44), e as placas reais para testar entram no `[ABERTO-18]` (seções 1.3, 2.3, 3.5, 10, 11, 12 e 13) |
 | 0.30 | 2026-10-05 | plano do mês 3 refeito como a demonstração comercial na internet (D-45; `docs/planos/2026-12-plano-mes-3.md`): ambiente de demonstração, telas do celular do motorista e da visão do recebimento e do estoque, segurança antes da internet, cronograma; novo `[ABERTO-21]` (fontes OFL) (seções 6.2, 7.1, 8.2, 10, 11 e 12) |
+| 0.31 | 2026-10-05 | portaria definitiva (T41): a placa corrigida numa exceção casa de novo e a chegada manual sem exceção (D-46); placa "digitada" na composição (seções 5.1, 5.2 e 11) |
