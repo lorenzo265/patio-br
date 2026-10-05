@@ -1,7 +1,7 @@
 # SDD — patio-br (nome provisório)
 
 **Documento de desenho do software (SDD) do MVP do piloto**
-Versão 0.25 · 2026-10-04 · Situação: aprovado como base; itens em aberto na seção 12
+Versão 0.26 · 2026-10-04 · Situação: aprovado como base; itens em aberto na seção 12
 
 ---
 
@@ -549,12 +549,20 @@ Pontuação inicial (os pesos e o limite são ajustados com os dados do mês 2 �
 |---|---|
 | Linguagem | **Python 3.12** em tudo (borda, nuvem, treino) |
 | Backend | FastAPI, SQLAlchemy 2 com o driver pg8000, Alembic (migrações), Pydantic 2; openpyxl (MIT) com defusedxml (PSF) para a planilha |
-| Banco | PostgreSQL 16; fila de tarefas no próprio PostgreSQL (`[ABERTO-11]`) |
+| Banco | PostgreSQL 16; fila de tarefas no próprio PostgreSQL, numa tabela nossa (D-38) |
 | Painel | páginas no servidor (Jinja) + **HTMX**; atualização ao vivo por SSE; instalável como **PWA** |
 | Gráficos | biblioteca JavaScript pequena, só onde houver gráfico |
 | Borda | OpenCV sem interface gráfica, com FFmpeg LGPL (D-27 e D-29), go2rtc, OpenVINO, rastreador próprio (D-25), SQLite (fila local), httpx |
 | Treino | PyTorch, Label Studio, exportação ONNX → OpenVINO |
 | Qualidade | ruff, mypy, pytest; checagem de licenças e vulnerabilidades das dependências |
+
+**Fila de tarefas e worker** (D-16 e D-38): o que não precisa acontecer dentro do pedido da
+caixa vira uma tarefa numa tabela do PostgreSQL, e o **worker**, um processo à parte da API, a
+executa. A passagem recebida vira a tarefa "casar" (uma só por passagem), gravada junto com a
+passagem. O worker pega a próxima com `SELECT ... FOR UPDATE SKIP LOCKED`: dois workers nunca
+pegam a mesma. Tarefa com erro volta para a fila esperando cada vez mais (10 s, 20 s, 40 s ...
+até 10 min), até 8 tentativas; depois, fica como falhou, com o erro, para o suporte. A cada 5
+minutos, o worker confere o "não veio" (seção 5.2), um worker de cada vez.
 
 Toda dependência precisa de licença permissiva (MIT, BSD, Apache, PostgreSQL, ISC, PSF). MPL-2.0 só é aceita para biblioteca usada sem modificação (ex.: `certifi`). GPL, LGPL e AGPL ficam de fora. A CI checa.
 
@@ -887,6 +895,7 @@ folga.
 | D-35 | A visita nasce na chegada (ou no prazo do "não veio"), e não junto com o agendamento; o `AGENDADA` é o agendamento ativo sem visita | o módulo de agendamento não precisa conhecer a portaria (seção 3.3); mudar ou cancelar um agendamento antes da chegada não mexe em visita nenhuma; toda entrada vira visita na hora, e a exceção já tem onde guardar os eventos e a foto | criar a visita em `AGENDADA` junto com o agendamento (o agendamento cria e cancela visitas, e o cancelamento precisaria de um estado fora do diagrama) |
 | D-36 | No casamento, a placa antiga e a Mercosul que a substituiu contam como a mesma | a troca para a Mercosul manteve a placa de cada veículo, trocando só o 5º caractere por uma letra; a agenda do cliente e o cadastro da transportadora ainda trazem muita placa antiga, e a câmera lê a nova | contar como troca fácil (40 pontos; o check-in automático dependeria da janela) |
 | D-37 | Na saída, qualquer placa da composição fecha a visita, e não só a do cavalo | a câmera da saída é traseira e, num caminhão com reboque, vê a placa do último reboque, não a do cavalo | só a placa do cavalo (a saída quase nunca fecharia a visita de uma carreta) |
+| D-38 | Fila de tarefas numa tabela nossa, com `SELECT ... FOR UPDATE SKIP LOCKED`, e não numa biblioteca | decisão pela recomendação do plano do mês 2 (D4), que fecha o `[ABERTO-11]` e espera a confirmação do Lorenzo: as bibliotecas de fila para PostgreSQL que conhecemos usam o psycopg (LGPL), que a D-18 tirou; a fila do MVP é pequena (uma tarefa por passagem e o "não veio") | uma biblioteca de fila sobre o psycopg (licença); Redis + Celery (D-16) |
 
 ---
 
@@ -904,7 +913,6 @@ folga.
 | ABERTO-08 | Guia de posicionamento das câmeras por tipo de portaria | no kit de bancada e no site parceiro (meses 1–2) |
 | ABERTO-09 | Tolerância de janela (padrão 4h após o fim da janela, usada também para "não veio") e momento do alerta de estadia (padrão: 4h depois da chegada) | com o cliente do piloto |
 | ABERTO-10 | Modelo de dados detalhado do modo B | no início da Fase 2 |
-| ABERTO-11 | Implementação da fila de tarefas no PostgreSQL (biblioteca ou tabela própria) | no mês 2, quando o worker entrar com o casamento |
 | ABERTO-15 | Gravar para treinar sem guardar rostos: o detector do leitor aprende com quadros inteiros, e a base de treino só pode ter recortes de placa (seções 4.6 e 8.3). Proposta: cada câmera de placa ganha uma região de gravação (abaixo do para-brisa), e a caixa só guarda o que está nela | com o Lorenzo, antes de gravar no site parceiro (mês 2, `docs/planos/2026-11-plano-mes-2.md`) |
 | ABERTO-16 | Ambiente de treino: o PyTorch com GPU traz bibliotecas da NVIDIA com licença proprietária, que a regra da seção 6.1 não aceita. Proposta: o treino roda num ambiente à parte, fora do `uv.lock` do projeto, só na máquina de GPU alugada; nada dele vai para a caixa nem para a nuvem | com o Lorenzo, antes do primeiro treino (mês 2) |
 | ABERTO-17 | Teste técnico com o leitor comercial (seção 4.5): mandar as imagens da régua ao Plate Recognizer é passar dado de terceiros a outro operador, talvez fora do Brasil. Proposta: perguntar ao advogado e ao site parceiro; se não puder, usar o programa local do Plate Recognizer ou comparar só com o v0 e com o registro manual da portaria | com o Lorenzo e o advogado, antes do teste técnico (mês 2) |
@@ -967,3 +975,4 @@ folga.
 | 0.23 | 2026-10-04 | tela de agendamentos (T30): lista do dia ou da semana, cancelamento e revogação de links (seção 6.2) |
 | 0.24 | 2026-10-04 | visita, eventos e exceções (T31): a visita nasce na chegada (D-35), exceção na própria visita, eventos que o banco não deixa alterar (seções 5.1, 5.2, 5.5 e 11) |
 | 0.25 | 2026-10-04 | casamento (T32): candidatos com a tolerância, motivos da exceção, placa antiga e Mercosul (D-36), saída por qualquer placa da composição (D-37), composição lida ou inferida, passagem repetida (seções 5.3 e 11) |
+| 0.26 | 2026-10-04 | fila de tarefas e worker (T33): tabela nossa com `SKIP LOCKED` (D-38, fecha o `[ABERTO-11]` pela recomendação do plano), espera crescente, "não veio" a cada 5 minutos (seções 6.1, 11 e 12) |

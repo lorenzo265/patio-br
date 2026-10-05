@@ -4,6 +4,7 @@
 - A caixa só manda passagens do site dela, com faixas e câmeras desse site.
 - A passagem fica guardada como veio; nada aqui a altera depois.
 - Quem lê (a tela da portaria) passa o ``Acesso``: só vê os sites dele, da empresa dele.
+- A passagem nova vira a tarefa "casar", que o worker executa (``tarefas_de_fundo``).
 
 As funções gravam com ``flush``; o ``commit`` é de quem chama.
 """
@@ -16,6 +17,7 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from contratos.passagem import Passagem
+from nuvem import tarefas_de_fundo as fila
 from nuvem.armazenamento import Armazenamento, RefInvalidoError, validar_ref
 from nuvem.cadastro import servico as cadastro
 from nuvem.cadastro.acesso import Acesso
@@ -87,6 +89,14 @@ def receber_passagem(
     if getattr(resultado, "rowcount", 1) == 0:
         _ja_chegou(sessao, caixa, passagem)  # entrou a outra; erro se for de outra caixa
         return False
+    # O casamento roda no worker, fora do pedido da caixa (D-38).
+    fila.enfileirar(
+        sessao,
+        "casar_passagem",
+        {"passagem_id": str(passagem.id)},
+        chave=str(passagem.id),
+        agora=agora,
+    )
     sessao.flush()
     return True
 
