@@ -1,10 +1,10 @@
-"""Tabelas da portaria (SDD 3.2, 5.1 e 5.2): passagens, visitas, eventos e exceções.
+"""Tabelas da portaria (SDD 3.2, 5.1 e 5.2): passagens, visitas, eventos, exceções e conferências.
 
 A passagem é prova da chegada (SDD 5.5): fica guardada exatamente como veio (``como_veio``),
 e não se edita. As colunas ao lado repetem o que as consultas usam (site, faixa, horários).
 
-A visita nasce na chegada (D-35). O evento só se acrescenta: um gatilho no banco recusa alterar
-ou apagar (migração 0008).
+A visita nasce na chegada (D-35). O evento e a conferência da placa só se acrescentam: um gatilho
+no banco recusa alterar ou apagar (migrações 0008 e 0011).
 """
 
 from datetime import datetime
@@ -154,3 +154,36 @@ class Excecao(Base):
     resolvida_por: Mapped[int | None]
     """Quem resolveu; vazio = o sistema (ex.: o caminhão saiu antes)."""
     resolucao: Mapped[str | None] = mapped_column(String(200))
+
+
+class ConferenciaPlaca(Base):
+    """A placa certa de um recorte, segundo quem conferiu (D-42). Só se acrescenta (SDD 5.5).
+
+    Conferir de novo é outro registro, e o último vale. A leitura e a foto não mudam.
+    """
+
+    __tablename__ = "conferencia_placa"
+    __table_args__ = (
+        do_pai_na_mesma_empresa("passagem"),
+        do_pai_na_mesma_empresa("usuario"),
+        CheckConstraint("foto >= 0", name="foto_positiva"),
+        # A tela da portaria procura as conferências das passagens que mostra.
+        Index("ix_conferencia_placa_passagem_id", "passagem_id"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    empresa_id: Mapped[int]
+    passagem_id: Mapped[UUID]
+    foto: Mapped[int]
+    """O recorte conferido: a posição dele nas fotos da passagem."""
+    placa_lida: Mapped[str | None] = mapped_column(String(7))
+    """O que o leitor leu pela câmera do recorte; vazio se não leu nada."""
+    placa: Mapped[str] = mapped_column(String(7))
+    """A placa certa, no formato canônico (ABC1234 ou ABC1D23)."""
+    usuario_id: Mapped[int]
+    momento: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+    @property
+    def corrigida(self) -> bool:
+        """Se a placa certa é outra que a lida (ou o leitor não leu nada)."""
+        return self.placa != self.placa_lida

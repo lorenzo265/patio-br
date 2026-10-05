@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block titulo %}Conferir a placa{% endblock %}
+{% block conteudo %}
+<h1>Conferir a placa</h1>
+<p>Passagem de {{ passagem.data }} <strong>{{ passagem.hora }}</strong> · {{ passagem.faixa }} ({{ passagem.sentido }})</p>
+<p>Compare a foto com a leitura. Se a placa estiver certa, confirme; se não, digite a placa da foto.</p>
+{% if erro %}
+<p class="erro">{{ erro }}</p>
+{% endif %}
+{% for recorte in recortes %}
+<section id="recorte-{{ recorte.foto }}" style="border: 1px solid #ccc; padding: 0.75rem; margin-bottom: 0.75rem;">
+  <img src="/portaria/fotos/{{ passagem.id }}/{{ recorte.foto }}" alt="foto da placa (ainda não chegou?)" height="120">
+  {% if recorte.placa_lida %}
+  <p>O leitor leu <strong>{{ recorte.placa_lida }}</strong>.</p>
+  {% else %}
+  <p>O leitor não leu nenhuma placa nesta foto.</p>
+  {% endif %}
+  {% if recorte.ultima %}
+  <p>Conferida em {{ recorte.ultima.dia }} às {{ recorte.ultima.hora }}: <strong>{{ recorte.ultima.placa }}</strong>, {{ recorte.ultima.como }}.</p>
+  {% endif %}
+  {% if recorte.placa_lida %}
+  <form method="post" action="/portaria/conferir/{{ passagem.id }}">
+    <input type="hidden" name="foto" value="{{ recorte.foto }}">
+    <input type="hidden" name="placa" value="{{ recorte.placa_lida }}">
+    <button type="submit">Está certa: {{ recorte.placa_lida }}</button>
+  </form>
+  {% endif %}
+  <form method="post" action="/portaria/conferir/{{ passagem.id }}">
+    <input type="hidden" name="foto" value="{{ recorte.foto }}">
+    <label>Placa da foto
+      <input name="placa" required maxlength="8" autocomplete="off" autocapitalize="characters">
+    </label>
+    <button type="submit">Corrigir</button>
+  </form>
+</section>
+{% else %}
+<p>Esta passagem não tem foto de placa para conferir.</p>
+{% endfor %}
+<p><a href="/portaria?site={{ site_id }}">Voltar para a portaria</a></p>
+{% endblock %}
