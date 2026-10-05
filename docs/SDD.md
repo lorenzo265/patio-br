@@ -1,7 +1,7 @@
 # SDD — patio-br (nome provisório)
 
 **Documento de desenho do software (SDD) do MVP do piloto**
-Versão 0.33 · 2026-10-05 · Situação: aprovado como base; itens em aberto na seção 12
+Versão 0.34 · 2026-10-05 · Situação: aprovado como base; itens em aberto na seção 12
 
 ---
 
@@ -464,8 +464,9 @@ acadêmico (`docs/validacao/fontes-de-placas.md`). Por isso:
 | `Excecao` | visita, passagem, motivo, candidatos (agendamento e pontos), situação (aberta ou resolvida), resolução, quem resolveu |
 | `ConferenciaPlaca` | passagem, foto (o recorte da placa), placa lida, placa conferida, quem, quando — **só se acrescenta**: conferir de novo é outro registro, e o último vale (D-42) |
 | `Mensagem` | agendamento, evento que a gerou (vazio na confirmação), modelo (confirmação, na fila, chamada, pode sair), para (o celular), texto pronto, canal (demonstração; WhatsApp e SMS no mês 4), situação (guardada; no mês 4: enviada, entregue, lida, falhou), custo (mês 4) — uma por evento e uma confirmação por celular do agendamento (D-47) |
-| `ParametrosSite` | custo mensal de um ponto de portaria, postos antes/depois, valor da estadia (R$/t·h), franquia (h), tolerância de janela, horas para alerta, custo hora-doca (opcional) |
-| `Extrato` | site, mês, números calculados, versão da regra de cálculo |
+| `ParametrosSite` | custo mensal de um ponto de portaria, postos antes/depois, valor da estadia (R$/t·h), franquia (h), custo hora-doca (opcional); a tolerância de janela e as horas para o alerta continuam fixas no código até o `[ABERTO-09]` |
+| `LinhaDeBase` | site, origem (exemplo, na demonstração; modo sombra, no piloto), período, as mesmas medidas do extrato (D-48) |
+| `Extrato` | site, mês, números calculados (as medidas, a economia, os parâmetros e a linha de base usados), versão da regra de cálculo, quando foi gerado |
 | `CaixaBorda` | site, versão instalada, último contato, saúde, chave de acesso (só o resumo), ativada em, revogada em |
 | `CodigoAtivacao` | site, resumo do código, criado por (administração), vence em, usado em |
 | `LinkTransportadora` | site, nome (a transportadora), resumo do código, criado por (gestor), criado em, vence em, revogado em, limite de envios, envios feitos; o agendamento feito pelo link aponta para ele |
@@ -561,6 +562,28 @@ Pontuação inicial (os pesos e o limite são ajustados com os dados do mês 2 �
   substituir o processo manual. O extrato compara o mês com a linha de base.
 - Cada extrato guarda a **versão da regra de cálculo**, para ser refeito igual depois.
 
+Como cada conta é feita (versão 1 da regra, D-48):
+
+- **Quem entra no mês:** as visitas que chegaram nele (no fuso do site). O "não veio" fica fora.
+- **Check-in automático** = visitas com check-in feito pelo sistema ÷ visitas do mês. O check-in
+  feito por uma pessoa (exceção resolvida, chegada manual) não conta (D-46).
+- **Espera média:** das visitas chamadas; vale a última chamada (a cancelada não conta).
+- **Estadia média e acima de 5 horas:** das visitas liberadas na doca. Quem saiu sem passar pela
+  doca não tem estadia.
+- **Exposição a estadia:** das liberadas acima da franquia, contada por minuto; a visita sem
+  toneladas fica fora da soma, e o extrato diz quantas ficaram.
+- **Uso das docas:** do início ao fim na doca (ou à saída), dentro do período, ÷ (docas × horas de
+  operação do site; sem horário, 24 horas).
+- **Economia em R$:**
+  - estadia evitada = (exposição por visita liberada na linha de base − no mês) × liberadas do mês;
+  - portaria = (postos antes − postos depois) × custo mensal de um ponto;
+  - docas, só com o custo hora-doca = (uso do mês − uso da linha de base) × horas disponíveis do
+    mês × custo hora-doca;
+  - as horas de espera poupadas aparecem em horas, sem valor em R$.
+- **Mês em curso:** é parcial (até agora, e a portaria proporcional aos dias) e não se guarda. O
+  **mês fechado** é calculado na primeira vez que é pedido e guardado com a versão da regra, os
+  parâmetros e a linha de base usados; depois, é sempre o mesmo.
+
 ### 5.5 Garantias
 
 - **Reenvio seguro:** passagem com `id` repetido é ignorada.
@@ -615,7 +638,7 @@ licença deles é conferida à mão, como a dos modelos.
 |---|---|---|
 | Portaria | porteiro | chegadas ao vivo com foto e o resultado do casamento (check-in, exceção, saída); **conferência da placa**: o recorte ao lado da leitura, para confirmar ou corrigir (D-42); **fila de exceções** em cartões (foto, candidatos, "é este" / "corrigir"); saídas; registro manual |
 | Pátio e docas | líder | fila por tempo de espera; docas livres/ocupadas; chamar / iniciar / finalizar; alerta perto de 5h |
-| Gestor | gestor | indicadores (espera média, visitas acima de 5h, % de check-in automático, uso de docas); extrato do mês (PDF e planilha) |
+| Gestor | gestor | painel: o dia e o mês até agora (espera média, visitas acima de 5h, % de check-in automático, uso de docas), comparados com a linha de base, com gráficos simples; extrato do mês em R$ (na tela, para imprimir ou salvar em PDF, e em planilha) |
 | Agendamentos | gestor | lista do dia ou da semana, no fuso do site, com o cancelamento; importar planilha com modelo e relatório de erros por linha; gerar e revogar links da transportadora (o endereço aparece uma vez só, ao gerar) |
 | Link da transportadora | transportadora | formulário curto para celular: placas, motorista, celular, janela, toneladas, NF-e opcional |
 | Celular do motorista | demonstração | as mensagens que o motorista receberia, numa tela em forma de celular; o canal de demonstração não envia nada (D-45) |
@@ -955,6 +978,7 @@ do cuidado de cargas (D-43).
 | D-45 | O mês 3 vira a **demonstração comercial na internet**: o produto funcionando e com marca própria, num endereço público, só com dados inventados; cada empresa visitada recebe um link e ganha uma empresa de demonstração só dela. Os indicadores, o extrato e a segurança para a internet vêm do mês 4; a caixa de borda com saúde e atualização, a trilha de prova completa e os alertas vão para o mês 4 | pedido do Lorenzo em 05/10: para apresentar a ideia às empresas, o sistema precisa estar funcionando e bonito, para impressionar e mostrar que somos sérios; o site parceiro foi adiado, e as conversas vêm antes dele | apresentar com as telas cruas; uma maquete só de imagens (não mostra o produto funcionando) |
 | D-46 | A **chegada manual não abre exceção**: o porteiro escolhe o agendamento entre as sugestões (pelos pontos das placas que digitou) ou nenhum, e a visita nasce na fila. **Corrigir a placa numa exceção aberta casa de novo** (o que a D-42 deixou para o mês 3). A placa que o porteiro escreveu fica marcada como "digitada" na composição | o porteiro está ali e decide na hora; uma exceção para ele mesmo resolver seria um passo a mais. Casar de novo com a placa certa poupa a busca do agendamento à mão. "Digitada" separa o que a câmera leu do que a pessoa escreveu, e o check-in feito por uma pessoa (o evento tem autor) não conta como automático no extrato | a chegada manual virar exceção; a placa corrigida valer só como rótulo (D-42), com o porteiro procurando o agendamento |
 | D-47 | As **mensagens ao motorista nascem dos eventos, pelo worker**: a confirmação, de cada agendamento ativo com celular que ainda não terminou; "na fila, posição X", do check-in; "vá para a doca", da chamada; "pode sair", do fim na doca. O worker olha os eventos dos últimos 30 minutos e os agendamentos criados ou mudados no último dia; cada evento gera uma mensagem só, e cada celular de um agendamento, uma confirmação (o banco confere). O texto fica pronto na mensagem, sem o nome do motorista. No mês 3 o canal é o de demonstração, que só guarda; no mês 4 o canal do WhatsApp manda a mesma mensagem, só com a autorização do motorista (seção 8.3), e anota a situação | o módulo `mensagens` fica fora da portaria e do pátio e usa só as funções de serviço deles (seção 3.3); aviso velho não sai ("vá para a doca 7" uma hora depois atrapalha); o texto guardado é o que o motorista leu, e o nome dele não se repete em outra tabela | gravar a mensagem na mesma transação do evento (exata na hora, mas a portaria e o pátio passariam a depender das mensagens); montar o texto só na hora de mostrar (a tela mudaria o que já foi mandado) |
+| D-48 | O **extrato** segue a versão 1 da regra (seção 5.4): o mês são as visitas que chegaram nele; a estadia é de quem foi liberado na doca; a exposição sem toneladas fica fora e é contada; a economia soma a estadia evitada (por visita, contra a linha de base), a portaria (postos × custo mensal) e, com o custo hora-doca, as horas de doca a mais. O mês fechado é guardado na primeira vez que é pedido; o mês em curso é parcial. A **linha de base** é uma tabela por site, com a origem: na demonstração, "exemplo", gravada pela semente e marcada assim na tela | a seção 5.4 dizia o que medir, mas não de quais visitas nem como comparar meses de tamanhos diferentes; por visita, a comparação vale para qualquer movimento. Guardar na primeira vez dispensa outra tarefa no worker e deixa o extrato igual depois, mesmo que os parâmetros mudem | contar a estadia de todas as visitas (quem saiu sem doca não tem fim de estadia); comparar totais do mês (mês fraco pareceria economia); gerar o extrato por uma tarefa no virar do mês |
 
 ---
 
@@ -993,6 +1017,7 @@ do cuidado de cargas (D-43).
 | **Exceção** | uma passagem que o sistema não conseguiu casar com segurança; o porteiro resolve |
 | **Casamento** | ligar uma passagem a um agendamento do dia |
 | **Estadia** | valor devido ao transportador quando carga/descarga passa de 5h (Lei 11.442) |
+| **Franquia** | as horas que o caminhão espera sem gerar estadia (5 horas, pela lei); a estadia conta o que passa dela |
 | **Linha de base** | as medidas do site antes de o sistema operar, usadas para calcular a economia |
 | **Modo sombra** | período em que o sistema roda sem substituir o processo manual, só medindo |
 | **Régua fixa** | conjunto de imagens rotuladas, fora do treino, usado para aprovar modelos novos |
@@ -1048,3 +1073,4 @@ do cuidado de cargas (D-43).
 | 0.31 | 2026-10-05 | portaria definitiva (T41): a placa corrigida numa exceção casa de novo e a chegada manual sem exceção (D-46); placa "digitada" na composição (seções 5.1, 5.2 e 11) |
 | 0.32 | 2026-10-05 | pátio e docas (T42): chamada, início, fim e cancelamento da chamada, uma doca por caminhão, a saída de quem passou pela doca e o alerta das 4 horas (seção 5.2) |
 | 0.33 | 2026-10-05 | mensagens do motorista (T43): nascem dos eventos pelo worker, no canal de demonstração (D-47); a entidade `Mensagem` e o módulo `mensagens` (seções 3.3, 5.1 e 11) |
+| 0.34 | 2026-10-05 | painel e extrato (T44): como cada conta é feita, a economia em R$, o mês fechado guardado e a linha de base por site (D-48); entidades `ParametrosSite`, `LinhaDeBase` e `Extrato`; "franquia" no glossário (seções 5.1, 5.4, 6.2, 11 e 13) |

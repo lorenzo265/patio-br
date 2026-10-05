@@ -21,7 +21,7 @@ from typing import Any, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
-from sqlalchemy import and_, select
+from sqlalchemy import and_, exists, func, or_, select
 from sqlalchemy.orm import Session
 
 from contratos.passagem import Papel
@@ -339,6 +339,42 @@ def eventos_recentes(
             .order_by(Evento.id)
         )
     )
+
+
+def para_o_extrato(
+    sessao: Session, acesso: Acesso, site_id: int, *, de: datetime, ate: datetime
+) -> list[tuple[Visita, bool]]:
+    """As visitas de um site que chegaram em ``[de, ate)`` ou usaram uma doca nele, cada uma com
+    se o check-in foi automático (feito pelo sistema, sem pessoa; D-46). O "não veio" fica fora.
+
+    Raises:
+        NaoEncontradoError: se o site não existir ou não for visível para este usuário.
+    """
+    site = cadastro.obter_site(sessao, acesso, site_id)
+    automatica = (
+        exists()
+        .where(
+            Evento.empresa_id == Visita.empresa_id,
+            Evento.visita_id == Visita.id,
+            Evento.tipo == "check_in",
+            Evento.usuario_id.is_(None),
+        )
+        .label("automatica")
+    )
+    fim_na_doca = func.coalesce(Visita.liberada_em, Visita.saiu_em)
+    linhas = sessao.execute(
+        select(Visita, automatica)
+        .where(
+            Visita.empresa_id == acesso.empresa_id,
+            Visita.site_id == site.id,
+            or_(
+                and_(Visita.chegou_em >= de, Visita.chegou_em < ate),
+                and_(Visita.na_doca_em < ate, or_(fim_na_doca.is_(None), fim_na_doca > de)),
+            ),
+        )
+        .order_by(Visita.chegou_em, Visita.id)
+    )
+    return [(visita, bool(e_automatica)) for visita, e_automatica in linhas]
 
 
 def excecoes_abertas(sessao: Session, acesso: Acesso, site_id: int) -> list[Excecao]:

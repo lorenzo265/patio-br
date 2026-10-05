@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block titulo %}{{ titulo }} · {{ site.nome }}{% endblock %}
+{% block cabeca %}
+<style>
+  body { max-width: 52rem; }
+  .base { color: #555; }
+  .total { font-size: 2rem; margin: 0.25rem 0; }
+  @media print { nav, .acoes { display: none; } }
+</style>
+{% endblock %}
+{% block conteudo %}
+<nav>
+  <p><a href="/extrato?site={{ site.id }}&mes={{ anterior.param }}">← {{ anterior.nome }}</a>
+  {% if seguinte %} · <a href="/extrato?site={{ site.id }}&mes={{ seguinte.param }}">{{ seguinte.nome }} →</a>{% endif %}
+  · <a href="/painel?site={{ site.id }}">Painel</a></p>
+  {% if outros_sites %}
+  <p>Outros sites: {% for outro in outros_sites %}<a href="/extrato?site={{ outro.id }}&mes={{ mes_param }}">{{ outro.nome }}</a>{% if not loop.last %} · {% endif %}{% endfor %}</p>
+  {% endif %}
+</nav>
+<h1>{{ titulo }} · {{ site.nome }}</h1>
+{% if parcial %}<p><strong>Mês em curso: parcial, até {{ parcial }}.</strong></p>{% endif %}
+{% if base %}
+<p class="base">{{ base.rotulo }} ({{ base.detalhe }}): {{ base.periodo }}.</p>
+{% else %}
+<p class="base">Sem linha de base: o extrato mostra as medidas do mês, sem a economia.</p>
+{% endif %}
+
+{% if economia %}
+<h2>Economia</h2>
+<p class="total"><strong>{{ economia.total }}</strong></p>
+<table>
+  <tbody>
+    <tr><td>Estadia evitada</td><td>{{ economia.estadia }}</td></tr>
+    <tr><td>Portaria{% if economia.postos %} ({{ economia.postos }}){% endif %}</td><td>{{ economia.portaria }}</td></tr>
+    {% if economia.docas %}<tr><td>Docas (horas a mais de uso)</td><td>{{ economia.docas }}</td></tr>{% endif %}
+    <tr><td>Horas de espera poupadas (sem valor em R$)</td><td>{{ economia.horas_de_espera }}</td></tr>
+  </tbody>
+</table>
+{% endif %}
+
+<h2>Medidas</h2>
+<table>
+  <thead><tr><th>Medida</th><th>Linha de base</th><th>Mês</th></tr></thead>
+  <tbody>
+  {% for l in linhas %}
+    <tr><td>{{ l.nome }}</td><td>{{ l.base }}</td><td><strong>{{ l.mes }}</strong></td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% if sem_toneladas %}<p>{{ sem_toneladas }} {{ "visita liberada" if sem_toneladas == 1 else "visitas liberadas" }} acima de 5 horas sem toneladas no agendamento {{ "ficou" if sem_toneladas == 1 else "ficaram" }} fora da exposição.</p>{% endif %}
+
+<p class="base">Calculado pela versão {{ versao }} da regra (SDD 5.4){% if guardado_em %}; guardado em {{ guardado_em }}, não muda mais{% endif %}.</p>
+<p class="acoes"><a href="/extrato.csv?site={{ site.id }}&mes={{ mes_param }}">Baixar a planilha</a> · <button type="button" onclick="window.print()">Imprimir ou salvar em PDF</button></p>
+{% endblock %}

@@ -74,6 +74,22 @@ def obter_site(sessao: Session, acesso: Acesso, site_id: int) -> Site:
     return site
 
 
+def listar_docas(sessao: Session, acesso: Acesso, site_id: int) -> list[Doca]:
+    """As docas de um site que o usuário vê, pelo nome.
+
+    Raises:
+        NaoEncontradoError: se o site não existir ou não for visível para este usuário.
+    """
+    site = obter_site(sessao, acesso, site_id)
+    return list(
+        sessao.scalars(
+            select(Doca)
+            .where(Doca.empresa_id == acesso.empresa_id, Doca.site_id == site.id)
+            .order_by(Doca.nome, Doca.id)
+        )
+    )
+
+
 def nomes_das_faixas(sessao: Session, acesso: Acesso, site_id: int) -> dict[int, str]:
     """Os nomes das faixas de um site que o usuário vê, por id.
 
