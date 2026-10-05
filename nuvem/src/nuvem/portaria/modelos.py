@@ -48,10 +48,18 @@ class PassagemRecebida(Base):
     """A passagem inteira, no formato do contrato (``contratos.Passagem``)."""
 
 
-EstadoDaVisita = Literal["NA_FILA", "EXCECAO", "NAO_VEIO", "SAIU"]
-"""Os estados do mês 2 (SDD 5.2); chamada, doca, liberação e recusa entram no mês 3."""
+EstadoDaVisita = Literal["NA_FILA", "EXCECAO", "NAO_VEIO", "SAIU", "RECUSADA"]
+"""Os estados da visita até a portaria (SDD 5.2); chamada, doca e liberação vêm com o pátio."""
 
-TipoDeEvento = Literal["check_in", "excecao", "nao_veio", "saiu_sem_atendimento"]
+TipoDeEvento = Literal[
+    "check_in",
+    "excecao",
+    "nao_veio",
+    "saiu_sem_atendimento",
+    "aceita_sem_agendamento",
+    "recusada",
+    "placa_corrigida",
+]
 """O que aconteceu com a visita; cada tipo leva a um estado (``visitas.TRANSICOES``)."""
 
 MotivoDaExcecao = Literal["sem_placa", "sem_candidato", "pontos_baixos", "candidatos_proximos"]

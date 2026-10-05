@@ -19,6 +19,7 @@ from sqlalchemy.orm import Session
 
 from contratos.passagem import Passagem, PlacaLida
 from nuvem.agendamento import servico as agendamentos
+from nuvem.agendamento.modelos import Agendamento
 from nuvem.erros import NaoEncontradoError
 from nuvem.portaria import visitas
 from nuvem.portaria.modelos import MotivoDaExcecao, PassagemRecebida, Visita
@@ -235,7 +236,7 @@ def compor(lidas: Sequence[PlacaLida], esperado: Esperado) -> tuple[PlacaNaVisit
     return _sem_repetir(composicao)
 
 
-def _lidas_na_visita(lidas: Sequence[PlacaLida]) -> tuple[PlacaNaVisita, ...]:
+def lidas_na_visita(lidas: Sequence[PlacaLida]) -> tuple[PlacaNaVisita, ...]:
     """As placas da passagem como vieram (a composição da exceção), sem repetir nem dois cavalos."""
     composicao: list[PlacaNaVisita] = []
     tem_cavalo = False
@@ -327,7 +328,10 @@ def _entrada(
     )
     if ja is not None:
         return Processada("repetida", ja)
-    esperados = _sem_visita(sessao, site, passagem.inicio, tolerancia)
+    esperados = {
+        a.id: esperado_de(a)
+        for a in agendamentos_sem_visita(sessao, site, passagem.inicio, tolerancia)
+    }
     pontuados = [
         pontuado
         for esperado in esperados.values()
@@ -357,14 +361,14 @@ def _entrada(
         agora=agora,
         motivo=decisao.motivo,
         candidatos=[Candidato(c.agendamento_id, c.pontos) for c in decisao.candidatos],
-        composicao=_lidas_na_visita(passagem.placas),
+        composicao=lidas_na_visita(passagem.placas),
     )
     return Processada("excecao", excecao.visita_id)
 
 
-def _sem_visita(
+def agendamentos_sem_visita(
     sessao: Session, site: SiteDaVisita, chegada: datetime, tolerancia: timedelta
-) -> dict[int, Esperado]:
+) -> list[Agendamento]:
     """Os candidatos: agendamentos ativos perto da chegada que ainda não têm visita (D-35)."""
     ativos = agendamentos.ativos_perto(
         sessao, empresa_id=site.empresa_id, site_id=site.site_id, momento=chegada, folga=tolerancia
@@ -377,17 +381,18 @@ def _sem_visita(
             )
         )
     )
-    return {
-        a.id: Esperado(
-            agendamento_id=a.id,
-            placa_cavalo=a.placa_cavalo,
-            placas_reboques=tuple(a.placas_reboques),
-            janela_inicio=a.janela_inicio,
-            janela_fim=a.janela_fim,
-        )
-        for a in ativos
-        if a.id not in com_visita
-    }
+    return [a for a in ativos if a.id not in com_visita]
+
+
+def esperado_de(agendamento: Agendamento) -> Esperado:
+    """O que o casamento usa de um agendamento."""
+    return Esperado(
+        agendamento_id=agendamento.id,
+        placa_cavalo=agendamento.placa_cavalo,
+        placas_reboques=tuple(agendamento.placas_reboques),
+        janela_inicio=agendamento.janela_inicio,
+        janela_fim=agendamento.janela_fim,
+    )
 
 
 def _dados_do_check_in(decisao: CheckIn) -> dict[str, Any]:

@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block titulo %}Chegada manual · {{ site.nome }}{% endblock %}
+{% block conteudo %}
+<h1>Chegada manual</h1>
+<p>Para quando a câmera não registrou a chegada. Digite as placas, veja os agendamentos sugeridos e escolha um (ou nenhum).</p>
+{% if aviso %}
+<p class="erro">{{ aviso }}</p>
+{% endif %}
+<form method="get" action="/portaria/chegada-manual">
+  <input type="hidden" name="site" value="{{ site.id }}">
+  <label>Placa do cavalo
+    <input name="cavalo" value="{{ cavalo }}" required maxlength="8" autocomplete="off" autocapitalize="characters">
+  </label>
+  <label>Placas dos reboques (separadas por espaço, se houver)
+    <input name="reboques" value="{{ reboques }}" autocomplete="off" autocapitalize="characters">
+  </label>
+  <button type="submit">Buscar agendamentos</button>
+</form>
+
+{% if buscou %}
+<h2>Agendamentos sugeridos</h2>
+{% if sugestoes %}
+<table>
+  <thead><tr><th>Agendamento</th><th>Placas esperadas</th><th>Janela</th><th>Motorista</th><th>Pontos</th><th></th></tr></thead>
+  <tbody>
+  {% for opcao in sugestoes %}
+    <tr>
+      <td>{{ opcao.codigo }}</td><td>{{ opcao.placas }}</td><td>{{ opcao.janela }}</td><td>{{ opcao.motorista }}</td><td>{{ opcao.pontos }} pontos</td>
+      <td>
+        <form method="post" action="/portaria/chegada-manual?site={{ site.id }}">
+          <input type="hidden" name="cavalo" value="{{ cavalo }}">
+          <input type="hidden" name="reboques" value="{{ reboques }}">
+          <input type="hidden" name="agendamento_id" value="{{ opcao.id }}">
+          <button type="submit">É este</button>
+        </form>
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p><em>Nenhum agendamento perto desta hora.</em></p>
+{% endif %}
+<form method="post" action="/portaria/chegada-manual?site={{ site.id }}">
+  <input type="hidden" name="cavalo" value="{{ cavalo }}">
+  <input type="hidden" name="reboques" value="{{ reboques }}">
+  <input type="hidden" name="agendamento_id" value="">
+  <button type="submit">Registrar sem agendamento</button>
+</form>
+{% endif %}
+<p><a href="/portaria?site={{ site.id }}">Voltar para a portaria</a></p>
+{% endblock %}

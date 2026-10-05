@@ -1,7 +1,7 @@
 {% if excecoes %}
 {% for excecao in excecoes %}
 <article id="excecao-{{ excecao.id }}" style="border: 1px solid #c90; padding: 0.75rem; margin-bottom: 0.75rem;">
-  <p><strong>{{ excecao.data }} {{ excecao.hora }}</strong> · {{ excecao.motivo }}</p>
+  <p><strong>{{ excecao.data }} {{ excecao.hora }}</strong> · {{ excecao.motivo }} · <a href="/portaria/excecoes/{{ excecao.id }}">Resolver</a></p>
   <p>Placas lidas:
     {% for placa in excecao.placas %}<strong>{{ placa.placa }}</strong> ({{ placa.papel }}){% if not loop.last %}, {% endif %}{% else %}<em>nenhuma</em>{% endfor %}
   </p>
