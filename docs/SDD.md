@@ -1,7 +1,7 @@
 # SDD — patio-br (nome provisório)
 
 **Documento de desenho do software (SDD) do MVP do piloto**
-Versão 0.31 · 2026-10-05 · Situação: aprovado como base; itens em aberto na seção 12
+Versão 0.32 · 2026-10-05 · Situação: aprovado como base; itens em aberto na seção 12
 
 ---
 
@@ -500,6 +500,14 @@ passagem sem casamento ─▶ EXCECAO ─porteiro resolve─┘   (ou RECUSADA)
 - **Chegada manual** (a câmera não registrou): o porteiro digita as placas, vê os agendamentos
   sugeridos pelos pontos (seção 5.3) e escolhe um, ou nenhum. Não abre exceção: a visita nasce
   em `NA_FILA`, sem passagem, com o porteiro como autor (D-46).
+- **Pátio:** o líder chama o caminhão da fila para uma doca livre do site (`CHAMADA`), marca o
+  início (`NA_DOCA`) e o fim (`LIBERADA`); a visita guarda a doca e as três horas. Uma doca tem no
+  máximo um caminhão chamado ou na doca, e o banco também confere. Se o chamado não vem, o líder
+  cancela a chamada: o caminhão volta para a fila e a doca fica livre.
+- **Saída:** quem passou pela doca (liberado, ou ainda marcado na doca) sai com o evento "saiu";
+  quem não chegou a ela, com "saiu sem atendimento".
+- **Alerta de estadia:** o pátio avisa quando a visita passa de 4 horas desde a chegada ("perto
+  das 5 horas", `[ABERTO-09]`) e, depois das 5 horas da lei, que a estadia passou.
 - Toda mudança de estado vem com um evento; uma mudança fora do diagrama é recusada.
 
 ### 5.3 Casamento da chegada com o agendamento
@@ -1037,3 +1045,4 @@ do cuidado de cargas (D-43).
 | 0.29 | 2026-10-05 | recebimento, estoque e cuidado de cargas como módulos para depois do piloto aprovado, sem exigir câmera (D-43); novos `[ABERTO-19]` e `[ABERTO-20]`; o treino começa com placas sintéticas (D-44), e as placas reais para testar entram no `[ABERTO-18]` (seções 1.3, 2.3, 3.5, 10, 11, 12 e 13) |
 | 0.30 | 2026-10-05 | plano do mês 3 refeito como a demonstração comercial na internet (D-45; `docs/planos/2026-12-plano-mes-3.md`): ambiente de demonstração, telas do celular do motorista e da visão do recebimento e do estoque, segurança antes da internet, cronograma; novo `[ABERTO-21]` (fontes OFL) (seções 6.2, 7.1, 8.2, 10, 11 e 12) |
 | 0.31 | 2026-10-05 | portaria definitiva (T41): a placa corrigida numa exceção casa de novo e a chegada manual sem exceção (D-46); placa "digitada" na composição (seções 5.1, 5.2 e 11) |
+| 0.32 | 2026-10-05 | pátio e docas (T42): chamada, início, fim e cancelamento da chamada, uma doca por caminhão, a saída de quem passou pela doca e o alerta das 4 horas (seção 5.2) |
