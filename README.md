@@ -14,9 +14,11 @@ Sistema de pátio para sites logísticos de médio e alto volume no Brasil:
 | [`CLAUDE.md`](CLAUDE.md) | as regras que não se negociam e como uma mudança entra (vale para pessoas e para sessões com IA) |
 | [`docs/SDD.md`](docs/SDD.md) | o desenho do MVP do piloto: escopo, arquitetura, leitor de placas, dados, aplicativo, infraestrutura, LGPD, testes, cronograma, decisões e itens em aberto |
 | [`docs/planos/2026-10-plano-mes-1.md`](docs/planos/2026-10-plano-mes-1.md) | o plano de implementação do mês 1 (fundação), tarefa por tarefa |
-| [`docs/planos/2026-11-plano-mes-2.md`](docs/planos/2026-11-plano-mes-2.md) | o plano do mês 2 (leitor próprio, agendamento e casamento), para aprovação |
+| [`docs/planos/2026-11-plano-mes-2.md`](docs/planos/2026-11-plano-mes-2.md) | o plano do mês 2 (leitor próprio, agendamento e casamento) |
+| [`docs/planos/2026-12-plano-mes-3.md`](docs/planos/2026-12-plano-mes-3.md) | o plano do mês 3: a demonstração comercial na internet |
 | [`docs/validacao/relatorio-validacao-v3.md`](docs/validacao/relatorio-validacao-v3.md) | a validação de mercado que originou o projeto e o teste com comprador que o piloto precisa passar |
 | [`docs/validacao/fatos-tecnicos-stack.md`](docs/validacao/fatos-tecnicos-stack.md) | licenças, preços e benchmarks usados nas escolhas técnicas (verificados em 2026-09-29) |
+| `knowledge/` | o vault do Obsidian: toda a documentação em notas ligadas, o mapa do código, o estado atual e as pendências; abra a pasta no Obsidian e comece por `00 Início` |
 
 ## Ambiente de desenvolvimento
 
@@ -43,6 +45,7 @@ uv run tarefas semente       # grava os dados de demonstração (duas empresas i
 uv run tarefas demonstracao  # a empresa de demonstração, com um mês de histórico (D-49)
 uv run tarefas modelos       # baixa os modelos do leitor v0 para modelos/ (fora do Git)
 uv run tarefas demo          # a demonstração do mês 1: sobe, semeia e manda passagens
+uv run tarefas conhecimento  # gera o vault do Obsidian (knowledge/) de docs/ e do código
 uv run tarefas check         # estilo, formato, tipos e testes (o mesmo que a CI vai rodar)
 uv run tarefas test -k placa # só os testes; o que vier depois de `test` vai para o pytest
 uv run tarefas down          # derruba; os dados do banco de desenvolvimento ficam guardados
@@ -117,4 +120,6 @@ O repositório é um workspace `uv` com cinco pacotes: `contratos/`, `borda/`, `
 
 ## Situação
 
-SDD v0.5 aprovado como base. Mês 1 (fundação) em andamento, conforme o plano; cada tarefa entra por um PR.
+SDD 0.37 aprovado como base. Mês 3 (a demonstração comercial na internet) em andamento, conforme
+o plano; cada tarefa entra por um PR. O que já está pronto e o que falta:
+`knowledge/Estado atual.md`.

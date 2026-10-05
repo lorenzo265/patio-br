@@ -16,6 +16,7 @@ economia em R$. Uma caixa de borda (mini PC) lê as placas; a nuvem decide.
 | `docs/SDD.md` | **a fonte da verdade**: o que construir, como as peças se encaixam e por quê |
 | `docs/planos/` | o plano do mês em curso, tarefa por tarefa |
 | `README.md` | instalação e comandos |
+| `knowledge/` | o vault do Obsidian: tudo isso em notas ligadas, mais o mapa do código e o estado atual; comece por `knowledge/00 Início.md` (D-53) |
 
 - Tudo o que for construído precisa caber no SDD. Se não couber, **o SDD muda primeiro**
   (seção 0), com o motivo registrado na seção 11.
@@ -73,6 +74,7 @@ uv run tarefas semente       # grava os dados de demonstração (duas empresas i
 uv run tarefas demonstracao  # a empresa de demonstração, com um mês de histórico (D-49)
 uv run tarefas modelos       # baixa os pesos do leitor v0 para modelos/ (SHA-256 conferido)
 uv run tarefas demo          # a demonstração do mês 1 (docs/guias/demo-mes-1.md)
+uv run tarefas conhecimento  # gera o vault do Obsidian (knowledge/) de docs/ e do código
 uv run tarefas check         # estilo, formato, tipos e testes (o mesmo que a CI roda)
 uv run tarefas test -k placa # só os testes; o resto vai para o pytest
 uv run tarefas down          # derruba, mantendo os dados
@@ -101,6 +103,10 @@ de CHECK chega como `ProgrammingError`, não `IntegrityError`: use `nuvem.banco.
   mesmo commit.
 - **Commits** curtos, em português, com prefixo (`feat:`, `fix:`, `test:`, `docs:`, `ci:`,
   `infra:`, `chore:`). Código e documentação em commits separados.
+- **Mudou `docs/` ou o código? Rode `uv run tarefas conhecimento`** e mande as notas geradas de
+  `knowledge/` no commit da mudança que as gerou; um teste falha se o vault ficar para trás. Não
+  edite as notas geradas. As escritas à mão (a raiz de `knowledge/` e `knowledge/Temas/`) se
+  atualizam à mão: o `Estado atual` a cada PR que entra.
 - **Linguagem simples** em código, comentários e documentos, em português. Termo técnico
   inevitável vai para o glossário do SDD (seção 13).
 

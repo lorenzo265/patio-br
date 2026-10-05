@@ -97,6 +97,11 @@ def etapas_do_demonstracao() -> list[Etapa]:
     return [Etapa("empresa de demonstração", _ferramenta("nuvem.demonstracao"))]
 
 
+def etapas_do_conhecimento() -> list[Etapa]:
+    """Devolve a etapa que gera o vault do Obsidian (``knowledge/``) de docs/ e do código."""
+    return [Etapa("vault do Obsidian", _ferramenta("tarefas.conhecimento"))]
+
+
 def etapas_do_modelos() -> list[Etapa]:
     """Devolve a etapa que baixa os modelos do leitor v0 para ``modelos/v0`` (fora do Git)."""
     return [Etapa("modelos do leitor v0", _ferramenta("ml.baixar_modelos"))]
@@ -173,6 +178,7 @@ _SEM_ARGUMENTOS: dict[str, Callable[[], list[Etapa]]] = {
     "migrar": etapas_do_migrar,
     "semente": etapas_do_semente,
     "demonstracao": etapas_do_demonstracao,
+    "conhecimento": etapas_do_conhecimento,
     "modelos": etapas_do_modelos,
     "demo": etapas_do_demo,
 }
@@ -193,6 +199,10 @@ def _interpretador() -> argparse.ArgumentParser:
     comandos.add_parser(
         "demonstracao",
         help="cria a empresa de demonstração (um mês de histórico) no banco de desenvolvimento",
+    )
+    comandos.add_parser(
+        "conhecimento",
+        help="gera as notas do vault do Obsidian (knowledge/) a partir de docs/ e do código",
     )
     comandos.add_parser("modelos", help="baixa os modelos do leitor v0 (conferindo o SHA-256)")
     comandos.add_parser(

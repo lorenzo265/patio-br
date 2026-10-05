@@ -1,0 +1,54 @@
+---
+tipo: "seção do SDD"
+fonte: "docs/SDD.md"
+gerada: true
+tags: [sdd]
+---
+
+> [!note] Gerada de `docs/SDD.md` por `uv run tarefas conhecimento`: para mudar, mude a fonte e gere de novo.
+
+# Histórico de versões
+
+| Versão | Data | Mudança |
+|---|---|---|
+| 0.1 | 2026-10-02 | primeira versão, a partir das 8 seções aprovadas na sessão de desenho |
+| 0.2 | 2026-10-02 | plano do mês 1 criado ([[Plano do mês 1\|docs/planos/2026-10-plano-mes-1.md]]); [[ABERTO-11]] passa para o mês 2; regra de licença inclui ISC/PSF e MPL-2.0 só sem modificação |
+| 0.3 | 2026-10-02 | campo `inferida` sai da Passagem v1, antes de qualquer caixa usá-la; a placa inferida fica na visita ([[D-17]]; seções [[3.2 O contrato entre borda e nuvem - a Passagem\|3.2]], [[4.3 Composições e o que a câmera não vê\|4.3]] e [[5.1 Entidades\|5.1]]) |
+| 0.4 | 2026-10-02 | driver do PostgreSQL: pg8000 no lugar do psycopg, por licença ([[D-18]]; seção [[6.1 Stack\|6.1]]) |
+| 0.5 | 2026-10-03 | separação de clientes garantida também no banco, por chave estrangeira composta (seção [[5.5 Garantias\|5.5]]) |
+| 0.6 | 2026-10-03 | login e papéis ([[T09]]): administração em tabela própria ([[D-19]]), sessão no banco ([[D-20]]), senha e PIN com argon2, limite de tentativas e troca de porteiro por PIN (seções [[5.1 Entidades\|5.1]] e [[8.2 Segurança\|8.2]]) |
+| 0.7 | 2026-10-03 | ativação da caixa ([[T10]]): código de uso único por site, chave própria com `Bearer`, configuração baixada pela caixa; ids da nuvem em texto na passagem ([[D-21]]; seções [[3.2 O contrato entre borda e nuvem - a Passagem\|3.2]], [[5.1 Entidades\|5.1]] e [[7.4 A caixa de borda\|7.4]]) |
+| 0.8 | 2026-10-03 | recebimento de passagens e fotos ([[T11]]): respostas 201/200/403/409/422 e envio de fotos por endereço temporário ([[D-22]]; seção [[3.2 O contrato entre borda e nuvem - a Passagem\|3.2]]) |
+| 0.9 | 2026-10-03 | tela crua da portaria ([[T12]]): arquivos de terceiros do painel (HTMX) no repositório, com licença e hash (seção [[6.1 Stack\|6.1]]) |
+| 0.10 | 2026-10-03 | regras puras do leitor ([[T14]]): formato, votação e composição na caixa; leitura só da traseira com papel desconhecido ([[D-23]]; seções [[4.2 O caminho de cada câmera, dentro da caixa\|4.2]] e [[4.3 Composições e o que a câmera não vê\|4.3]]) |
+| 0.11 | 2026-10-03 | fila de envio da caixa ([[T17]]): ordem, espera crescente e recusa definitiva guardada à parte ([[D-24]]; seção [[7.4 A caixa de borda\|7.4]]) |
+| 0.12 | 2026-10-03 | licenças dos pesos do leitor v0 ([[T13]]): situação do [[ABERTO-12]]; novo [[ABERTO-13]], bibliotecas nativas GPL e LGPL dentro das rodas (seções [[4.2 O caminho de cada câmera, dentro da caixa\|4.2]] e [[12. Itens em aberto\|12]]) |
+| 0.13 | 2026-10-03 | captura e rastreamento ([[T16]]): rastreador nosso ([[D-25]]), captura por fonte de quadros, leitura sem placa legível (seções [[4.2 O caminho de cada câmera, dentro da caixa\|4.2]] e [[4.3 Composições e o que a câmera não vê\|4.3]]) |
+| 0.14 | 2026-10-03 | agente da caixa e simulador ([[T18]]): o que o agente junta, só fotos de placa por enquanto, modos do simulador (seções [[6.4 Simulador de portaria\|6.4]] e [[7.4 A caixa de borda\|7.4]]) |
+| 0.15 | 2026-10-04 | decisões de 04/10: pesos de terceiros só para comparar e avaliar ([[D-26]], fecha o [[ABERTO-12]]); bibliotecas nativas dentro das rodas ([[D-27]], fecha o [[ABERTO-13]]); endereço público da API ([[D-28]]); limite por IP, anti-CSRF e comando da administração antes da produção (seções [[3.2 O contrato entre borda e nuvem - a Passagem\|3.2]], [[4.1 Regra de licença\|4.1]], [[4.2 O caminho de cada câmera, dentro da caixa\|4.2]], [[6.1 Stack\|6.1]], [[6.4 Simulador de portaria\|6.4]], [[8.2 Segurança\|8.2]], [[11. Registro de decisões\|11]] e [[12. Itens em aberto\|12]]) |
+| 0.16 | 2026-10-04 | leitura de vídeo na caixa: OpenCV sem interface gráfica ([[D-29]]), fontes de câmera e de arquivo, `simulador --video`; novo [[ABERTO-14]], o OpenSSL dentro da roda do OpenCV (seções [[4.2 O caminho de cada câmera, dentro da caixa\|4.2]], [[6.1 Stack\|6.1]], [[6.4 Simulador de portaria\|6.4]], [[11. Registro de decisões\|11]] e [[12. Itens em aberto\|12]]) |
+| 0.17 | 2026-10-04 | programa da caixa: ativação, configuração, câmeras RTSP, agente e remetente; câmeras ao vivo lidas em paralelo ([[D-30]]; seções [[7.4 A caixa de borda\|7.4]] e [[11. Registro de decisões\|11]]) |
+| 0.18 | 2026-10-04 | decisão de 04/10 sobre o OpenSSL dentro do OpenCV ([[D-31]], fecha o [[ABERTO-14]]); créditos de terceiros da caixa em [[Avisos de terceiros da caixa de borda\|borda/AVISOS-DE-TERCEIROS.md]] (seções [[6.1 Stack\|6.1]], [[11. Registro de decisões\|11]] e [[12. Itens em aberto\|12]]) |
+| 0.19 | 2026-10-04 | plano do mês 2 criado ([[Plano do mês 2\|docs/planos/2026-11-plano-mes-2.md]]); novos [[ABERTO-15]] (gravar sem rostos), [[ABERTO-16]] (ambiente de treino) e [[ABERTO-17]] (leitor comercial no teste técnico) (seção [[12. Itens em aberto\|12]]) |
+| 0.20 | 2026-10-04 | agendamentos ([[T27]]): regras comuns aos conectores, situação própria do agendamento ([[D-32]]), reenvio que atualiza ([[D-33]]) e o registro das mudanças (seções [[3.4 Conectores de agendamento\|3.4]], [[5.1 Entidades\|5.1]] e [[11. Registro de decisões\|11]]) |
+| 0.21 | 2026-10-04 | link da transportadora ([[T28]]): o código no endereço ([[D-34]]), validade, limite, horário de operação do site e as regras da janela pelo link (seções [[3.4 Conectores de agendamento\|3.4]], [[5.1 Entidades\|5.1]], [[8.2 Segurança\|8.2]] e [[11. Registro de decisões\|11]]) |
+| 0.22 | 2026-10-04 | importação de planilha ([[T29]]): colunas do modelo, valores, arquivo e relatório por linha; openpyxl e defusedxml na stack (seções [[3.4 Conectores de agendamento\|3.4]] e [[6.1 Stack\|6.1]]) |
+| 0.23 | 2026-10-04 | tela de agendamentos ([[T30]]): lista do dia ou da semana, cancelamento e revogação de links (seção [[6.2 Telas do MVP\|6.2]]) |
+| 0.24 | 2026-10-04 | visita, eventos e exceções ([[T31]]): a visita nasce na chegada ([[D-35]]), exceção na própria visita, eventos que o banco não deixa alterar (seções [[5.1 Entidades\|5.1]], [[5.2 Estados da visita\|5.2]], [[5.5 Garantias\|5.5]] e [[11. Registro de decisões\|11]]) |
+| 0.25 | 2026-10-04 | casamento ([[T32]]): candidatos com a tolerância, motivos da exceção, placa antiga e Mercosul ([[D-36]]), saída por qualquer placa da composição ([[D-37]]), composição lida ou inferida, passagem repetida (seções [[5.3 Casamento da chegada com o agendamento\|5.3]] e [[11. Registro de decisões\|11]]) |
+| 0.26 | 2026-10-04 | fila de tarefas e worker ([[T33]]): tabela nossa com `SKIP LOCKED` ([[D-38]], fecha o [[ABERTO-11]] pela recomendação do plano), espera crescente, "não veio" a cada 5 minutos (seções [[6.1 Stack\|6.1]], [[11. Registro de decisões\|11]] e [[12. Itens em aberto\|12]]) |
+| 0.27 | 2026-10-04 | simulador com agendamentos ([[T35]]): `--agendamentos`, passagem pelo sentido, resultado do casamento na tela da portaria (seções [[6.2 Telas do MVP\|6.2]] e [[6.4 Simulador de portaria\|6.4]]) |
+| 0.28 | 2026-10-05 | decisões de 05/10: região de gravação ([[D-39]]), ambiente de treino ([[D-40]]) e leitor comercial ([[D-41]]), que fecham os [[ABERTO-15]] a [[ABERTO-17]]; [[D-38]] confirmada; conferência da placa pelo porteiro ([[D-42]]); site parceiro adiado e as primeiras placas em aberto ([[ABERTO-18]]) (seções [[4.5 Interface única e dois motores\|4.5]], [[4.6 Dados de treino\|4.6]], [[5.1 Entidades\|5.1]], [[6.2 Telas do MVP\|6.2]], [[8.3 LGPD\|8.3]], [[10. Cronograma (out-2026 – mar-2027)\|10]], [[11. Registro de decisões\|11]], [[12. Itens em aberto\|12]] e [[13. Glossário\|13]]) |
+| 0.29 | 2026-10-05 | recebimento, estoque e cuidado de cargas como módulos para depois do piloto aprovado, sem exigir câmera ([[D-43]]); novos [[ABERTO-19]] e [[ABERTO-20]]; o treino começa com placas sintéticas ([[D-44]]), e as placas reais para testar entram no [[ABERTO-18]] (seções [[1.3 Para quem\|1.3]], [[2.3 Dentro e fora do MVP\|2.3]], [[3.5 Fases futuras (já previstas)\|3.5]], [[10. Cronograma (out-2026 – mar-2027)\|10]], [[11. Registro de decisões\|11]], [[12. Itens em aberto\|12]] e [[13. Glossário\|13]]) |
+| 0.30 | 2026-10-05 | plano do mês 3 refeito como a demonstração comercial na internet ([[D-45]]; [[Plano do mês 3\|docs/planos/2026-12-plano-mes-3.md]]): ambiente de demonstração, telas do celular do motorista e da visão do recebimento e do estoque, segurança antes da internet, cronograma; novo [[ABERTO-21]] (fontes OFL) (seções [[6.2 Telas do MVP\|6.2]], [[7.1 Ambientes\|7.1]], [[8.2 Segurança\|8.2]], [[10. Cronograma (out-2026 – mar-2027)\|10]], [[11. Registro de decisões\|11]] e [[12. Itens em aberto\|12]]) |
+| 0.31 | 2026-10-05 | portaria definitiva ([[T41]]): a placa corrigida numa exceção casa de novo e a chegada manual sem exceção ([[D-46]]); placa "digitada" na composição (seções [[5.1 Entidades\|5.1]], [[5.2 Estados da visita\|5.2]] e [[11. Registro de decisões\|11]]) |
+| 0.32 | 2026-10-05 | pátio e docas ([[T42]]): chamada, início, fim e cancelamento da chamada, uma doca por caminhão, a saída de quem passou pela doca e o alerta das 4 horas (seção [[5.2 Estados da visita\|5.2]]) |
+| 0.33 | 2026-10-05 | mensagens do motorista ([[T43]]): nascem dos eventos pelo worker, no canal de demonstração ([[D-47]]); a entidade `Mensagem` e o módulo `mensagens` (seções [[3.3 Módulos da nuvem no MVP\|3.3]], [[5.1 Entidades\|5.1]] e [[11. Registro de decisões\|11]]) |
+| 0.34 | 2026-10-05 | painel e extrato ([[T44]]): como cada conta é feita, a economia em R$, o mês fechado guardado e a linha de base por site ([[D-48]]); entidades `ParametrosSite`, `LinhaDeBase` e `Extrato`; "franquia" no glossário (seções [[5.1 Entidades\|5.1]], [[5.4 Contas do extrato\|5.4]], [[6.2 Telas do MVP\|6.2]], [[11. Registro de decisões\|11]] e [[13. Glossário\|13]]) |
+| 0.35 | 2026-10-05 | o dia de demonstração ([[T45]]): no worker e no relógio de verdade, com a manhã pronta, o líder automático, uma exceção para resolver e celulares de DDD que não existe ([[D-49]]); o ambiente `demonstracao` (seções [[7.1 Ambientes\|7.1]], [[11. Registro de decisões\|11]] e [[13. Glossário\|13]]) |
+| 0.36 | 2026-10-05 | decisões de 05/10 à noite: fontes OFL ([[D-50]], fecha o [[ABERTO-21]]), a demonstração na Vercel e no Supabase ([[D-51]]) e o link de 7 dias por empresa ([[D-52]]); o nome e a identidade visual vão para uma sessão à parte ([[ABERTO-01]]) (seções [[6.1 Stack\|6.1]], [[7.1 Ambientes\|7.1]], [[11. Registro de decisões\|11]] e [[12. Itens em aberto\|12]]) |
+| 0.37 | 2026-10-05 | o vault do Obsidian em `knowledge/`, gerado de `docs/` e do código, com o comando `tarefas conhecimento` e o teste que o mantém em dia ([[D-53]]); "vault" no glossário (seções [[6.3 Repositório\|6.3]], [[11. Registro de decisões\|11]] e [[13. Glossário\|13]]) |
+
+---
+
+Anterior: [[13. Glossário]] · Parte de: [[SDD]]

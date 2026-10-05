@@ -71,10 +71,12 @@ identidade precisa passar seriedade: um produto pronto, de empresa, e não um pr
 3. O Lorenzo escolhe. Antes de fechar o nome, lembre a ele dois passos que são dele (N16): a
    consulta da marca no INPI e se o domínio .com.br está livre.
 4. **Registre no SDD, antes do código:**
-   - uma decisão nova (D-53 ou a próxima livre): o nome, as cores, as fontes e o porquê;
+   - uma decisão nova (a próxima livre na seção 11): o nome, as cores, as fontes e o porquê;
    - o fim do `[ABERTO-01]` (a linha sai da tabela da seção 12);
    - a versão nova e a linha no "Histórico de versões", no fim do SDD;
-   - a E1 no plano do mês 3.
+   - a E1 no plano do mês 3;
+   - o vault: `uv run tarefas conhecimento` gera as notas de novo, e a nota à mão
+     `knowledge/Temas/Identidade visual.md` passa a dizer o que foi escolhido.
 
 ### Parte 2: aplicar nas telas (T40)
 
