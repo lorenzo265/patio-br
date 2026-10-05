@@ -9,6 +9,9 @@
 {% if pode_trocar_porteiro %}
 <p><a href="/portaria">Portaria</a> · <a href="/trocar-porteiro">Trocar porteiro</a></p>
 {% endif %}
+{% if pode_agendar %}
+<p><a href="/agendamentos">Agendamentos</a></p>
+{% endif %}
 {% endif %}
 <form method="post" action="/sair">
   <button type="submit">Sair</button>

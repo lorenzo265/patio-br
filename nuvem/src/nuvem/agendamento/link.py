@@ -18,7 +18,7 @@ import secrets
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
-from typing import Annotated
+from typing import Annotated, Literal
 from zoneinfo import ZoneInfo
 
 from pydantic import Field, ValidationError
@@ -179,6 +179,20 @@ def listar_links(sessao: Session, acesso: Acesso, site_id: int) -> list[LinkTran
             .order_by(LinkTransportadora.criado_em.desc(), LinkTransportadora.id.desc())
         )
     )
+
+
+SituacaoDoLink = Literal["ativo", "revogado", "vencido", "esgotado"]
+
+
+def situacao_do_link(link: LinkTransportadora, *, agora: datetime) -> SituacaoDoLink:
+    """Como o link está agora, para a tela do gestor (o primeiro motivo que o impede de valer)."""
+    if link.revogado_em is not None:
+        return "revogado"
+    if link.vence_em <= agora:
+        return "vencido"
+    if link.envios >= link.limite_de_envios:
+        return "esgotado"
+    return "ativo"
 
 
 # --- Transportadora ---------------------------------------------------------------------------
