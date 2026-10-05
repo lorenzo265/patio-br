@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block titulo %}Chamar para a doca{% endblock %}
+{% block conteudo %}
+<h1>Chamar para a doca</h1>
+<p><strong>{{ caminhao.placas }}</strong> · chegou às {{ caminhao.chegada }} · {{ caminhao.tempo }} de espera · {{ caminhao.agendamento }} {{ caminhao.tipo }}</p>
+{% if aviso %}
+<p class="erro">{{ aviso }}</p>
+{% endif %}
+{% if not na_fila %}
+<p>Este caminhão não está mais na fila ({{ caminhao.situacao }}).</p>
+{% elif docas %}
+<p>Escolha a doca:</p>
+{% for doca in docas %}
+<form method="post" action="/patio/visitas/{{ caminhao.visita_id }}/chamar" style="display: inline-block;">
+  <input type="hidden" name="doca_id" value="{{ doca.id }}">
+  <button type="submit">{{ doca.nome }}</button>
+</form>
+{% endfor %}
+{% else %}
+<p>Nenhuma doca livre agora.</p>
+{% endif %}
+<p><a href="/patio?site={{ site_id }}">Voltar para o pátio</a></p>
+{% endblock %}

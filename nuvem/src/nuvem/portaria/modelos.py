@@ -11,7 +11,7 @@ from datetime import datetime
 from typing import Any, Literal
 from uuid import UUID
 
-from sqlalchemy import CheckConstraint, DateTime, Index, String, UniqueConstraint
+from sqlalchemy import CheckConstraint, DateTime, Index, String, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -48,8 +48,10 @@ class PassagemRecebida(Base):
     """A passagem inteira, no formato do contrato (``contratos.Passagem``)."""
 
 
-EstadoDaVisita = Literal["NA_FILA", "EXCECAO", "NAO_VEIO", "SAIU", "RECUSADA"]
-"""Os estados da visita até a portaria (SDD 5.2); chamada, doca e liberação vêm com o pátio."""
+EstadoDaVisita = Literal[
+    "NA_FILA", "EXCECAO", "NAO_VEIO", "CHAMADA", "NA_DOCA", "LIBERADA", "SAIU", "RECUSADA"
+]
+"""Os estados da visita (SDD 5.2)."""
 
 TipoDeEvento = Literal[
     "check_in",
@@ -59,6 +61,11 @@ TipoDeEvento = Literal[
     "aceita_sem_agendamento",
     "recusada",
     "placa_corrigida",
+    "chamada",
+    "chamada_cancelada",
+    "inicio_na_doca",
+    "fim_na_doca",
+    "saiu",
 ]
 """O que aconteceu com a visita; cada tipo leva a um estado (``visitas.TRANSICOES``)."""
 
@@ -77,6 +84,7 @@ class Visita(Base):
         do_pai_na_mesma_empresa("agendamento"),
         do_pai_na_mesma_empresa("passagem", coluna="passagem_entrada_id"),
         do_pai_na_mesma_empresa("passagem", coluna="passagem_saida_id"),
+        do_pai_na_mesma_empresa("doca"),
         UniqueConstraint("agendamento_id"),
         # A mesma passagem de novo não cria outra visita nem fecha outra (SDD 5.3).
         UniqueConstraint("passagem_entrada_id"),
@@ -85,6 +93,16 @@ class Visita(Base):
         CheckConstraint("(estado = 'SAIU') = (saiu_em IS NOT NULL)", name="saida"),
         CheckConstraint(
             "estado <> 'NAO_VEIO' OR agendamento_id IS NOT NULL", name="nao_veio_tem_agendamento"
+        ),
+        CheckConstraint(
+            "estado NOT IN ('CHAMADA', 'NA_DOCA') OR doca_id IS NOT NULL", name="doca_na_chamada"
+        ),
+        # Uma doca tem no máximo um caminhão chamado ou carregando (SDD 5.2).
+        Index(
+            "uq_visita_doca_ocupada",
+            "doca_id",
+            unique=True,
+            postgresql_where=text("estado IN ('CHAMADA', 'NA_DOCA')"),
         ),
         # A saída procura a visita aberta do site; as telas listam por estado.
         Index("ix_visita_site_id_estado", "site_id", "estado"),
@@ -104,6 +122,11 @@ class Visita(Base):
     passagem_entrada_id: Mapped[UUID | None]
     passagem_saida_id: Mapped[UUID | None]
     criada_em: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    doca_id: Mapped[int | None]
+    """A doca da chamada (vazia antes da chamada; fica depois, para o histórico)."""
+    chamada_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    na_doca_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    liberada_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class Evento(Base):

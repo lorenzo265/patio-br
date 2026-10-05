@@ -99,6 +99,7 @@ def inicio(request: Request, sessao: SessaoDaRequisicao, quem: QuemPede) -> HTML
             "sites": [site.nome for site in servico.listar_sites(sessao, quem)],
             "pode_trocar_porteiro": quem.papel in ("porteiro", "gestor"),
             "pode_agendar": quem.papel == "gestor",
+            "ve_o_patio": quem.papel in ("patio", "gestor"),
         }
     else:
         administrador = sessao.get(Administrador, quem.administrador_id)

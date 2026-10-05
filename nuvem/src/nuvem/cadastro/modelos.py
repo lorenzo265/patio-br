@@ -105,7 +105,7 @@ class Doca(Base):
     """Uma doca de carga e descarga do site."""
 
     __tablename__ = "doca"
-    __table_args__ = (do_pai_na_mesma_empresa("site"),)
+    __table_args__ = (pode_ser_pai(), do_pai_na_mesma_empresa("site"))
 
     id: Mapped[int] = mapped_column(primary_key=True)
     empresa_id: Mapped[int]
