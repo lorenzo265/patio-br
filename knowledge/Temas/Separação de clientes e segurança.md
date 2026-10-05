@@ -32,9 +32,14 @@ Uma empresa nunca vê o que é de outra, e quem não tem o papel certo não entr
 - **A prova só se apaga na demonstração:** o banco deixa apagar evento, mudança de agendamento,
   conferência e extrato só de uma empresa que nasceu de um link de demonstração, e só quando a
   transação avisa qual empresa está apagando ([[D-54]], [[5.5 Garantias]]).
-- **Antes da internet** (vem para o mês 3 com a demonstração): código anti-CSRF nos formulários,
-  limite de login também por endereço e o comando para criar a administração ([[8.2 Segurança]],
-  [[T47]]).
+- **Antes da internet** (feito no mês 3, [[T47]] parte 1, [[8.2 Segurança]]):
+  - **código anti-CSRF** tirado da sessão ([[D-55]]): todo formulário que muda alguma coisa leva
+    o campo `_csrf`, o HTMX leva o cabeçalho `X-CSRF-Token`, e a nuvem recusa o pedido sem ele
+    (403); só ficam de fora o login, o link da transportadora, o link de demonstração e a API da
+    caixa;
+  - **limite de login por endereço:** 20 erros a cada 15 minutos por endereço IP, além dos 5 por
+    e-mail; atrás de proxy, o endereço vem só do cabeçalho configurado (`PATIO_CABECALHO_DO_IP`);
+  - **o comando da administração:** `uv run python -m nuvem.administracao --nome ... --email ...`.
 - **Nenhum segredo no repositório:** o `.env` é ignorado; o `.env.exemplo` só tem valores de
   exemplo do ambiente local.
 
@@ -42,7 +47,8 @@ Uma empresa nunca vê o que é de outra, e quem não tem o papel certo não entr
 
 - Regras: [[CLAUDE - regras do repositório]] (regras 4, 5 e 6), [[5.5 Garantias]],
   [[8.2 Segurança]].
-- Decisões: [[D-19]], [[D-20]], [[D-21]], [[D-22]], [[D-28]], [[D-34]], [[D-52]], [[D-54]].
+- Decisões: [[D-19]], [[D-20]], [[D-21]], [[D-22]], [[D-28]], [[D-34]], [[D-52]], [[D-54]],
+  [[D-55]].
 - Código: [[nuvem.cadastro]] (acesso, papéis, sessões), [[nuvem.frota]] (chave da caixa),
   [[Tabelas do banco]].
 - Tarefas: [[T08]], [[T09]], [[T10]], [[T28]], [[T47]], [[T48]].

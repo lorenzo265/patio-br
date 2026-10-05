@@ -62,6 +62,31 @@ acesso troca o código por ``***`` (``EsconderCodigoDoLink``).
 - **`EsconderCodigoDoLink`** (classe): Troca o código do link por ``***`` no registro de acesso do uvicorn.
 - **`esconder_codigo_no_registro_de_acesso`**: Liga o filtro no registro de acesso do uvicorn (uma vez só, mesmo se chamada de novo).
 
+### `nuvem.web.csrf`
+
+`nuvem/src/nuvem/web/csrf.py`
+
+O código anti-CSRF ([[8.2 Segurança|SDD 8.2]], [[D-55]]).
+
+Outro site pode fazer o navegador de alguém mandar um formulário para cá, com o cookie da sessão.
+Para isso não valer, todo pedido que muda alguma coisa, de quem tem a sessão aberta, leva um
+código que outro site não tem como saber: o HMAC do código da sessão com um segredo só da nuvem
+(tirado da chave da cifra). Ele muda a cada login, e nada novo se grava no banco.
+
+- **No formulário:** o campo escondido ``_csrf`` (as telas recebem ``csrf`` no contexto).
+- **No HTMX:** o cabeçalho ``X-CSRF-Token`` (o ``hx-headers`` do ``<body>``).
+- **Ficam de fora** só as rotas em que o cookie não decide quem pede (``ISENTAS``): o login
+  (que recusa o envio vindo de outro site), o link da transportadora, o link de demonstração e
+  a API da caixa (pela chave).
+
+- **`ISENTAS`**: O login, exato; os outros, pelo começo do caminho.
+- **`CodigoCsrfRecusadoError`** (classe): O pedido muda alguma coisa, tem a sessão, e não trouxe o código certo (403).
+- **`segredo`**: O segredo do código, tirado da chave da cifra (só a nuvem tem).
+- **`codigo`**: O código anti-CSRF de uma sessão.
+- **`isenta`**: Se a rota fica de fora da conferência (o cookie não decide quem pede nela).
+- **`codigo_do_pedido`**: O código das telas desta sessão, ou ``None`` sem sessão.
+- **`conferir`**: Dependência da aplicação: recusa o pedido que muda alguma coisa sem o código certo.
+
 ### `nuvem.web.demonstracao`
 
 `nuvem/src/nuvem/web/demonstracao.py`
@@ -228,6 +253,7 @@ cookie, recusa o envio que o navegador marca como vindo de outro site (``Sec-Fet
 
 - `nuvem/tests/test_nuvem_web_agendamentos.py`: Tela de agendamentos ([[6.2 Telas do MVP|SDD 6.2]]): o gestor vê e alimenta os agendamentos dos sites dele.
 - `nuvem/tests/test_nuvem_web_agendar.py`: Telas do link da transportadora ([[6.2 Telas do MVP|SDD 6.2]] e [[8.2 Segurança|8.2]]): o formulário, a confirmação e os avisos.
+- `nuvem/tests/test_nuvem_web_csrf.py`: O código anti-CSRF ([[8.2 Segurança|SDD 8.2]], [[D-55]]): todo pedido que muda alguma coisa, de quem tem a sessão aberta, leva o código tirado da sessão.
 - `nuvem/tests/test_nuvem_web_demonstracao.py`: A tela do dia de demonstração ([[T45]], [[D-49]]): começar o dia e acompanhar.
 - `nuvem/tests/test_nuvem_web_demonstracao_link.py`: As telas do link de demonstração ([[T48]], [[D-52]] e [[D-54]]): a administração, a página do link e a faixa que troca de papel.
 - `nuvem/tests/test_nuvem_web_em_breve.py`: As telas "em breve" do recebimento e do estoque em 3D ([[T46]], [[D-43]] e [[D-45]]), e os arquivos de terceiros que o painel serve.
