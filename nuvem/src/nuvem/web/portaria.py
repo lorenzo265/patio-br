@@ -1,35 +1,44 @@
-"""Tela crua da portaria (T12 e T34): as últimas passagens e as exceções abertas do site.
+"""Tela crua da portaria (T12, T34 e T38): as últimas passagens e as exceções abertas do site.
 
 A página traz o HTMX, que busca as listas (``/portaria/passagens`` e ``/portaria/excecoes``) ao
 abrir e a cada 2 segundos. A atualização empurrada pelo servidor (SSE) e a resolução das
 exceções vêm com a tela definitiva, no mês 3.
+
+A conferência da placa (D-42) tem página própria (``/portaria/conferir/<passagem>``), fora das
+listas que se atualizam: a atualização não apaga o que o porteiro digita.
 """
 
+from datetime import datetime
 from typing import Annotated, Any
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
-from fastapi import APIRouter, Depends, Request, Response
-from fastapi.responses import HTMLResponse
+from fastapi import APIRouter, Depends, Form, Request, Response, status
+from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
+from contratos.placa import PlacaInvalidaError
 from nuvem.agendamento import servico as agendamentos
 from nuvem.armazenamento import Armazenamento, obter_armazenamento
 from nuvem.banco import obter_sessao
 from nuvem.cadastro import servico as cadastro
 from nuvem.cadastro.acesso import Acesso, exigir_papel
 from nuvem.erros import NaoEncontradoError
+from nuvem.portaria import conferencia, visitas
 from nuvem.portaria import servico as portaria
-from nuvem.portaria import visitas
-from nuvem.portaria.modelos import Excecao, PassagemRecebida
+from nuvem.portaria.modelos import ConferenciaPlaca, Excecao, PassagemRecebida
+from nuvem.relogio import agora
 from nuvem.web.rotas import tela
 
 roteador = APIRouter(prefix="/portaria", include_in_schema=False)
 
 SessaoDaRequisicao = Annotated[Session, Depends(obter_sessao)]
 AcessoDaPortaria = Annotated[Acesso, Depends(exigir_papel("porteiro", "gestor"))]
+Agora = Annotated[datetime, Depends(agora)]
 
 SENTIDO_NA_TELA = {"entrada": "entrada", "saida": "saída"}
+
+FORA_DO_FORMATO = "não está no formato antigo (ABC1234) nem no Mercosul (ABC1D23)"
 
 CACHE_DA_FOTO = "private, max-age=86400, immutable"
 """A foto de uma passagem nunca muda (SDD 5.5): o navegador pode guardá-la."""
@@ -57,9 +66,86 @@ def lista_de_passagens(
     fuso = ZoneInfo(cadastro.obter_site(sessao, acesso, site).fuso)
     faixas = cadastro.nomes_das_faixas(sessao, acesso, site)
     resultados = portaria.resultados(sessao, acesso, passagens)
-    linhas = [_linha(passagem, fuso, faixas) | {"resultado": resultados[passagem.id]}
-              for passagem in passagens]  # fmt: skip
+    conferidas = conferencia.ultimas_por_passagem(sessao, acesso, [p.id for p in passagens])
+    linhas = [
+        _linha(passagem, fuso, faixas)
+        | {
+            "resultado": resultados[passagem.id],
+            "conferencia": _resumo_da_conferencia(conferidas.get(passagem.id, [])),
+        }
+        for passagem in passagens
+    ]
     return tela(request, "portaria_passagens.html", {"passagens": linhas})
+
+
+@roteador.get("/conferir/{passagem_id}")
+def tela_de_conferir(
+    request: Request, sessao: SessaoDaRequisicao, acesso: AcessoDaPortaria, passagem_id: UUID
+) -> HTMLResponse:
+    """Os recortes de placa de uma passagem, para o porteiro confirmar ou corrigir (D-42)."""
+    return _conferir(request, sessao, acesso, passagem_id)
+
+
+@roteador.post("/conferir/{passagem_id}", response_model=None)
+def conferir(
+    request: Request,
+    sessao: SessaoDaRequisicao,
+    acesso: AcessoDaPortaria,
+    momento: Agora,
+    passagem_id: UUID,
+    foto: Annotated[int, Form()],
+    placa: Annotated[str, Form()],
+) -> HTMLResponse | RedirectResponse:
+    """Grava a placa certa de um recorte e volta para a página da conferência."""
+    try:
+        conferencia.conferir(sessao, acesso, passagem_id, foto, placa, agora=momento)
+    except PlacaInvalidaError:
+        erro = f"A placa “{placa.strip()}” {FORA_DO_FORMATO}."
+        return _conferir(request, sessao, acesso, passagem_id, erro=erro)
+    sessao.commit()
+    return RedirectResponse(f"/portaria/conferir/{passagem_id}", status.HTTP_303_SEE_OTHER)
+
+
+def _conferir(
+    request: Request, sessao: Session, acesso: Acesso, passagem_id: UUID, *, erro: str = ""
+) -> HTMLResponse:
+    recortes = conferencia.recortes(sessao, acesso, passagem_id)
+    passagem = portaria.obter_passagem(sessao, acesso, passagem_id)
+    fuso = ZoneInfo(cadastro.obter_site(sessao, acesso, passagem.site_id).fuso)
+    contexto = {
+        "passagem": _linha(
+            passagem, fuso, cadastro.nomes_das_faixas(sessao, acesso, passagem.site_id)
+        ),
+        "site_id": passagem.site_id,
+        "recortes": [
+            {
+                "foto": recorte.foto,
+                "placa_lida": recorte.placa_lida,
+                "ultima": _ultima(recorte.ultima, fuso),
+            }
+            for recorte in recortes
+        ],
+        "erro": erro,
+    }
+    codigo = status.HTTP_422_UNPROCESSABLE_CONTENT if erro else status.HTTP_200_OK
+    return tela(request, "portaria_conferir.html", contexto, codigo)
+
+
+def _ultima(feita: ConferenciaPlaca | None, fuso: ZoneInfo) -> dict[str, str] | None:
+    if feita is None:
+        return None
+    momento = feita.momento.astimezone(fuso)
+    return {
+        "dia": momento.strftime("%d/%m"),
+        "hora": momento.strftime("%H:%M"),
+        "placa": feita.placa,
+        "como": "corrigida" if feita.corrigida else "certa",
+    }
+
+
+def _resumo_da_conferencia(feitas: list[ConferenciaPlaca]) -> str:
+    """Ex.: "placa certa", "corrigida: ABC1D28" (uma parte por recorte conferido)."""
+    return " · ".join(f"corrigida: {f.placa}" if f.corrigida else "placa certa" for f in feitas)
 
 
 MOTIVO_NA_TELA = {
