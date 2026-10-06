@@ -78,7 +78,7 @@ def entrar(sessao: Session, senhas: Senhas, *, email: str, senha: str, agora: da
     if senhas.precisa_refazer(conta.senha_resumo):
         conta.senha_resumo = senhas.resumir(senha)
     _esquecer_erros(sessao, alvo)
-    return _abrir_sessao(sessao, conta, agora)
+    return abrir_sessao(sessao, conta, agora)
 
 
 def sair(sessao: Session, codigo: str) -> None:
@@ -143,7 +143,7 @@ def trocar_porteiro(
         raise LoginRecusadoError
     _esquecer_erros(sessao, alvo)
     sair(sessao, codigo)
-    return _abrir_sessao(sessao, porteiro, agora)
+    return abrir_sessao(sessao, porteiro, agora)
 
 
 def _consulta_dos_porteiros_da_troca(sessao: Session, usuario_id: int) -> Select[Usuario]:
@@ -169,7 +169,15 @@ def _consulta_dos_porteiros_da_troca(sessao: Session, usuario_id: int) -> Select
     )
 
 
-def _abrir_sessao(sessao: Session, conta: Conta, agora: datetime) -> str:
+def abrir_sessao(sessao: Session, conta: Conta, agora: datetime) -> str:
+    """Abre uma sessão para a conta, sem conferir nada: quem chama já sabe quem é.
+
+    Além da senha e do PIN, só o link de demonstração abre sessão assim (D-54), depois de
+    conferir o código do link.
+
+    Returns:
+        O código da sessão, para o cookie (o banco guarda só o resumo dele).
+    """
     codigo = secrets.token_urlsafe(32)
     aberta = SessaoLogin(
         codigo_resumo=resumo_rapido(codigo), criada_em=agora, expira_em=agora + VALIDADE_DA_SESSAO

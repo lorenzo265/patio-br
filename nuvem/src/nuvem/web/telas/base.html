@@ -13,10 +13,21 @@
     .erro { color: #a00000; font-weight: bold; }
     table { border-collapse: collapse; width: 100%; }
     th, td { border-bottom: 1px solid #ccc; padding: 0.4rem; text-align: left; vertical-align: top; }
+    .faixa-da-demonstracao { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; border-bottom: 1px solid #ccc; padding-bottom: 0.5rem; margin-bottom: 1rem; }
+    .faixa-da-demonstracao button { margin-top: 0; }
   </style>
   {% block cabeca %}{% endblock %}
 </head>
 <body>
+  {% if papel_na_demonstracao %}
+  <form method="post" action="/demonstracao/papel" class="faixa-da-demonstracao" aria-label="Demonstração: trocar de papel">
+    <span>Demonstração · ver como:</span>
+    {% for valor, rotulo in [("gestor", "Gestor"), ("porteiro", "Porteiro"), ("patio", "Líder de pátio")] %}
+    <button type="submit" name="papel" value="{{ valor }}"{% if papel_na_demonstracao == valor %} aria-pressed="true" disabled{% endif %}>{{ rotulo }}</button>
+    {% endfor %}
+    <a href="/mensagens">Motorista</a>
+  </form>
+  {% endif %}
   {% block conteudo %}{% endblock %}
 </body>
 </html>

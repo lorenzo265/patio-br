@@ -7,7 +7,7 @@ tags: [estado]
 
 # Estado atual
 
-> [!info] Retrato de 05/10/2026 (SDD 0.37)
+> [!info] Retrato de 05/10/2026 (SDD 0.38)
 > Escrito à mão: o que entrou depois está nos PRs do GitHub e nos planos. Os checklists de "mês
 > pronto" dos planos não foram marcados a cada tarefa; esta nota é a lista do que entrou.
 
@@ -17,10 +17,10 @@ tags: [estado]
   da transportadora e planilha), a passagem da caixa ou do simulador, o casamento com o
   agendamento, a exceção resolvida pela tela, a chegada manual, a fila, as docas, as mensagens ao
   motorista (num canal de demonstração, sem enviar nada), o painel e o extrato em R$, as telas
-  "em breve" do recebimento e do estoque e o dia de demonstração.
+  "em breve" do recebimento e do estoque, o dia de demonstração e o link de demonstração por
+  empresa, com a faixa que troca de papel ([[T48]], [[D-54]]).
 - **Falta para a demonstração no ar (mês 3):** o visual próprio ([[T40]], depois da identidade
-  visual, [[ABERTO-01]]), a demonstração na internet ([[T47]], Vercel e Supabase, [[D-51]]) e o
-  link por empresa ([[T48]], [[D-52]]).
+  visual, [[ABERTO-01]]) e a demonstração na internet ([[T47]], Vercel e Supabase, [[D-51]]).
 - **O leitor próprio espera as placas:** o treino ([[T22]] a [[T26]]) depende das placas reais
   do [[ABERTO-18]]; o leitor v0, com pesos de terceiros, serve só para avaliação interna
   ([[D-26]]).
@@ -93,7 +93,7 @@ recebimento e o estoque como módulos de depois do piloto ([[D-43]], [[D-44]],
 | [[T45]] dia de demonstração | feita | [#46](https://github.com/lorenzo265/patio-br/pull/46) |
 | [[T46]] recebimento e estoque "em breve" | feita | [#45](https://github.com/lorenzo265/patio-br/pull/45) |
 | [[T47]] demonstração na internet | **espera as contas** da Vercel e do Supabase ([[N17]]) | |
-| [[T48]] link por empresa | a fazer, depois da [[T47]] | |
+| [[T48]] link por empresa | feita | [#49](https://github.com/lorenzo265/patio-br/pull/49) |
 
 Além das tarefas: o plano ([#39](https://github.com/lorenzo265/patio-br/pull/39)), o relógio dos
 testes ([#43](https://github.com/lorenzo265/patio-br/pull/43)), as decisões E2 a E4 no SDD 0.36
@@ -120,6 +120,7 @@ dele.
 
 1. A sessão da identidade visual ([[Prompt da identidade visual]]): decide o nome, as cores e as
    fontes ([[ABERTO-01]]) e faz a [[T40]].
-2. O Lorenzo abre as contas da Vercel e do Supabase ([[N17]]); então a [[T47]] e a [[T48]].
+2. O Lorenzo abre as contas da Vercel e do Supabase ([[N17]]); então a [[T47]] põe a
+   demonstração no ar.
 3. Depois da demonstração: as placas reais ([[ABERTO-18]]), o treino do leitor e o mês 4
    (WhatsApp de verdade, produção na AWS, caixa definitiva). Veja [[10. Cronograma (out-2026 – mar-2027)]].

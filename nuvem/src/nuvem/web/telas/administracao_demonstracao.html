@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block titulo %}Links de demonstração · patio-br{% endblock %}
+{% block cabeca %}
+<style>.endereco { overflow-wrap: anywhere; }</style>
+{% endblock %}
+{% block conteudo %}
+<h1>Links de demonstração</h1>
+{% if novo %}
+<div role="status">
+  <p><strong>Link gerado.</strong> Empresa visitada: {{ novo.nome }}</p>
+  <p><code class="endereco">{{ novo.endereco }}</code></p>
+  <p>Copie agora: o endereço não aparece de novo.</p>
+</div>
+{% endif %}
+{% if erro %}<p class="erro" role="alert">{{ erro }}</p>{% endif %}
+<form method="post" action="/administracao/demonstracao">
+  <label>Empresa visitada
+    <input name="nome" maxlength="120" required>
+  </label>
+  <button type="submit">Gerar link (vale {{ validade }} dias)</button>
+</form>
+<p>Quem abre o link entra numa empresa de demonstração só dela, com um mês de histórico, como gestor. Quando o link vence ou é revogado, a empresa é apagada.</p>
+{% if links %}
+<table>
+  <tr><th>Empresa visitada</th><th>Gerado</th><th>Situação</th><th>Empresa de demonstração</th><th>Última entrada</th><th></th></tr>
+  {% for link in links %}
+  <tr>
+    <td>{{ link.nome }}</td>
+    <td>{{ link.gerado }}</td>
+    <td>{{ link.situacao }}</td>
+    <td>{{ link.empresa }}</td>
+    <td>{{ link.ultima_entrada }}</td>
+    <td>
+      {% if link.pode_revogar %}
+      <form method="post" action="/administracao/demonstracao/{{ link.id }}/revogar">
+        <button type="submit">Revogar</button>
+      </form>
+      {% endif %}
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+{% else %}
+<p>Nenhum link gerado ainda.</p>
+{% endif %}
+<p><a href="/">Início</a></p>
+{% endblock %}

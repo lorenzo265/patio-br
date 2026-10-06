@@ -62,6 +62,7 @@ As tentativas de um mesmo alvo passam uma de cada vez: a trava no banco vale at�
 - **`conta_da_sessao`**: Devolve quem está na sessão do código, ou ``None`` se ela não vale.
 - **`porteiros_da_troca`**: Os porteiros que podem assumir o tablet deste usuário, por nome.
 - **`trocar_porteiro`**: Passa a sessão aberta no tablet para o porteiro do turno, que confirma com o PIN.
+- **`abrir_sessao`**: Abre uma sessão para a conta, sem conferir nada: quem chama já sabe quem é.
 
 ### `nuvem.cadastro.modelos`
 

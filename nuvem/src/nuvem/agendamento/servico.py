@@ -15,11 +15,11 @@ As funções gravam com ``flush``; o ``commit`` é de quem chama.
 
 from collections.abc import Sequence
 from dataclasses import dataclass, field
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from typing import Any, Literal
 
-from sqlalchemy import Select, select
+from sqlalchemy import Select, func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
@@ -469,6 +469,30 @@ def listar(
                 Agendamento.janela_fim > de,
             )
             .order_by(Agendamento.janela_inicio, Agendamento.id)
+        )
+    )
+
+
+def dias_com_agendamento(
+    sessao: Session, acesso: Acesso, site_id: int, *, de: datetime, ate: datetime
+) -> set[date]:
+    """Os dias, no fuso do site, em que começa algum agendamento do site em ``[de, ate)``.
+
+    Raises:
+        NaoEncontradoError: se o site não existir ou não for visível para este usuário.
+    """
+    site = cadastro.obter_site(sessao, acesso, site_id)
+    dia = func.date(func.timezone(site.fuso, Agendamento.janela_inicio))
+    return set(
+        sessao.scalars(
+            select(dia)
+            .where(
+                Agendamento.empresa_id == acesso.empresa_id,
+                Agendamento.site_id == site.id,
+                Agendamento.janela_inicio >= de,
+                Agendamento.janela_inicio < ate,
+            )
+            .distinct()
         )
     )
 

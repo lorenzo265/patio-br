@@ -226,8 +226,9 @@ O worker roda em outro processo (``python -m nuvem.worker``).
 O worker da nuvem ([[6.1 Stack|SDD 6.1]] e [[D-38]]): ``python -m nuvem.worker``.
 
 Executa as tarefas da fila (o casamento das passagens), confere o "não veio", prepara as
-mensagens e, nos ambientes que têm, avança o dia de demonstração ([[D-49]]), até receber o sinal de
-parar (SIGTERM do Docker, ou Ctrl+C). Lê a configuração do ambiente, como a API.
+mensagens e, nos ambientes que têm, avança o dia de demonstração ([[D-49]]) e apaga as empresas dos
+links de demonstração vencidos ([[D-54]]), até receber o sinal de parar (SIGTERM do Docker, ou
+Ctrl+C). Lê a configuração do ambiente, como a API.
 
 - **`main`**: Sobe o worker e roda até o sinal de parar.
 

@@ -22,8 +22,15 @@ O mês 3 virou a demonstração do produto na internet, para o Lorenzo apresenta
   se já tivesse acontecido e manda as chegadas pelo caminho da caixa, com fotos de placa
   desenhadas; o líder automático chama, começa e termina. Só existe nos ambientes `local` e
   `demonstracao` ([[7.1 Ambientes]]).
-- **Um link por empresa visitada**, gerado pela administração e válido por 7 dias; a empresa de
-  demonstração é apagada depois; sem cadastro aberto ao público ([[D-52]], [[T48]]).
+- **Um link por empresa visitada**, gerado pela administração ("Links de demonstração") e
+  válido por 7 dias; sem cadastro aberto ao público ([[D-52]], [[T48]]). Por dentro ([[D-54]]):
+  - a página do link só mostra para quem é; o botão "Entrar" cria a empresa na primeira vez
+    (uns 12 segundos) e entra como gestor; quem volta entra na mesma, na hora, com os dias que
+    faltavam até ontem já no histórico;
+  - uma faixa no topo troca o papel sem senha: gestor, porteiro, líder de pátio e motorista (a
+    tela das mensagens);
+  - quando o link vence ou é revogado, o worker apaga a empresa inteira, com as fotos (uma vez
+    por hora; na Vercel, o cron da [[T47]]).
 - **Na internet:** Vercel e Supabase ([[D-51]], [[T47]]); veja [[Hospedagem e custos]].
 - **"Em breve":** as telas do recebimento e do estoque em 3D mostram a ideia de depois do piloto,
   com dados de exemplo fixos ([[T46]], [[D-43]]).
@@ -46,6 +53,6 @@ abra "Dia de demonstração" e clique "Começar o dia".
 
 - Plano: [[Plano do mês 3]] e as tarefas [[T40]] a [[T48]].
 - SDD: [[7.1 Ambientes]], [[8.2 Segurança]], [[10. Cronograma (out-2026 – mar-2027)]].
-- Decisões: [[D-43]], [[D-45]], [[D-49]], [[D-51]], [[D-52]].
+- Decisões: [[D-43]], [[D-45]], [[D-49]], [[D-51]], [[D-52]], [[D-54]].
 - Código: [[nuvem.demonstracao]], [[nuvem.web]], [[simulador]].
 - A demonstração do mês 1 (caixa e simulador): [[Guia da demonstração do mês 1]].

@@ -1,8 +1,9 @@
 """O worker da nuvem (SDD 6.1 e D-38): ``python -m nuvem.worker``.
 
 Executa as tarefas da fila (o casamento das passagens), confere o "não veio", prepara as
-mensagens e, nos ambientes que têm, avança o dia de demonstração (D-49), até receber o sinal de
-parar (SIGTERM do Docker, ou Ctrl+C). Lê a configuração do ambiente, como a API.
+mensagens e, nos ambientes que têm, avança o dia de demonstração (D-49) e apaga as empresas dos
+links de demonstração vencidos (D-54), até receber o sinal de parar (SIGTERM do Docker, ou
+Ctrl+C). Lê a configuração do ambiente, como a API.
 """
 
 import logging
@@ -18,6 +19,7 @@ from nuvem.banco import criar_motor
 from nuvem.cifra import Cifra
 from nuvem.config import ConfiguracaoInvalidaError, ler_configuracao
 from nuvem.demonstracao import dia as dia_de_demonstracao
+from nuvem.demonstracao import link as links_de_demonstracao
 
 _registro = logging.getLogger("nuvem.worker")
 
@@ -38,8 +40,10 @@ def main() -> None:
         armazenamento = ArmazenamentoLocal(
             configuracao.pasta_fotos, Cifra(configuracao.chave_cifra)
         )
+        faxina = links_de_demonstracao.Faxina(armazenamento)
 
         def avancar_a_demonstracao(sessao: Session, agora: datetime) -> int:
+            faxina(sessao, agora)
             return dia_de_demonstracao.avancar(sessao, agora=agora, armazenamento=armazenamento)
 
     for sinal in (signal.SIGTERM, signal.SIGINT):

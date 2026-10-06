@@ -95,6 +95,7 @@ def criar_app(configuracao: Configuracao | None = None, senhas: Senhas | None = 
     app.include_router(tela_do_extrato.roteador)
     app.include_router(telas_em_breve.roteador)
     app.include_router(tela_da_demonstracao.roteador)
+    app.include_router(tela_da_demonstracao.roteador_da_administracao)
     app.include_router(tela_do_link.roteador)
     app.include_router(tela_de_agendamentos.roteador)
     tela_do_link.esconder_codigo_no_registro_de_acesso()

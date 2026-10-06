@@ -150,7 +150,8 @@ def _janela(agendamento: Agendamento, site: HorarioDoSite) -> dict[str, str]:
 
 # --- O registro de acesso não guarda o código (D-34) ------------------------------------------
 
-_CODIGO_NO_CAMINHO = re.compile(r"^/agendar/[^/?#]+")
+_CODIGO_NO_CAMINHO = re.compile(r"^/(agendar|demonstracao/link)/[^/?#]+")
+"""O link da transportadora e o de demonstração (D-54) levam o código no endereço."""
 
 
 class EsconderCodigoDoLink(logging.Filter):
@@ -162,7 +163,7 @@ class EsconderCodigoDoLink(logging.Filter):
         if isinstance(argumentos, tuple) and len(argumentos) >= 3:
             caminho = argumentos[2]
             if isinstance(caminho, str):
-                escondido = _CODIGO_NO_CAMINHO.sub("/agendar/***", caminho)
+                escondido = _CODIGO_NO_CAMINHO.sub(r"/\1/***", caminho)
                 record.args = (*argumentos[:2], escondido, *argumentos[3:])
         return True
 

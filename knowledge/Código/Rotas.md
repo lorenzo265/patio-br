@@ -14,6 +14,9 @@ Os endereços da API e das telas, lidos dos decoradores (`@roteador.get(...)`) c
 | Endereço | Método | Função | Pacote | O que faz |
 |---|---|---|---|---|
 | `/` | GET | `inicio` | [[nuvem.web]] | A tela inicial de quem entrou. |
+| `/administracao/demonstracao` | GET | `lista_de_links` | [[nuvem.web]] | Os links de demonstração e o formulário de gerar um novo. |
+| `/administracao/demonstracao` | POST | `gerar_link` | [[nuvem.web]] | Gera um link para uma empresa visitada e mostra o endereço, uma vez só. |
+| `/administracao/demonstracao/{link_id}/revogar` | POST | `revogar_link` | [[nuvem.web]] | Revoga o link: ele deixa de valer, e as pessoas da empresa dele saem na hora. |
 | `/agendamentos` | GET | `tela_de_agendamentos` | [[nuvem.web]] | A lista do dia (ou da semana) de um site do gestor, com a planilha e os links. |
 | `/agendamentos/links` | POST | `gerar_link` | [[nuvem.web]] | Gera um link para uma transportadora e mostra o endereço, uma vez só. |
 | `/agendamentos/links/{link_id}/revogar` | POST | `revogar_link` | [[nuvem.web]] | Revoga um link: ele deixa de valer na hora. |
@@ -42,6 +45,9 @@ Os endereços da API e das telas, lidos dos decoradores (`@roteador.get(...)`) c
 | `/api/cadastro/sites/{site_id}/cameras` | GET | `listar_cameras` | [[nuvem.cadastro]] | As câmeras de um site que o gestor vê (404 para qualquer outro site). |
 | `/demonstracao` | GET | `andamento` | [[nuvem.web]] | O dia de demonstração de um site do gestor: o botão de começar ou o andamento. |
 | `/demonstracao/comecar` | POST | `comecar` | [[nuvem.web]] | Começa o dia de demonstração do site. |
+| `/demonstracao/link/{codigo}` | GET | `pagina_do_link` | [[nuvem.web]] | Para quem é a demonstração e o botão de entrar; não cria nada. |
+| `/demonstracao/link/{codigo}` | POST | `entrar_pelo_link` | [[nuvem.web]] | Entra na empresa de demonstração do link como gestor (cria a empresa na primeira vez). |
+| `/demonstracao/papel` | POST | `trocar_de_papel` | [[nuvem.web]] | A faixa da demonstração: passa a sessão para a pessoa do papel, na mesma empresa. |
 | `/entrar` | GET | `tela_de_entrar` | [[nuvem.web]] | O formulário de e-mail e senha. |
 | `/entrar` | POST | `entrar` | [[nuvem.web]] | Confere e-mail e senha; se baterem, abre a sessão e leva ao início. |
 | `/estoque` | GET | `estoque` | [[nuvem.web]] | O armazém em 3D, com a busca, e dados de exemplo. |

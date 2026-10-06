@@ -18,7 +18,7 @@ from sqlalchemy.orm import Session
 from nuvem.banco import obter_sessao
 from nuvem.cadastro import login, servico
 from nuvem.cadastro.acesso import COOKIE_DA_SESSAO, Acesso, QuemPede, exigir_papel
-from nuvem.cadastro.modelos import Administrador, Usuario
+from nuvem.cadastro.modelos import Administrador, Empresa, Usuario
 from nuvem.relogio import agora
 from nuvem.senhas import Senhas, obter_senhas
 
@@ -36,7 +36,14 @@ ESPERE = f"Muitas tentativas. Espere {login.JANELA_DAS_TENTATIVAS.seconds // 60}
 def tela(
     request: Request, nome: str, contexto: dict[str, Any], codigo: int = status.HTTP_200_OK
 ) -> HTMLResponse:
-    """Desenha uma tela do painel."""
+    """Desenha uma tela do painel.
+
+    Nos ambientes da demonstração, a tela de quem é do cliente ganha a faixa que troca de papel
+    (D-54): ``papel_na_demonstracao`` é o papel de agora.
+    """
+    quem = getattr(request.state, "quem", None)
+    if request.app.state.tem_demonstracao and isinstance(quem, Acesso):
+        contexto = {"papel_na_demonstracao": quem.papel, **contexto}
     return telas.TemplateResponse(request, nome, contexto, status_code=codigo)
 
 
@@ -92,8 +99,10 @@ def inicio(request: Request, sessao: SessaoDaRequisicao, quem: QuemPede) -> HTML
     """A tela inicial de quem entrou."""
     if isinstance(quem, Acesso):
         usuario = sessao.get(Usuario, quem.usuario_id)
+        empresa = sessao.get(Empresa, quem.empresa_id)
         contexto = {
             "nome": usuario.nome if usuario else "",
+            "empresa": empresa.nome if empresa else "",
             "administracao": False,
             "papel": quem.papel,
             "sites": [site.nome for site in servico.listar_sites(sessao, quem)],
@@ -104,7 +113,11 @@ def inicio(request: Request, sessao: SessaoDaRequisicao, quem: QuemPede) -> HTML
         }
     else:
         administrador = sessao.get(Administrador, quem.administrador_id)
-        contexto = {"nome": administrador.nome if administrador else "", "administracao": True}
+        contexto = {
+            "nome": administrador.nome if administrador else "",
+            "administracao": True,
+            "ve_os_links_de_demonstracao": request.app.state.tem_demonstracao,
+        }
     return tela(request, "inicio.html", contexto)
 
 
@@ -155,7 +168,12 @@ def _tela_da_troca(
 
 
 def _ir_ao_inicio_com_a_sessao(request: Request, codigo: str) -> Response:
-    resposta = RedirectResponse("/", status_code=status.HTTP_303_SEE_OTHER)
+    return ir_com_a_sessao(request, codigo, "/")
+
+
+def ir_com_a_sessao(request: Request, codigo: str, destino: str) -> Response:
+    """Leva a ``destino`` com o cookie da sessão aberta (o código só vai no cookie)."""
+    resposta = RedirectResponse(destino, status_code=status.HTTP_303_SEE_OTHER)
     resposta.set_cookie(
         COOKIE_DA_SESSAO,
         codigo,

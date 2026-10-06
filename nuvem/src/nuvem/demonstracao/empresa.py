@@ -8,6 +8,8 @@
 - **Linha de base de exemplo:** um mês inventado "antes do sistema" (o ritmo ``ANTES``), medido
   pelas contas do extrato; fica marcada como exemplo (D-48).
 - **Celulares:** do DDD 23, que não existe; nenhum número pode ser de alguém.
+- **Completar o histórico** (D-54): quem volta à empresa dias depois ganha os dias que faltam até
+  ontem, para o painel não ter buraco.
 
 As funções gravam com ``flush``; o ``commit`` é de quem chama.
 """
@@ -24,6 +26,7 @@ from sqlalchemy.orm import Session
 from nuvem.agendamento import servico as agendamentos
 from nuvem.agendamento.servico import AgendamentoInventado, SiteDoAgendamento
 from nuvem.cadastro import servico as cadastro
+from nuvem.cadastro.acesso import Acesso
 from nuvem.cadastro.modelos import Doca, Empresa, Faixa, Papel, Posicao, Site, Usuario
 from nuvem.cifra import Cifra
 from nuvem.demonstracao import historico
@@ -41,6 +44,8 @@ CAMINHOES_POR_DIA = 55
 """Em média; cada dia varia até 8 para mais ou para menos."""
 DIAS_DE_HISTORICO = 35
 DIAS_DA_LINHA_DE_BASE = 30
+DIAS_OLHADOS_PARA_COMPLETAR = 60
+"""O histórico só se completa depois do primeiro dia que já tem, nesta janela para trás."""
 ABRE, FECHA = time(6), time(22)
 NOME_DO_SITE = "CD Demonstração"
 DDD_QUE_NAO_EXISTE = "23"
@@ -137,6 +142,59 @@ def criar(
                         prefixo=f"DEMO-{dia:%Y%m%d}")  # fmt: skip
     _gravar_linha_de_base(sessao, site, fuso, hoje - timedelta(days=dias), gerador, agora)
     return EmpresaDeDemonstracao(empresa, site, gestor, porteiro, lider, caixa.caixa_id)
+
+
+def completar_historico(sessao: Session, acesso: Acesso, *, agora: datetime) -> int:
+    """Grava os dias que faltam no histórico dos sites do usuário, até ontem (D-54).
+
+    Só os dias depois do primeiro que já tem agendamento (olhando até
+    ``DIAS_OLHADOS_PARA_COMPLETAR`` para trás); o dia de hoje fica para o "começar o dia".
+
+    Returns:
+        Quantos dias foram gravados.
+    """
+    gravados = 0
+    for site in cadastro.listar_sites(sessao, acesso):
+        docas = tuple(cadastro.listar_docas(sessao, acesso, site.id))
+        fuso = ZoneInfo(site.fuso)
+        hoje = agora.astimezone(fuso).date()
+        com_historico = agendamentos.dias_com_agendamento(
+            sessao, acesso, site.id,
+            de=_meia_noite(hoje - timedelta(days=DIAS_OLHADOS_PARA_COMPLETAR), fuso),
+            ate=_meia_noite(hoje, fuso),
+        )  # fmt: skip
+        if not docas or not com_historico:
+            continue
+        lugar = Lugar(
+            acesso.empresa_id, site.id, docas,
+            porteiro_id=_primeira_pessoa(sessao, acesso, site, "porteiro"),
+            lider_id=_primeira_pessoa(sessao, acesso, site, "patio"),
+        )  # fmt: skip
+        placas: set[str] = set()
+        dia = min(com_historico) + timedelta(days=1)
+        while dia < hoje:
+            if dia not in com_historico:
+                gerador = random.Random(f"{site.id}-{dia}")
+                caminhoes = round(gerador.randint(CAMINHOES_POR_DIA - 8, CAMINHOES_POR_DIA + 8)
+                                  * len(docas) / DOCAS)  # fmt: skip
+                jornadas = historico.jornadas_do_dia(
+                    dia, fuso=fuso, docas=len(docas), caminhoes=max(caminhoes, 1),
+                    ritmo=COM_O_SISTEMA, gerador=gerador, placas_usadas=placas,
+                )  # fmt: skip
+                gravar_jornadas(sessao, lugar, jornadas, agora=agora, prefixo=f"DEMO-{dia:%Y%m%d}")
+                gravados += 1
+            dia += timedelta(days=1)
+    return gravados
+
+
+def _meia_noite(dia: date, fuso: ZoneInfo) -> datetime:
+    return datetime.combine(dia, time(0), fuso)
+
+
+def _primeira_pessoa(sessao: Session, acesso: Acesso, site: Site, papel: Papel) -> int:
+    """A primeira pessoa do papel no site; sem ninguém, quem pediu."""
+    pessoas = cadastro.pessoas_do_site(sessao, acesso, site.id, papel)
+    return pessoas[0].id if pessoas else acesso.usuario_id
 
 
 def dia_inventado(

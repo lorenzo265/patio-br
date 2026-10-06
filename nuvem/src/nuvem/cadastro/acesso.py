@@ -74,9 +74,14 @@ def obter_quem(
     conta = login.conta_da_sessao(sessao, codigo, momento) if codigo else None
     if conta is None:
         raise NaoIdentificadoError
+    quem: Acesso | AcessoAdmin
     if isinstance(conta, Usuario):
-        return acesso_do_usuario(sessao, conta.id)
-    return AcessoAdmin(administrador_id=conta.id)
+        quem = acesso_do_usuario(sessao, conta.id)
+    else:
+        quem = AcessoAdmin(administrador_id=conta.id)
+    # A tela usa para desenhar o que depende de quem entrou (a faixa da demonstração, D-54).
+    request.state.quem = quem
+    return quem
 
 
 QuemPede = Annotated[Acesso | AcessoAdmin, Depends(obter_quem)]

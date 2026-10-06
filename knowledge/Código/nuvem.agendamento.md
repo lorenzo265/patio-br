@@ -186,6 +186,7 @@ As funções gravam com ``flush``; o ``commit`` é de quem chama.
 - **`para_confirmar`**: Os agendamentos ativos com celular, de todos os sites, criados ou mudados desde ``mudados_desde`` e cuja janela ainda não terminou.
 - **`com_celular`**: Os agendamentos com celular entre estes, de todos os sites, por id.
 - **`listar`**: Os agendamentos de um site cuja janela toca o período ``[de, ate)``, pelo início.
+- **`dias_com_agendamento`**: Os dias, no fuso do site, em que começa algum agendamento do site em ``[de, ate)``.
 - **`codigos_externos`**: O código externo de cada agendamento (dos sites que o usuário vê), por id.
 - **`Resumo`** (classe): O que as telas mostram de um agendamento ao lado de uma visita.
 - **`resumos`**: O código, o tipo e as toneladas de cada agendamento (dos sites que o usuário vê), por id.

@@ -48,6 +48,7 @@ tags: [sdd]
 | 0.35 | 2026-10-05 | o dia de demonstração ([[T45]]): no worker e no relógio de verdade, com a manhã pronta, o líder automático, uma exceção para resolver e celulares de DDD que não existe ([[D-49]]); o ambiente `demonstracao` (seções [[7.1 Ambientes\|7.1]], [[11. Registro de decisões\|11]] e [[13. Glossário\|13]]) |
 | 0.36 | 2026-10-05 | decisões de 05/10 à noite: fontes OFL ([[D-50]], fecha o [[ABERTO-21]]), a demonstração na Vercel e no Supabase ([[D-51]]) e o link de 7 dias por empresa ([[D-52]]); o nome e a identidade visual vão para uma sessão à parte ([[ABERTO-01]]) (seções [[6.1 Stack\|6.1]], [[7.1 Ambientes\|7.1]], [[11. Registro de decisões\|11]] e [[12. Itens em aberto\|12]]) |
 | 0.37 | 2026-10-05 | o vault do Obsidian em `knowledge/`, gerado de `docs/` e do código, com o comando `tarefas conhecimento` e o teste que o mantém em dia ([[D-53]]); "vault" no glossário (seções [[6.3 Repositório\|6.3]], [[11. Registro de decisões\|11]] e [[13. Glossário\|13]]) |
+| 0.38 | 2026-10-05 | link de demonstração por empresa ([[T48]]): a entidade `LinkDemonstracao`, a página do link, a faixa que troca de papel, o histórico completado a cada entrada e a empresa vencida apagada inteira, com a exceção da prova só para ela ([[D-54]]) (seções [[5.1 Entidades\|5.1]], [[5.5 Garantias\|5.5]], [[6.2 Telas do MVP\|6.2]], [[8.2 Segurança\|8.2]] e [[11. Registro de decisões\|11]]) |
 
 ---
 
