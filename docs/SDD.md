@@ -1,7 +1,7 @@
 # SDD — patio-br (nome provisório)
 
 **Documento de desenho do software (SDD) do MVP do piloto**
-Versão 0.43 · 2026-10-06 · Situação: aprovado como base; itens em aberto na seção 12
+Versão 0.44 · 2026-10-06 · Situação: aprovado como base; itens em aberto na seção 12
 
 ---
 
@@ -273,8 +273,8 @@ Regras comuns a todos os conectores:
 - **Reenvio atualiza** (D-33): o mesmo `codigo_externo` da mesma origem, no mesmo site, muda o
   agendamento que já existe em vez de criar outro. Reenviar igual não muda nada.
 - **Cada mudança fica registrada** (o que era, o que ficou, quando, por qual origem e por quem),
-  inclusive a criação e o cancelamento. Trocar o celular apaga a autorização de WhatsApp: ela é do
-  número, não do agendamento.
+  inclusive a criação e o cancelamento. A autorização de WhatsApp é do número, numa empresa, e
+  não do agendamento (D-58): o celular novo ainda não autorizou nada.
 - **Cancelado não volta pelo reenvio:** o conector recebe a recusa, com o motivo.
 
 O **link da transportadora** (`link`) é um formulário curto para o celular, sem conta. Cada envio
@@ -457,7 +457,7 @@ acadêmico (`docs/validacao/fontes-de-placas.md`). Por isso:
 | `Usuario` | empresa, nome, e-mail, papel (porteiro, pátio ou gestor), sites com acesso, senha, PIN (porteiro), ativo, verificação em duas etapas (gestor) |
 | `Administrador` | nome, e-mail, senha, ativo, verificação em duas etapas; é a administração (nós), fora de qualquer empresa (D-19) |
 | `CodigoRecuperacao` | o usuário ou a administração, o resumo argon2 do código, usado em: 10 por pessoa, mostrados uma vez ao ligar a verificação em duas etapas; cada um vale uma vez (D-60) |
-| `Agendamento` | site, janela início/fim, tipo (carga/descarga), placas esperadas (cavalo, reboques), motorista (nome, celular), autorização de WhatsApp, toneladas, chave NF-e (opcional), `origem`, `codigo_externo`, situação (ativo ou cancelado; o andamento da chegada é da visita, D-32) |
+| `Agendamento` | site, janela início/fim, tipo (carga/descarga), placas esperadas (cavalo, reboques), motorista (nome, celular), toneladas, chave NF-e (opcional), `origem`, `codigo_externo`, situação (ativo ou cancelado; o andamento da chegada é da visita, D-32) |
 | `MudancaAgendamento` | agendamento, quando, tipo (criado, alterado, cancelado), por onde (a origem do conector ou o painel), quem (usuário, se houver), o que era e o que ficou — **só se acrescenta** |
 | `Veiculo` | placa, tipo (cavalo, reboque, caminhão simples); campo de posição no pátio reservado para o modo B |
 | `Passagem` | formato da seção 3.2 |
@@ -465,7 +465,9 @@ acadêmico (`docs/validacao/fontes-de-placas.md`). Por isso:
 | `Evento` | visita, tipo, horário, autor (sistema ou usuário), dados, foto (pela passagem) — **só se acrescenta**: o banco recusa alterar ou apagar |
 | `Excecao` | visita, passagem, motivo, candidatos (agendamento e pontos), situação (aberta ou resolvida), resolução, quem resolveu |
 | `ConferenciaPlaca` | passagem, foto (o recorte da placa), placa lida, placa conferida, quem, quando — **só se acrescenta**: conferir de novo é outro registro, e o último vale (D-42) |
-| `Mensagem` | agendamento, evento que a gerou (vazio na confirmação), modelo (confirmação, na fila, chamada, pode sair), para (o celular), texto pronto, canal (demonstração; WhatsApp e SMS no mês 4), situação (guardada; no mês 4: enviada, entregue, lida, falhou), custo (mês 4) — uma por evento e uma confirmação por celular do agendamento (D-47) |
+| `Mensagem` | agendamento, evento que a gerou (vazio na confirmação), modelo (confirmação, na fila, chamada, pode sair), para (o celular), texto pronto, as variáveis do modelo de mensagem do WhatsApp, canal (demonstração, WhatsApp ou SMS), situação (guardada, enviada, entregue, lida ou falhou), o id no canal, os horários de cada situação, o erro, a categoria de cobrança da Meta — uma por evento e uma confirmação por celular do agendamento (D-47) |
+| `AutorizacaoWhatsApp` | empresa, celular, quando autorizou, o texto que o motorista mandou (a prova), revogada em — uma ativa por empresa e celular (D-58 e D-63) |
+| `MensagemRecebida` | de (o celular), texto, id no WhatsApp, recebida em, a empresa (quando o texto diz), o que se fez (autorizou, saiu ou ignorada) — da plataforma, como a fila de tarefas (D-63) |
 | `ParametrosSite` | custo mensal de um ponto de portaria, postos antes/depois, valor da estadia (R$/t·h), franquia (h), custo hora-doca (opcional); a tolerância de janela e as horas para o alerta continuam fixas no código até o `[ABERTO-09]` |
 | `LinhaDeBase` | site, origem (exemplo, na demonstração; modo sombra, no piloto), período, as mesmas medidas do extrato (D-48) |
 | `Extrato` | site, mês, números calculados (as medidas, a economia, os parâmetros e a linha de base usados), versão da regra de cálculo, quando foi gerado |
@@ -619,7 +621,8 @@ Como cada conta é feita (versão 1 da regra, D-48):
 **Fila de tarefas e worker** (D-16 e D-38): o que não precisa acontecer dentro do pedido da
 caixa vira uma tarefa numa tabela do PostgreSQL, e o **worker**, um processo à parte da API, a
 executa. A passagem recebida vira a tarefa "casar" (uma só por passagem), gravada junto com a
-passagem. O worker pega a próxima com `SELECT ... FOR UPDATE SKIP LOCKED`: dois workers nunca
+passagem; a mensagem ao motorista, a tarefa "enviar mensagem"; o aviso do WhatsApp, a tarefa
+"aviso do WhatsApp" (D-63). O worker pega a próxima com `SELECT ... FOR UPDATE SKIP LOCKED`: dois workers nunca
 pegam a mesma. Tarefa com erro volta para a fila esperando cada vez mais (10 s, 20 s, 40 s ...
 até 10 min), até 8 tentativas; depois, fica como falhou, com o erro, para o suporte. A cada 5
 minutos, o worker confere o "não veio" (seção 5.2), um worker de cada vez.
@@ -799,6 +802,27 @@ Serve para desenvolver sem câmera, para os testes de ponta a ponta e para simul
   da portaria faz o mesmo; "SAIR" cancela na hora. Quem não autoriza recebe os avisos por SMS.
 - **Limite inicial da Meta:** 250 destinatários únicos por 24h; sobe para 2.000 após
   verificação. O limite é do portfólio da empresa na Meta, dividido entre os números dele.
+- **Por dentro** (D-63):
+  - **o canal de cada mensagem** é escolhido ao gravá-la: WhatsApp se o celular autorizou
+    aquela empresa; senão, SMS; no ambiente sem WhatsApp configurado (local e demonstração), o
+    de demonstração, que só guarda;
+  - **o envio é uma tarefa da fila** ("enviar mensagem"), com a espera crescente de sempre: o
+    erro passageiro (rede, 5xx, limite de envio) tenta de novo; o definitivo (número sem
+    WhatsApp, modelo recusado) deixa a mensagem como falhou, com o código;
+  - **modelos de utilidade**, um por tipo de mensagem, em português (`pt_BR`), com as variáveis
+    (site, janela, posição, doca); o texto de cada modelo fica no código, e nenhum começa nem
+    termina com uma variável (a Meta recusa);
+  - **o webhook** (`/api/whatsapp`) confere a assinatura (`X-Hub-Signature-256`, com o segredo do
+    app) e só guarda o aviso numa tarefa ("aviso do WhatsApp"): o worker atualiza a situação das
+    mensagens e trata as recebidas. O mesmo aviso duas vezes não muda nada;
+  - **a autorização:** o link e o QR abrem o WhatsApp com "AVISOS A<agendamento>" ou "AVISOS
+    S<site>"; a mensagem diz a empresa, e a autorização vale para o celular de quem mandou, só
+    naquela empresa. "SAIR" (ou "PARAR") cancela a autorização do número em todas as empresas.
+    As duas recebem uma resposta curta; o resto é ignorado, sem resposta;
+  - **o celular do WhatsApp:** número do Brasil que o WhatsApp manda sem o 9 (12 números) ganha o
+    9 de volta, para bater com o celular do agendamento;
+  - os segredos (o token, o segredo do app e o código de verificação do webhook) ficam só nas
+    variáveis de ambiente; a versão da API da Meta é configurável (`v25.0`, de 02/2026).
 - **SMS de reserva:** Zenvia, confirmada pelo orçamento contra a Twilio (D-59); as duas
   entram pela mesma interface de canal. O texto usa só os caracteres do GSM-7, para caber em
   um pedaço de 160.
@@ -907,7 +931,8 @@ Serve para desenvolver sem câmera, para os testes de ponta a ponta e para simul
     leva um código tirado da sessão (no formulário, o campo `_csrf`; no HTMX, o cabeçalho
     `X-CSRF-Token`); sem ele, 403. Ficam de fora só as rotas em que o cookie não decide quem
     pede: o login (que recusa o envio vindo de outro site), o link da transportadora, o link de
-    demonstração e a API da caixa (pela chave). O `SameSite=Lax` do cookie continua;
+    demonstração, a API da caixa (pela chave) e o webhook do WhatsApp (pela assinatura, D-63). O
+    `SameSite=Lax` do cookie continua;
   - **um comando para criar a administração** (`python -m nuvem.administracao`), que pede a
     senha duas vezes e nunca a mostra; a verificação em duas etapas fica para o mês 4, com a do
     gestor.
@@ -1058,6 +1083,7 @@ do cuidado de cargas (D-43).
 | D-60 | **A verificação em duas etapas é pelo app autenticador do celular**: o código de 6 números que muda a cada 30 segundos, mais 10 códigos de recuperação, mostrados uma vez e guardados só como resumo. Obrigatória para o gestor e a administração na homologação e na produção; o porteiro e o líder de pátio continuam com a senha e o PIN | decisão do Lorenzo em 06/10 (plano do mês 4, F4): não depende de serviço de fora, funciona sem sinal de celular e não cai com a troca de chip | código por e-mail (precisa de um serviço de e-mail); código por SMS (custa e cai com a troca de chip) |
 | D-61 | **Os erros e as quedas chegam até nós pela própria AWS**: o registro de erros no CloudWatch (sem placa, telefone nem nome, só os ids), um alarme para cada erro, a verificação do `/saude` a cada minuto pelo Route 53 (o `/saude` confere também o worker) e o aviso por e-mail | decisão do Lorenzo em 06/10 (plano do mês 4, F5): custa menos de US$ 5 por mês, e nenhum dado sai da nossa nuvem | o Sentry (lê melhor os erros, mas é mais um fornecedor recebendo dados, com acordo LGPD) |
 | D-62 | **Os alertas aparecem sempre no painel**, num sino com os alertas abertos do site, em todas as telas dele. **Por WhatsApp, ao gestor que autorizar, só os graves:** a caixa ou uma câmera fora do ar e a estadia que passou das 5 horas. **Para a administração:** a caixa e a câmera fora do ar e os erros | decisão do Lorenzo em 06/10 (plano do mês 4, F6): quem está no painel vê na hora, e a mensagem fica para o que não pode esperar alguém olhar a tela | o e-mail (precisa de um serviço de e-mail e é lido mais tarde) |
+| D-63 | **O WhatsApp por dentro** (T52): o canal de cada mensagem é escolhido ao gravá-la (WhatsApp se o celular autorizou a empresa, senão SMS); o envio é uma tarefa da fila, e o erro passageiro tenta de novo, o definitivo deixa a mensagem como falhou; o webhook só confere a assinatura e guarda o aviso numa tarefa; a autorização vem da mensagem "AVISOS A<agendamento>" ou "AVISOS S<site>", vale para o celular de quem mandou naquela empresa, e "SAIR" a cancela em todas; o celular do Brasil sem o 9 ganha o 9 | o webhook responde na hora (a Meta repete o aviso que demora) e o worker, que já sabe tentar de novo, faz o trabalho; a mensagem do motorista diz de qual empresa é a autorização, já que o número do WhatsApp é um só para todos os clientes; quem pede para sair não quer aviso de ninguém | tratar o aviso dentro do pedido do webhook; uma autorização que valesse para todas as empresas; "SAIR" só na empresa da última conversa |
 
 ---
 
@@ -1163,3 +1189,4 @@ do cuidado de cargas (D-43).
 | 0.41 | 2026-10-06 | plano do mês 4 criado, a versão do piloto (`docs/planos/2027-01-plano-mes-4.md`): o cronograma do mês 4 com a verificação em duas etapas, os prazos de guarda, as placas sintéticas e a API com os webhooks; novo `[ABERTO-22]`, a autorização do motorista para o WhatsApp antes da primeira mensagem (seções 2.2, 7.5, 10 e 12); os fatos do WhatsApp e do SMS conferidos em 06/10 |
 | 0.42 | 2026-10-06 | plano do mês 4 aprovado pelo Lorenzo com as recomendações: a produção e a homologação na AWS (D-57), o motorista começa a conversa no WhatsApp, com o primeiro aviso por SMS (D-58, fecha o `[ABERTO-22]`), o SMS pela Zenvia (D-59), a verificação em duas etapas pelo app autenticador (D-60), os erros avisados pela AWS (D-61) e para quem vão os alertas (D-62) (seções 2.2, 7.1, 7.5, 8.1, 8.2, 11 e 12) |
 | 0.43 | 2026-10-06 | verificação em duas etapas (T51): a sessão pela metade, a tolerância de um intervalo, o código que não vale duas vezes, ligar com o QR, os códigos de recuperação e como zerar; a entidade `CodigoRecuperacao`; o segno na stack (seções 5.1, 6.1 e 8.2) |
+| 0.44 | 2026-10-06 | o WhatsApp por dentro (T52): o canal escolhido ao gravar a mensagem, o envio pela fila, o webhook com a assinatura, a autorização por empresa e o "SAIR" (D-63); as entidades `AutorizacaoWhatsApp` e `MensagemRecebida` e a `Mensagem` com a situação do envio (seções 5.1, 6.1, 7.5, 8.2 e 11) |

@@ -119,7 +119,8 @@ recomendações ([[D-57]] a [[D-62]]). As tarefas que não precisam de conta com
 |---|---|
 | [[T49]] produção e homologação na AWS e [[T50]] cópias e alarmes | esperam a conta da AWS ([[N21]]) |
 | [[T51]] verificação em duas etapas | feita ([#53](https://github.com/lorenzo265/patio-br/pull/53)) |
-| [[T52]] WhatsApp e [[T53]] SMS | o código anda com a Meta e a Zenvia imitadas; a conferência de verdade espera as contas ([[N19]], [[N20]]) |
+| [[T52]] WhatsApp | feita, com a Meta imitada ([#54](https://github.com/lorenzo265/patio-br/pull/54), [[D-63]]); a conferência com o número de teste espera a conta ([[N19]]) |
+| [[T53]] SMS | o código anda com a Zenvia imitada; a conferência de verdade espera a conta ([[N20]]) |
 | [[T54]] saúde e frota, [[T55]] contêineres e [[T56]] atualização da caixa | podem começar; o N150 de verdade é a [[N23]] |
 | [[T57]] alertas | pode começar ([[D-62]]) |
 | [[T58]] prova encadeada, [[T59]] prazos de guarda, [[T60]] base de treino e [[T39]] placas sintéticas | podem começar; os prazos de verdade esperam o [[ABERTO-04]] |
