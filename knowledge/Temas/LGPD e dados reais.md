@@ -15,7 +15,8 @@ O cliente é o controlador dos dados; nós somos o operador ([[8.3 LGPD]]).
   de veículo; rostos nas fotos de contexto são borrados na própria caixa.
 - **A base de treino guarda só recortes de placa e a região de gravação** das câmeras, abaixo do
   para-brisa ([[D-39]]), nunca rostos. A conferência do porteiro só vira rótulo se o contrato do
-  cliente autorizar ([[D-42]], [[8.3 LGPD]]).
+  cliente autorizar ([[D-42]], [[8.3 LGPD]]): a administração registra a data da cláusula, e
+  revogar apaga os rótulos e os recortes daquela empresa ([[D-71]], [[T60]]).
 - **O que um leitor comercial lê nunca vira rótulo**, e mandar imagens à nuvem dele só com o sim
   do advogado e do site ([[D-41]]).
 - **Base legal:** câmera e placa por legítimo interesse; WhatsApp só com a autorização do
