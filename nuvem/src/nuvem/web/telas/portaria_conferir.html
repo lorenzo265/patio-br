@@ -20,12 +20,14 @@
   {% endif %}
   {% if recorte.placa_lida %}
   <form method="post" action="/portaria/conferir/{{ passagem.id }}">
+    <input type="hidden" name="_csrf" value="{{ csrf }}">
     <input type="hidden" name="foto" value="{{ recorte.foto }}">
     <input type="hidden" name="placa" value="{{ recorte.placa_lida }}">
     <button type="submit">Está certa: {{ recorte.placa_lida }}</button>
   </form>
   {% endif %}
   <form method="post" action="/portaria/conferir/{{ passagem.id }}">
+    <input type="hidden" name="_csrf" value="{{ csrf }}">
     <input type="hidden" name="foto" value="{{ recorte.foto }}">
     <label>Placa da foto
       <input name="placa" required maxlength="8" autocomplete="off" autocapitalize="characters">

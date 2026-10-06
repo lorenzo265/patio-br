@@ -26,7 +26,7 @@ from sqlalchemy.orm import Session
 
 from contratos.passagem import Passagem
 from nuvem.banco import obter_sessao
-from nuvem.cadastro.acesso import Acesso, acesso_do_usuario
+from nuvem.cadastro.acesso import COOKIE_DA_SESSAO, Acesso, acesso_do_usuario
 from nuvem.cifra import Cifra, obter_cifra
 from nuvem.config import Configuracao
 from nuvem.frota import servico as frota
@@ -35,6 +35,7 @@ from nuvem.portaria import servico as portaria
 from nuvem.principal import criar_app
 from nuvem.semente import SENHA_DA_DEMONSTRACAO, Demonstracao, semear
 from nuvem.senhas import Senhas
+from nuvem.web import csrf
 
 ARQUIVO_ALEMBIC = Path(__file__).resolve().parents[1] / "alembic.ini"
 SUFIXO_DO_BANCO_DE_TESTE = "_teste"
@@ -227,12 +228,35 @@ def app(
     return app
 
 
+def com_codigo_csrf(cliente: TestClient) -> TestClient:
+    """Põe o código anti-CSRF da sessão de agora em cada pedido, como as telas fazem (D-55).
+
+    A sessão pode mudar no meio do teste (trocar de porteiro, de papel): o código sai do cookie
+    na hora de cada pedido. Os testes do próprio código usam um navegador sem isto.
+    """
+    aplicacao: Any = cliente.app
+
+    def por_o_codigo(pedido: Any) -> None:
+        sessao = cliente.cookies.get(COOKIE_DA_SESSAO)
+        if sessao and csrf.CABECALHO not in pedido.headers:
+            pedido.headers[csrf.CABECALHO] = csrf.codigo(aplicacao.state.segredo_csrf, sessao)
+
+    cliente.event_hooks["request"].append(por_o_codigo)
+    return cliente
+
+
+@pytest.fixture
+def com_csrf() -> Callable[[TestClient], TestClient]:
+    """Para o navegador que não entra pelo ``entrar`` (ex.: pelo link de demonstração)."""
+    return com_codigo_csrf
+
+
 @pytest.fixture
 def entrar(app: FastAPI) -> Callable[..., TestClient]:
     """Entra pela tela de login, como alguém de verdade, e devolve o navegador com o cookie."""
 
     def _entrar(email: str, senha: str = SENHA_DA_DEMONSTRACAO) -> TestClient:
-        cliente = TestClient(app)
+        cliente = com_codigo_csrf(TestClient(app))
         resposta = cliente.post(
             "/entrar", data={"email": email, "senha": senha}, follow_redirects=False
         )

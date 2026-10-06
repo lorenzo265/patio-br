@@ -1,7 +1,7 @@
 # SDD — patio-br (nome provisório)
 
 **Documento de desenho do software (SDD) do MVP do piloto**
-Versão 0.38 · 2026-10-05 · Situação: aprovado como base; itens em aberto na seção 12
+Versão 0.39 · 2026-10-05 · Situação: aprovado como base; itens em aberto na seção 12
 
 ---
 
@@ -859,14 +859,20 @@ Serve para desenvolver sem câmera, para os testes de ponta a ponta e para simul
   pessoa da mesma empresa, com um site em comum.
 - HTTPS em tudo; banco e fotos cifrados; senhas de câmera cifradas.
 - Dependências checadas a cada build.
-- **Antes de abrir para a internet**, decidido em 04/10 (vem para o mês 3, com a demonstração,
-  D-45):
-  - limite de login também por endereço IP, junto com a hospedagem (atrás de um proxy, o IP
-    real vem de um cabeçalho que precisa ser de confiança);
-  - código anti-CSRF nos formulários do painel (hoje, o `SameSite=Lax` do cookie e a recusa
-    do login vindo de outro site);
-  - um comando para criar a administração, junto com a verificação em duas etapas (hoje, só a
-    semente cria, e só no ambiente local).
+- **Antes de abrir para a internet**, decidido em 04/10 e feito no mês 3, com a demonstração
+  (D-45 e D-55):
+  - **limite de login também por endereço IP:** no máximo 20 erros a cada 15 minutos por
+    endereço, além dos 5 por e-mail. Atrás de um proxy, o endereço vem só do cabeçalho que a
+    configuração indica (`PATIO_CABECALHO_DO_IP`; na Vercel, `x-real-ip`, que ela mesma
+    escreve); sem ele, vale o endereço da conexão;
+  - **código anti-CSRF** (D-55): todo pedido que muda alguma coisa, de quem tem a sessão aberta,
+    leva um código tirado da sessão (no formulário, o campo `_csrf`; no HTMX, o cabeçalho
+    `X-CSRF-Token`); sem ele, 403. Ficam de fora só as rotas em que o cookie não decide quem
+    pede: o login (que recusa o envio vindo de outro site), o link da transportadora, o link de
+    demonstração e a API da caixa (pela chave). O `SameSite=Lax` do cookie continua;
+  - **um comando para criar a administração** (`python -m nuvem.administracao`), que pede a
+    senha duas vezes e nunca a mostra; a verificação em duas etapas fica para o mês 4, com a do
+    gestor.
 
 ### 8.3 LGPD
 
@@ -1001,6 +1007,7 @@ do cuidado de cargas (D-43).
 | D-52 | **Um link de demonstração por empresa visitada**, gerado pela administração e válido por 7 dias (o código guardado só como resumo, como o link da transportadora, D-34). Quem abre ganha uma empresa de demonstração só dela (a da T45, D-49) e entra como gestor; ela é apagada depois. Sem cadastro aberto ao público | decisão do Lorenzo em 05/10: cada conversa comercial ganha a sua demonstração, sem uma empresa ver o que outra fez | uma demonstração única para todos (uma empresa veria o que a outra mexeu); cadastro aberto (expõe a demonstração a qualquer um) |
 | D-53 | **A documentação também fica num vault do Obsidian** em `knowledge/`: o SDD dividido em seções, uma nota por decisão, item em aberto, tarefa e item da trilha, os outros documentos e um mapa do código, tudo ligado entre si. As notas são **geradas** de `docs/` e do código (`uv run tarefas conhecimento`), e um teste confere que o vault no Git está em dia; só os resumos (a nota de início, o estado atual, as pendências e os temas) são escritos à mão. `docs/` continua a fonte da verdade | pedido do Lorenzo em 05/10: achar qualquer decisão, tarefa ou parte do código em poucos cliques, e dar às sessões novas um ponto de partida; gerado, o vault não se desatualiza sem a CI avisar | mudar a documentação para o vault e apagar `docs/` (o SDD deixaria de ser um arquivo só, e cada nota teria de ser mantida à mão); copiar à mão (desatualiza na primeira mudança) |
 | D-54 | **O link de demonstração por dentro** (T48): a página do link só mostra para quem é e o botão "Entrar"; quem aperta cria a empresa de demonstração, na primeira vez, e entra como gestor. **Uma empresa por link**: quem abre o mesmo link entra na mesma. **A cada entrada, os dias que faltam até ontem entram no histórico.** **Uma faixa no topo troca de papel sem senha** (gestor, porteiro, líder de pátio; o motorista é a tela do celular), só nos ambientes da demonstração e só dentro da mesma empresa; as pessoas da empresa do link têm senha sorteada, que ninguém sabe, e entram só pelo link. **A empresa vencida ou revogada é apagada inteira**, com as fotos e as linhas de prova: o gatilho `so_acrescenta` deixa apagar só linha de uma empresa que nasceu de um link de demonstração, e só quando a própria transação avisa qual empresa está apagando (`patio.apagar_empresa`) | o pré-visualizador do WhatsApp e do e-mail abre o link sozinho, e não pode criar empresa nem sessão; criar a empresa leva cerca de 15 segundos, e quem volta entra na hora; sem completar o histórico, o painel teria buraco nos dias entre as visitas; a garantia de prova (seção 5.5) protege dado de cliente, e a empresa de demonstração só tem dado inventado; o Supabase Free tem 500 MB | criar a empresa ao gerar o link (o histórico pararia no dia em que o link foi gerado); uma empresa por pessoa que abre (o link passado adiante viraria várias empresas); desligar os gatilhos para apagar (o banco deixaria de garantir que só a demonstração se apaga); só desativar a empresa vencida (o banco cresceria sem parar) |
+| D-55 | **O código anti-CSRF sai da própria sessão**: é o HMAC do código da sessão com um segredo só da nuvem (tirado da chave da cifra), e muda a cada login; nada novo se grava no banco. Ele vai num campo escondido de cada formulário e no cabeçalho dos pedidos do HTMX, e a nuvem confere em todo pedido que muda alguma coisa de quem tem o cookie da sessão; um teste passa por todas as rotas e confere que cada uma confere o código ou está na lista curta das que não usam o cookie | sem tabela e sem estado; o código da sessão já é secreto e longo, e outro site não sabe o segredo para calcular; a conferência num lugar só não depende de cada rota lembrar | guardar um código à parte na sessão do banco (mais uma coluna e uma escrita); o cookie duplo (*double submit*: um subdomínio poderia escrever o cookie); só os cabeçalhos `Sec-Fetch-Site` (navegador antigo não manda, e o SDD pede o código) |
 
 ---
 
@@ -1101,3 +1108,4 @@ do cuidado de cargas (D-43).
 | 0.36 | 2026-10-05 | decisões de 05/10 à noite: fontes OFL (D-50, fecha o `[ABERTO-21]`), a demonstração na Vercel e no Supabase (D-51) e o link de 7 dias por empresa (D-52); o nome e a identidade visual vão para uma sessão à parte (`[ABERTO-01]`) (seções 6.1, 7.1, 11 e 12) |
 | 0.37 | 2026-10-05 | o vault do Obsidian em `knowledge/`, gerado de `docs/` e do código, com o comando `tarefas conhecimento` e o teste que o mantém em dia (D-53); "vault" no glossário (seções 6.3, 11 e 13) |
 | 0.38 | 2026-10-05 | link de demonstração por empresa (T48): a entidade `LinkDemonstracao`, a página do link, a faixa que troca de papel, o histórico completado a cada entrada e a empresa vencida apagada inteira, com a exceção da prova só para ela (D-54) (seções 5.1, 5.5, 6.2, 8.2 e 11) |
+| 0.39 | 2026-10-05 | segurança antes da internet (T47, parte 1): limite de login por endereço IP, código anti-CSRF tirado da sessão (D-55) e o comando para criar a administração (seções 8.2 e 11) |

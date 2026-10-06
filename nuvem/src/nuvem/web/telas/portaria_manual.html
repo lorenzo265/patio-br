@@ -28,6 +28,7 @@
       <td>{{ opcao.codigo }}</td><td>{{ opcao.placas }}</td><td>{{ opcao.janela }}</td><td>{{ opcao.motorista }}</td><td>{{ opcao.pontos }} pontos</td>
       <td>
         <form method="post" action="/portaria/chegada-manual?site={{ site.id }}">
+          <input type="hidden" name="_csrf" value="{{ csrf }}">
           <input type="hidden" name="cavalo" value="{{ cavalo }}">
           <input type="hidden" name="reboques" value="{{ reboques }}">
           <input type="hidden" name="agendamento_id" value="{{ opcao.id }}">
@@ -42,6 +43,7 @@
 <p><em>Nenhum agendamento perto desta hora.</em></p>
 {% endif %}
 <form method="post" action="/portaria/chegada-manual?site={{ site.id }}">
+  <input type="hidden" name="_csrf" value="{{ csrf }}">
   <input type="hidden" name="cavalo" value="{{ cavalo }}">
   <input type="hidden" name="reboques" value="{{ reboques }}">
   <input type="hidden" name="agendamento_id" value="">

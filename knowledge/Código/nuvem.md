@@ -27,6 +27,19 @@ Aplicação da nuvem: API, painel e módulos do produto ([[3.3 Módulos da nuvem
 
 ## Módulos
 
+### `nuvem.administracao`
+
+`nuvem/src/nuvem/administracao.py`
+
+O comando que cria alguém da administração ([[8.2 Segurança|SDD 8.2]]): ``python -m nuvem.administracao``.
+
+``uv run python -m nuvem.administracao --nome "Fulano" --email fulano@exemplo.com`` pede a senha
+duas vezes, sem mostrar, e cria a conta no banco de ``PATIO_URL_BANCO``. Serve em qualquer
+ambiente: é assim que a administração nasce fora do ambiente local, onde a semente não roda. A
+verificação em duas etapas vem no mês 4, com a do gestor.
+
+- **`principal`**: Cria a conta; devolve 0 se criou, 1 se não (a mensagem diz por quê, sem a senha).
+
 ### `nuvem.armazenamento`
 
 `nuvem/src/nuvem/armazenamento.py`
@@ -234,6 +247,7 @@ Ctrl+C). Lê a configuração do ambiente, como a API.
 
 ## Testes
 
+- `nuvem/tests/test_nuvem_administracao.py`: O comando que cria a administração ([[8.2 Segurança|SDD 8.2]]): ``python -m nuvem.administracao``.
 - `nuvem/tests/test_nuvem_armazenamento.py`: Armazenamento local das fotos ([[3.2 O contrato entre borda e nuvem - a Passagem|SDD 3.2]], [[D-22]]): endereço temporário, foto que não se edita.
 - `nuvem/tests/test_nuvem_banco.py`: O banco de teste: migrado do zero no início e limpo a cada teste.
 - `nuvem/tests/test_nuvem_cifra.py`: Cifra dos segredos guardados no banco (ex.: senha da câmera).

@@ -18,6 +18,7 @@
 {% endif %}
 {% if not dia or not dia.rodando %}
 <form method="post" action="/demonstracao/comecar">
+  <input type="hidden" name="_csrf" value="{{ csrf }}">
   <input type="hidden" name="site" value="{{ site.id }}">
   <button type="submit">Começar o dia</button>
 </form>

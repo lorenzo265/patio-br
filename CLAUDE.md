@@ -58,6 +58,9 @@ economia em R$. Uma caixa de borda (mini PC) lê as placas; a nuvem decide.
    401; papel errado, 403. A administração (nós) é outra tabela e outro tipo, `AcessoAdmin`
    (`obter_acesso_admin`), e não usa as rotas do cliente (SDD D-19). A caixa de borda se
    identifica pela chave (`nuvem.frota.acesso.obter_caixa`) e só lê e grava no site dela.
+   Todo formulário que muda alguma coisa leva o campo escondido do código anti-CSRF
+   (`<input type="hidden" name="_csrf" value="{{ csrf }}">`; o HTMX já manda o cabeçalho), e
+   a nuvem recusa o pedido sem ele (D-55); um teste confere cada formulário e cada rota.
 6. **Senha, PIN e código de sessão só como resumo** (`nuvem.senhas`, argon2; SDD 8.2). Nunca o
    texto, nem em registro de erro.
 

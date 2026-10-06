@@ -53,6 +53,7 @@ As tentativas de um mesmo alvo passam uma de cada vez: a trava no banco vale at�
 
 - **`VALIDADE_DA_SESSAO`** = `timedelta(hours=12)`: Um turno de portaria; depois disso, entra de novo.
 - **`MAXIMO_DE_ERROS`** = `5`: No máximo 5 erros por alvo (e-mail ou porteiro) a cada 15 minutos.
+- **`MAXIMO_DE_ERROS_POR_ENDERECO`** = `20`: E no máximo 20 por endereço IP ([[D-55]]): uma rede pode ter várias pessoas.
 - **`LoginRecusadoError`** (classe): E-mail, senha ou PIN não conferem (de propósito, sem dizer qual).
 - **`MuitasTentativasError`** (classe): Erros demais para o mesmo alvo nos últimos 15 minutos: espere e tente de novo.
 - **`normalizar_email`**: O e-mail como é guardado e comparado: sem espaços nas pontas, em minúsculas.

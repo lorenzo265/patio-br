@@ -35,6 +35,7 @@ from nuvem.portaria import rotas as portaria
 from nuvem.senhas import Senhas
 from nuvem.web import agendamentos as tela_de_agendamentos
 from nuvem.web import agendar as tela_do_link
+from nuvem.web import csrf
 from nuvem.web import demonstracao as tela_da_demonstracao
 from nuvem.web import em_breve as telas_em_breve
 from nuvem.web import extrato as tela_do_extrato
@@ -68,7 +69,8 @@ def criar_app(configuracao: Configuracao | None = None, senhas: Senhas | None = 
         yield
         motor.dispose()
 
-    app = FastAPI(title="patio-br", lifespan=ciclo_de_vida)
+    # O código anti-CSRF é conferido antes de tudo, em toda rota (D-55).
+    app = FastAPI(title="patio-br", lifespan=ciclo_de_vida, dependencies=[Depends(csrf.conferir)])
     app.state.sessoes = sessionmaker(motor)
     app.state.senhas = senhas or Senhas()
     app.state.cifra = Cifra(configuracao.chave_cifra)
@@ -76,11 +78,14 @@ def criar_app(configuracao: Configuracao | None = None, senhas: Senhas | None = 
     app.state.cookie_seguro = configuracao.cookie_seguro
     app.state.tem_demonstracao = configuracao.tem_demonstracao
     app.state.url_publica = str(configuracao.url_publica) if configuracao.url_publica else None
+    app.state.segredo_csrf = csrf.segredo(configuracao.chave_cifra.get_secret_value())
+    app.state.cabecalho_do_ip = configuracao.cabecalho_do_ip
     app.add_api_route("/saude", saude, methods=["GET"])
     app.add_exception_handler(NaoEncontradoError, _nao_encontrado)
     app.add_exception_handler(NaoIdentificadoError, _nao_identificado)
     app.add_exception_handler(SemPermissaoError, _sem_permissao)
     app.add_exception_handler(CaixaNaoIdentificadaError, _caixa_nao_identificada)
+    app.add_exception_handler(csrf.CodigoCsrfRecusadoError, _csrf_recusado)
     app.include_router(rotas_do_cadastro)
     app.include_router(rotas_da_administracao)
     app.include_router(frota.roteador_borda)
@@ -135,6 +140,15 @@ def _caixa_nao_identificada(_requisicao: Request, _erro: Exception) -> Response:
         status_code=status.HTTP_401_UNAUTHORIZED,
         headers={"WWW-Authenticate": "Bearer"},
     )
+
+
+def _csrf_recusado(requisicao: Request, _erro: Exception) -> Response:
+    if _e_da_api(requisicao):
+        return JSONResponse(
+            {"detail": "código anti-CSRF ausente ou errado"}, status_code=status.HTTP_403_FORBIDDEN
+        )
+    contexto = {"mensagem": "Esta página ficou velha. Volte, recarregue e tente de novo."}
+    return web.tela(requisicao, "aviso.html", contexto, status.HTTP_403_FORBIDDEN)
 
 
 def _sem_permissao(requisicao: Request, _erro: Exception) -> Response:

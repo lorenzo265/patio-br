@@ -12,6 +12,7 @@
 <p>Escolha a doca:</p>
 {% for doca in docas %}
 <form method="post" action="/patio/visitas/{{ caminhao.visita_id }}/chamar" style="display: inline-block;">
+  <input type="hidden" name="_csrf" value="{{ csrf }}">
   <input type="hidden" name="doca_id" value="{{ doca.id }}">
   <button type="submit">{{ doca.nome }}</button>
 </form>

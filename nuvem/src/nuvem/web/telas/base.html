@@ -18,9 +18,10 @@
   </style>
   {% block cabeca %}{% endblock %}
 </head>
-<body>
+<body{% if csrf %} hx-headers='{"X-CSRF-Token": "{{ csrf }}"}'{% endif %}>
   {% if papel_na_demonstracao %}
   <form method="post" action="/demonstracao/papel" class="faixa-da-demonstracao" aria-label="Demonstração: trocar de papel">
+    <input type="hidden" name="_csrf" value="{{ csrf }}">
     <span>Demonstração · ver como:</span>
     {% for valor, rotulo in [("gestor", "Gestor"), ("porteiro", "Porteiro"), ("patio", "Líder de pátio")] %}
     <button type="submit" name="papel" value="{{ valor }}"{% if papel_na_demonstracao == valor %} aria-pressed="true" disabled{% endif %}>{{ rotulo }}</button>

@@ -1,6 +1,7 @@
 """Telas de entrar, sair e trocar de porteiro: cookie seguro e respostas certas."""
 
 from collections.abc import Callable
+from pathlib import Path
 
 import httpx2
 import pytest
@@ -190,3 +191,82 @@ def test_lider_de_patio_nao_troca_de_porteiro(entrar: Entrar, cenario: Demonstra
     resposta = entrar(cenario.patio_a.email).get("/trocar-porteiro")
 
     assert resposta.status_code == 403
+
+
+# --- Limite por endereço (D-55) ------------------------------------------------------------
+
+
+def _errar_vinte_vezes(cliente: TestClient, **cabecalhos: str) -> None:
+    for numero in range(20):
+        resposta = cliente.post(
+            "/entrar",
+            data={"email": f"tentativa{numero}@empresa-a.example", "senha": "senha-errada"},
+            headers=cabecalhos,
+        )
+        assert resposta.status_code == 401
+
+
+def test_vinte_erros_do_mesmo_endereco_bloqueiam_o_login(
+    app: FastAPI, cenario: Demonstracao
+) -> None:
+    cliente = TestClient(app)
+    _errar_vinte_vezes(cliente)
+
+    resposta = _postar_login(cliente, cenario.gestor_a.email)
+
+    assert resposta.status_code == 429
+
+
+@pytest.fixture
+def app_atras_do_proxy(
+    app: FastAPI, url_banco_teste: str, senhas: Senhas, tmp_path: Path
+) -> FastAPI:
+    configuracao = Configuracao(
+        url_banco=url_banco_teste,
+        chave_cifra="e2u1sbXAG2Ri9_0ZHEe1QYdjCBzi-q2Wk1ZkkXBtEyw=",
+        ambiente="local",
+        pasta_fotos=tmp_path / "fotos",
+        cabecalho_do_ip="x-real-ip",
+        _env_file=None,
+    )
+    proxy = criar_app(configuracao, senhas=senhas)
+    proxy.dependency_overrides = app.dependency_overrides
+    return proxy
+
+
+def test_atras_do_proxy_o_endereco_vem_do_cabecalho_configurado(
+    app_atras_do_proxy: FastAPI, cenario: Demonstracao
+) -> None:
+    cliente = TestClient(app_atras_do_proxy)
+    # Com uma lista (o x-forwarded-for de um proxy), vale o primeiro endereço.
+    _errar_vinte_vezes(cliente, **{"x-real-ip": "203.0.113.7, 10.0.0.1"})
+
+    bloqueado = cliente.post(
+        "/entrar",
+        data={"email": cenario.gestor_a.email, "senha": SENHA_DA_DEMONSTRACAO},
+        headers={"x-real-ip": "203.0.113.7"},
+        follow_redirects=False,
+    )
+    outro = cliente.post(
+        "/entrar",
+        data={"email": cenario.gestor_a.email, "senha": SENHA_DA_DEMONSTRACAO},
+        headers={"x-real-ip": "198.51.100.9"},
+        follow_redirects=False,
+    )
+
+    assert (bloqueado.status_code, outro.status_code) == (429, 303)
+
+
+def test_sem_configurar_o_cabecalho_ele_nao_vale(app: FastAPI, cenario: Demonstracao) -> None:
+    # Sem proxy de confiança, qualquer um escreveria o cabeçalho para fugir do limite.
+    cliente = TestClient(app)
+    _errar_vinte_vezes(cliente, **{"x-real-ip": "203.0.113.7"})
+
+    resposta = cliente.post(
+        "/entrar",
+        data={"email": cenario.gestor_a.email, "senha": SENHA_DA_DEMONSTRACAO},
+        headers={"x-real-ip": "198.51.100.9"},
+        follow_redirects=False,
+    )
+
+    assert resposta.status_code == 429

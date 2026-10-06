@@ -225,6 +225,12 @@ que substitui o worker, um comando para migrar o banco do Supabase,
   comercial; para apresentar a empresas, o Pro (US$ 20/mês). O Supabase Free pausa o projeto
   depois de uma semana sem uso; o Pro (a partir de US$ 25/mês) não pausa.
 
+*Dividida na execução em duas partes:* a **parte 1**, a segurança antes da internet (o código
+anti-CSRF, D-55, o limite de login por endereço e o comando da administração), entra primeiro;
+a **parte 2** prepara o código da Vercel e do Supabase (o tique, as fotos e o cron), e o deploy
+espera as contas (N17). Migrar o banco do Supabase é o `uv run tarefas migrar` de sempre, com o
+`PATIO_URL_BANCO` dele: não precisou de comando novo.
+
 **Commit:** `infra: demonstração na internet`
 
 #### T48. Link de demonstração por empresa
