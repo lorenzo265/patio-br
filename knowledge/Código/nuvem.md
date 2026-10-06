@@ -16,6 +16,7 @@ Aplicação da nuvem: API, painel e módulos do produto ([[3.3 Módulos da nuvem
 ## Subpacotes
 
 - [[nuvem.agendamento]]: Agendamento ([[3.3 Módulos da nuvem no MVP|SDD 3.3]] e [[3.4 Conectores de agendamento|3.4]]): os agendamentos de cada site e os conectores que os trazem.
+- [[nuvem.alertas]]: Os alertas ([[8.1 Falhas|SDD 8.1]], [[D-62]] e [[D-68]]): abrem uma vez, fecham sozinhos e avisam quem autorizou.
 - [[nuvem.cadastro]]: Módulo cadastro ([[3.3 Módulos da nuvem no MVP|SDD 3.3]]): empresas, sites, portarias, faixas, câmeras, docas e usuários.
 - [[nuvem.demonstracao]]: A demonstração comercial ([[D-45]] e [[D-49]]): empresas inventadas, o mês de histórico e o dia ao vivo.
 - [[nuvem.extrato]]: Indicadores e extrato do mês em R$ ([[5.4 Contas do extrato|SDD 5.4]] e [[D-48]]).
@@ -243,6 +244,7 @@ O worker roda em outro processo (``python -m nuvem.worker``).
 
 - **`TAMANHO_DO_ERRO`** = `500`: O texto do erro guardado na tarefa é cortado aqui.
 - **`TOLERANCIA_DO_NAO_VEIO`** = `TOLERANCIA_PADRAO`: Quanto depois do fim da janela o agendamento sem chegada vira "não veio" ([[ABERTO-09]]).
+- **`INTERVALO_DOS_ALERTAS`** = `timedelta(minutes=1)`: O worker confere os alertas a cada minuto ([[D-68]]).
 - **`JANELAS_OLHADAS`** = `timedelta(days=7)`: O "não veio" olha as janelas que terminaram nos últimos 7 dias (cobre o worker parado).
 - **`TRAVA_DO_NAO_VEIO`** = `7301`: Número da trava do PostgreSQL que deixa um worker de cada vez conferir o "não veio".
 - **`PAUSA`** = `1.0`: Segundos de espera quando a fila está vazia.
@@ -266,15 +268,15 @@ O tique ([[D-51]] e [[D-56]]): o trabalho do worker, um pouco de cada vez, quand
 
 A Vercel não tem processo que fica rodando. Com ``PATIO_TIQUE``, as telas que se atualizam
 sozinhas (``TELAS``) rodam antes uma volta do que o worker faria: o dia de demonstração, as
-tarefas da fila (o casamento) e as mensagens. Um tique de cada vez (trava do PostgreSQL): o
-pedido que chega com outro tique rodando segue sem esperar. Um erro no tique fica registrado, e
-a tela abre do mesmo jeito.
+tarefas da fila (o casamento) e as mensagens; os alertas, no máximo uma vez por minuto em cada
+instância ([[D-68]]). Um tique de cada vez (trava do PostgreSQL): o pedido que chega com outro tique
+rodando segue sem esperar. Um erro no tique fica registrado, e a tela abre do mesmo jeito.
 
 O "não veio" e a faxina das empresas de demonstração ficam para o cron diário (``nuvem.cron``).
 
-- **`TELAS`**: As telas que se atualizam sozinhas (HTMX ou o refresh da página).
+- **`TELAS`**: As telas que se atualizam sozinhas (HTMX ou o refresh da página); o sino dos alertas está em todas.
 - **`TAREFAS_POR_TIQUE`** = `20`: O tique não segura a tela: no máximo estas tarefas da fila de cada vez.
-- **`avancar`**: Uma volta do trabalho do worker (com ``commit``).
+- **`avancar`**: Uma volta do trabalho do worker (com ``commit``); com ``conferir_alertas``, os alertas.
 - **`na_tela`**: Dependência da aplicação: o tique antes das telas que se atualizam, se ligado.
 
 ### `nuvem.worker`

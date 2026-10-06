@@ -1,0 +1,5 @@
+{% if abertos %}
+<a href="{{ tela }}" class="erro">{{ abertos }} {{ "alerta aberto" if abertos == 1 else "alertas abertos" }}</a>
+{% else %}
+<a href="{{ tela }}">Alertas</a>
+{% endif %}

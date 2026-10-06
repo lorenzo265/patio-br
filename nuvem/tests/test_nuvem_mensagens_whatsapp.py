@@ -194,6 +194,24 @@ def test_envia_o_modelo_com_as_variaveis_na_ordem() -> None:
     }
 
 
+def test_envia_o_alerta_pelo_modelo_dos_alertas() -> None:
+    canal, pedidos = _canal(_ok)
+
+    canal.enviar_alerta("+5511987654321", "CD Exemplo", "Caixa 3 sem contato desde 14:00")
+
+    template = json.loads(pedidos[0].content)["template"]
+    assert template["name"] == modelos.MODELO_DO_ALERTA.nome == "patio_alerta"
+    assert template["components"] == [
+        {
+            "type": "body",
+            "parameters": [
+                {"type": "text", "text": "CD Exemplo"},
+                {"type": "text", "text": "Caixa 3 sem contato desde 14:00"},
+            ],
+        }
+    ]
+
+
 def test_responde_com_texto_livre() -> None:
     canal, pedidos = _canal(_ok)
 
@@ -255,10 +273,11 @@ def test_resposta_sem_id_faz_a_tarefa_tentar_de_novo() -> None:
 # --- Os modelos de mensagem ----------------------------------------------------------------
 
 
-@pytest.mark.parametrize("modelo", list(modelos.MODELOS))
+@pytest.mark.parametrize("modelo", [*modelos.MODELOS, "alerta"])
 def test_nenhum_modelo_comeca_ou_termina_com_uma_variavel(modelo: str) -> None:
     # A Meta recusa o modelo assim (o que vai na variável poderia ser qualquer coisa).
-    corpo = modelos.MODELOS[modelo].corpo  # type: ignore[index]
+    escolhido = modelos.MODELO_DO_ALERTA if modelo == "alerta" else modelos.MODELOS[modelo]  # type: ignore[index]
+    corpo = escolhido.corpo
 
     assert not corpo.startswith("{{")
     assert not corpo.endswith("}}")
@@ -268,7 +287,7 @@ def test_nenhum_modelo_comeca_ou_termina_com_uma_variavel(modelo: str) -> None:
 
 
 def test_o_nome_do_modelo_segue_a_regra_da_meta() -> None:
-    for modelo in modelos.MODELOS.values():
+    for modelo in [*modelos.MODELOS.values(), modelos.MODELO_DO_ALERTA]:
         assert re.fullmatch(r"[a-z0-9_]{1,512}", modelo.nome)
 
 
@@ -298,7 +317,12 @@ def test_preencher_com_variaveis_a_menos_ou_a_mais_e_erro() -> None:
         ("AVISOS", None),
         ("AVISOS A", None),
         ("AVISOS X12", None),
+        ("ALERTAS ABCD-2345", ("alertas", "ABCD2345")),
+        ("alertas abcd2345", ("alertas", "ABCD2345")),
+        ("ALERTAS ABCD-234", None),
     ],
 )
-def test_entende_o_que_o_motorista_pediu(texto: str, pedido: tuple[str, int | None] | None) -> None:
+def test_entende_o_que_o_motorista_pediu(
+    texto: str, pedido: tuple[str, int | str | None] | None
+) -> None:
     assert whatsapp.o_que_pediu(texto) == pedido

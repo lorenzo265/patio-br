@@ -25,6 +25,7 @@ from sqlalchemy.orm import Session
 
 from nuvem import tarefas_de_fundo
 from nuvem.agendamento import modelos as _agendamento  # noqa: F401
+from nuvem.alertas import modelos as _alertas  # noqa: F401
 from nuvem.armazenamento import Armazenamento
 from nuvem.banco import Base
 from nuvem.cadastro import login

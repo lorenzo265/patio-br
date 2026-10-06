@@ -35,6 +35,7 @@ As migrações do Alembic, em ordem, de `nuvem/migracoes/versions/`. Modelo novo
 | `0020` | mensagens: o SMS de reserva ([[D-64]]) | 2026-10-06 |
 | `0021` | frota: a saúde da caixa ([[D-65]]) | 2026-10-06 |
 | `0022` | frota: as versões da caixa ([[D-67]]) | 2026-10-06 |
+| `0023` | alertas ([[D-68]]) | 2026-10-06 |
 
 ---
 

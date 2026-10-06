@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block titulo %}Alertas · patio-br{% endblock %}
+{% block cabeca %}
+<style>.grave { color: #a00000; font-weight: bold; }</style>
+{% endblock %}
+{% block conteudo %}
+<h1>Alertas</h1>
+{% if abertos %}
+<ul>
+  {% for alerta in abertos %}
+  <li{% if alerta.grave %} class="grave"{% endif %}>{{ alerta.texto }}{% if varios_sites %} · {{ alerta.onde }}{% endif %} · aberto desde {{ alerta.desde }}</li>
+  {% endfor %}
+</ul>
+{% else %}
+<p>Nenhum alerta aberto.</p>
+{% endif %}
+{% if fechados %}
+<h2>Fechados nas últimas 24 horas</h2>
+<ul>
+  {% for alerta in fechados %}
+  <li>{{ alerta.texto }}{% if varios_sites %} · {{ alerta.onde }}{% endif %} · de {{ alerta.desde }} a {{ alerta.ate }}</li>
+  {% endfor %}
+</ul>
+{% endif %}
+<p>As horas estão no fuso do site.</p>
+{% if pede_o_whatsapp %}
+{% include "_alertas_whatsapp.html" %}
+{% endif %}
+<p><a href="/">Início</a></p>
+{% endblock %}

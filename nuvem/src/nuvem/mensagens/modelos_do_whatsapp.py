@@ -51,6 +51,10 @@ MODELOS: dict[ModeloDeMensagem, ModeloDoWhatsApp] = {
 """O modelo de cada tipo de mensagem ao motorista."""
 
 
+MODELO_DO_ALERTA = ModeloDoWhatsApp("patio_alerta", "Alerta do pátio em {{1}}: {{2}}.")
+"""O alerta grave ao gestor e à administração (D-68): o site e o texto do alerta."""
+
+
 def preencher(modelo: ModeloDeMensagem, variaveis: Sequence[str]) -> str:
     """O texto do modelo com as variáveis, como o motorista lê.
 

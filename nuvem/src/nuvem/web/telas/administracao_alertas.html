@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block titulo %}Alertas da frota · patio-br{% endblock %}
+{% block cabeca %}
+<style>body { max-width: 60rem; } .grave { color: #a00000; font-weight: bold; }</style>
+{% endblock %}
+{% block conteudo %}
+<h1>Alertas da frota e da fila</h1>
+{% if abertos %}
+<table>
+  <tr><th>Alerta</th><th>Onde</th><th>Aberto desde</th></tr>
+  {% for alerta in abertos %}
+  <tr{% if alerta.grave %} class="grave"{% endif %}><td>{{ alerta.texto }}</td><td>{{ alerta.onde }}</td><td>{{ alerta.desde }}</td></tr>
+  {% endfor %}
+</table>
+<p>As horas estão no fuso do site (as da plataforma, no de Brasília).</p>
+{% else %}
+<p>Nenhum alerta aberto.</p>
+{% endif %}
+{% include "_alertas_whatsapp.html" %}
+<p><a href="/administracao/frota">Frota de borda</a> · <a href="/">Início</a></p>
+{% endblock %}

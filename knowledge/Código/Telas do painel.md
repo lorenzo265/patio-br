@@ -13,6 +13,8 @@ Os arquivos Jinja de `nuvem/src/nuvem/web/telas/`, a função que mostra cada um
 
 | Tela | Mostrada por | Estende | Inclui |
 |---|---|---|---|
+| `_alertas_whatsapp.html` |  |  |  |
+| `administracao_alertas.html` | `nuvem.web.alertas.tela_da_administracao` | `base.html` | `_alertas_whatsapp.html` |
 | `administracao_caixa.html` | `nuvem.web.frota.tela_da_caixa` | `base.html` |  |
 | `administracao_demonstracao.html` | `nuvem.web.demonstracao._tela_dos_links` | `base.html` |  |
 | `administracao_frota.html` | `nuvem.web.frota.tela_da_frota` | `base.html` |  |
@@ -21,6 +23,9 @@ Os arquivos Jinja de `nuvem/src/nuvem/web/telas/`, a função que mostra cada um
 | `agendar.html` | `nuvem.web.agendar._formulario` | `base.html` |  |
 | `agendar_aviso.html` | `nuvem.web.agendar._aviso` | `base.html` |  |
 | `agendar_feito.html` | `nuvem.web.agendar.feito` | `base.html` |  |
+| `alertas.html` | `nuvem.web.alertas.tela_dos_alertas` | `base.html` | `_alertas_whatsapp.html` |
+| `alertas_sino.html` | `nuvem.web.alertas.sino`, `nuvem.web.alertas.sino_da_administracao` |  |  |
+| `alertas_whatsapp.html` | `nuvem.web.alertas._whatsapp` | `base.html` |  |
 | `aviso.html` | `nuvem.principal._csrf_recusado`, `nuvem.principal._nao_encontrado`, `nuvem.principal._sem_permissao`, `nuvem.web.agendamentos._tela`, `nuvem.web.demonstracao._aviso`, `nuvem.web.demonstracao._link_fora`, `nuvem.web.demonstracao.andamento`, `nuvem.web.demonstracao.entrar_pelo_link`, `nuvem.web.extrato._nao_comecou`, `nuvem.web.extrato.extrato_do_mes`, `nuvem.web.extrato.painel`, `nuvem.web.extrato.planilha`, `nuvem.web.mensagens.conversas`, `nuvem.web.patio._mudou`, `nuvem.web.patio.tela_do_patio`, `nuvem.web.portaria.tela_da_portaria` | `base.html` |  |
 | `base.html` |  |  |  |
 | `demonstracao.html` | `nuvem.web.demonstracao.andamento` | `base.html` |  |

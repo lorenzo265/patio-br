@@ -31,7 +31,7 @@ falhou. O canal de demonstração não manda nada, e não é um canal de envio.
 - **`Situacao`** (classe): A situação de uma mensagem nossa, como o canal avisou depois do envio.
 - **`Envio`** (classe): A mensagem aceita pelo canal.
 - **`CanalDeEnvio`** (classe): Um canal que manda as mensagens ao motorista.
-- **`CanalDoWhatsApp`** (classe): O WhatsApp: além de mandar o modelo, responde ao motorista e tem o número dos links.
+- **`CanalDoWhatsApp`** (classe): O WhatsApp: além de mandar o modelo, manda os alertas, responde a quem escreveu e tem o número dos links.
 - **`Canais`** (classe): Os canais configurados. Sem o WhatsApp, as mensagens ficam no canal de demonstração.
 
 ### `nuvem.mensagens.modelos`
@@ -70,6 +70,7 @@ categoria utilidade, em português (``pt_BR``).
 
 - **`ModeloDoWhatsApp`** (classe): Um modelo de mensagem: o nome aprovado na Meta e o texto, com as variáveis.
 - **`MODELOS`**: O modelo de cada tipo de mensagem ao motorista.
+- **`MODELO_DO_ALERTA`**: O alerta grave ao gestor e à administração ([[D-68]]): o site e o texto do alerta.
 - **`preencher`**: O texto do modelo com as variáveis, como o motorista lê.
 
 ### `nuvem.mensagens.rotas`
@@ -134,6 +135,7 @@ lê passa o ``Acesso``.
 - **`conversa`**: As mensagens de um agendamento que o usuário vê, na ordem em que foram feitas.
 - **`conversas`**: As conversas de um site que o usuário vê, da última mensagem para a primeira.
 - **`nao_avisados`**: Os agendamentos, entre estes, cujo motorista não recebeu o último aviso ([[D-64]]).
+- **`nao_avisados_da_empresa`**: Os agendamentos da empresa, entre estes, cujo motorista não recebeu o último aviso.
 
 ### `nuvem.mensagens.sms`
 
@@ -174,6 +176,7 @@ O WhatsApp pela Cloud API da Meta, direto e sem biblioteca dela ([[7.5 WhatsApp 
 - **`VERSAO_PADRAO`** = `'v25.0'`: A versão da API da Meta (de 02/2026); configurável, porque cada versão vale cerca de 2 anos.
 - **`ERROS_PASSAGEIROS`**: Os códigos de erro da Meta que passam: o limite de envio, o serviço fora, o token vencido (até alguém trocar). Os outros (o número sem WhatsApp, o modelo recusado) são definitivos.
 - **`SITUACOES`**: A situação que a Meta avisa, no nome daqui.
+- **`Pedido`**: O que a mensagem pede: os avisos de um agendamento ou de um site (o motorista), sair, ou os alertas de quem pediu o código ([[D-68]]).
 - **`Recebida`** (classe): Uma mensagem que alguém mandou ao número do produto.
 - **`CanalWhatsApp`** (classe): O canal do WhatsApp: manda os modelos e as respostas pela Cloud API.
 - **`assinatura_confere`**: Se o ``X-Hub-Signature-256`` é o HMAC-SHA256 do corpo com o segredo do app.

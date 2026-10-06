@@ -13,6 +13,7 @@ from moto import mock_aws
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from nuvem.alertas import servico as alertas
 from nuvem.armazenamento import ArmazenamentoS3
 from nuvem.cadastro.acesso import AcessoAdmin
 from nuvem.cadastro.modelos import Empresa
@@ -169,6 +170,26 @@ def test_o_tique_so_roda_nas_telas_que_se_atualizam(
     gestor.get(f"/portaria/passagens?site={demo.site.id}")
     gestor.get(f"/patio/quadro?site={demo.site.id}")
     assert len(voltas) == 2
+
+
+def test_o_tique_confere_os_alertas_no_maximo_uma_vez_por_minuto(
+    vercel: FastAPI,
+    relogio: Relogio,
+    demo: EmpresaDeDemonstracao,
+    com_csrf: Callable[[TestClient], TestClient],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    gestor = _gestor(vercel, demo, com_csrf)
+    conferencias: list[datetime] = []
+    monkeypatch.setattr(alertas, "conferir", lambda _sessao, *, agora: conferencias.append(agora))
+
+    gestor.get("/alertas/sino")  # o sino se atualiza sozinho, em todas as telas
+    relogio.agora = AGORA + timedelta(seconds=59)
+    gestor.get(f"/patio/quadro?site={demo.site.id}")
+    assert conferencias == [AGORA]
+    relogio.agora = AGORA + timedelta(minutes=1)
+    gestor.get("/alertas/sino")
+    assert conferencias == [AGORA, AGORA + timedelta(minutes=1)]
 
 
 def test_um_erro_no_tique_nao_derruba_a_tela(

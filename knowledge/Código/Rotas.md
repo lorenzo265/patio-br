@@ -14,6 +14,9 @@ Os endereços da API e das telas, lidos dos decoradores (`@roteador.get(...)`) c
 | Endereço | Método | Função | Pacote | O que faz |
 |---|---|---|---|---|
 | `/` | GET | `inicio` | [[nuvem.web]] | A tela inicial de quem entrou. |
+| `/administracao/alertas` | GET | `tela_da_administracao` | [[nuvem.web]] | Os alertas abertos da caixa, da câmera e das tarefas, de todas as empresas. |
+| `/administracao/alertas/sino` | GET | `sino_da_administracao` | [[nuvem.web]] | O sino da administração. |
+| `/administracao/alertas/whatsapp` | POST | `pedir_o_whatsapp_da_administracao` | [[nuvem.web]] | O link do WhatsApp com o código de uso único, para a administração. |
 | `/administracao/demonstracao` | GET | `lista_de_links` | [[nuvem.web]] | Os links de demonstração e o formulário de gerar um novo. |
 | `/administracao/demonstracao` | POST | `gerar_link` | [[nuvem.web]] | Gera um link para uma empresa visitada e mostra o endereço, uma vez só. |
 | `/administracao/demonstracao/{link_id}/revogar` | POST | `revogar_link` | [[nuvem.web]] | Revoga o link: ele deixa de valer, e as pessoas da empresa dele saem na hora. |
@@ -32,6 +35,9 @@ Os endereços da API e das telas, lidos dos decoradores (`@roteador.get(...)`) c
 | `/agendar/{codigo}` | GET | `formulario` | [[nuvem.web]] | O formulário do link, vazio. |
 | `/agendar/{codigo}` | POST | `agendar` | [[nuvem.web]] | Cria o agendamento e leva à confirmação; com erro, volta o formulário com os motivos. |
 | `/agendar/{codigo}/feito/{numero}` | GET | `feito` | [[nuvem.web]] | A confirmação de um agendamento feito por este link. |
+| `/alertas` | GET | `tela_dos_alertas` | [[nuvem.web]] | Os abertos e os das últimas 24 horas, dos sites que o usuário vê. |
+| `/alertas/sino` | GET | `sino` | [[nuvem.web]] | O sino: quantos alertas abertos há nos sites do usuário. |
+| `/alertas/whatsapp` | POST | `pedir_o_whatsapp` | [[nuvem.web]] | O link do WhatsApp com o código de uso único (só o gestor). |
 | `/api/admin/caixas` | GET | `listar_caixas` | [[nuvem.frota]] | Todas as caixas, das mais novas para as mais antigas. |
 | `/api/admin/caixas/{caixa_id}/revogar` | POST | `revogar` | [[nuvem.frota]] | Revoga a chave da caixa (404 se a caixa não existir). |
 | `/api/admin/empresas` | GET | `listar_empresas` | [[nuvem.cadastro]] | Todas as empresas (só a administração). |

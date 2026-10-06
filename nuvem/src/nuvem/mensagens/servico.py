@@ -32,6 +32,7 @@ from sqlalchemy.orm import Session
 from nuvem import tarefas_de_fundo
 from nuvem.agendamento import servico as agendamentos
 from nuvem.agendamento.modelos import Agendamento
+from nuvem.alertas import servico as alertas
 from nuvem.cadastro import servico as cadastro
 from nuvem.cadastro.acesso import Acesso
 from nuvem.cadastro.servico import HorarioDoSite
@@ -70,6 +71,9 @@ SEM_ENVIO: Canal = "demonstracao"
 
 RESPOSTA_DA_AUTORIZACAO = (
     "Pronto! Os avisos da fila e da doca vão chegar por aqui. Para parar, responda SAIR."
+)
+RESPOSTA_DOS_ALERTAS = (
+    "Pronto! Os alertas graves do pátio vão chegar por aqui. Para parar, responda SAIR."
 )
 RESPOSTA_DO_SAIR = (
     "Pronto, você não vai mais receber avisos por aqui. Se mudar de ideia, use o link do SMS "
@@ -444,7 +448,19 @@ def _tratar_recebida(
                 )
                 .values(revogada_em=agora)
             )
+            # O "SAIR" vale também para os alertas de quem ligou este celular (D-68).
+            alertas.revogar_do_celular(sessao, celular, agora=agora)
             resultado, resposta = "saiu", RESPOSTA_DO_SAIR
+        elif pedido[0] == "alertas":
+            if alertas.autorizar_pelo_codigo(
+                sessao,
+                codigo=pedido[1],
+                celular=celular,
+                texto=recebida.texto,
+                id_no_whatsapp=recebida.id_no_whatsapp,
+                agora=agora,
+            ):
+                resultado, resposta = "autorizou", RESPOSTA_DOS_ALERTAS
         else:
             empresa_id = _empresa_do_pedido(sessao, pedido)
             if empresa_id is not None:
@@ -475,8 +491,8 @@ def _tratar_recebida(
 
 def _empresa_do_pedido(sessao: Session, pedido: whatsapp.Pedido) -> int | None:
     tipo, numero = pedido
-    if numero is None:
-        return None
+    if not isinstance(numero, int):
+        return None  # o "SAIR" e o código dos alertas não são de uma empresa
     if tipo == "agendamento":
         return agendamentos.empresa_do_agendamento(sessao, numero)
     return cadastro.empresa_do_site(sessao, numero)
@@ -566,14 +582,32 @@ def nao_avisados(sessao: Session, acesso: Acesso, agendamento_ids: Sequence[int]
     O último aviso é o da mensagem mais nova; ele não chegou quando todas as tentativas dele (o
     WhatsApp e a reserva pelo SMS) falharam. A que ainda não saiu não conta.
     """
+    return _nao_avisados(
+        sessao, acesso.empresa_id, agendamento_ids, Mensagem.site_id.in_(acesso.sites)
+    )
+
+
+def nao_avisados_da_empresa(
+    sessao: Session, empresa_id: int, agendamento_ids: Sequence[int]
+) -> set[int]:
+    """Os agendamentos da empresa, entre estes, cujo motorista não recebeu o último aviso.
+
+    Para os alertas (D-68), que o worker confere em todas as empresas.
+    """
+    return _nao_avisados(sessao, empresa_id, agendamento_ids)
+
+
+def _nao_avisados(
+    sessao: Session, empresa_id: int, agendamento_ids: Sequence[int], *filtros: Any
+) -> set[int]:
     if not agendamento_ids:
         return set()
     linhas = sessao.execute(
         select(Mensagem.agendamento_id, Mensagem.evento_id, Mensagem.modelo, Mensagem.situacao)
         .where(
-            Mensagem.empresa_id == acesso.empresa_id,
+            Mensagem.empresa_id == empresa_id,
             Mensagem.agendamento_id.in_(agendamento_ids),
-            Mensagem.site_id.in_(acesso.sites),
+            *filtros,
         )
         .order_by(Mensagem.criada_em, Mensagem.id)
     )

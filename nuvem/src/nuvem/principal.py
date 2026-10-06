@@ -38,6 +38,7 @@ from nuvem.portaria import rotas as portaria
 from nuvem.senhas import Senhas
 from nuvem.web import agendamentos as tela_de_agendamentos
 from nuvem.web import agendar as tela_do_link
+from nuvem.web import alertas as tela_dos_alertas
 from nuvem.web import csrf
 from nuvem.web import demonstracao as tela_da_demonstracao
 from nuvem.web import duas_etapas as telas_das_duas_etapas
@@ -85,6 +86,7 @@ def criar_app(configuracao: Configuracao | None = None, senhas: Senhas | None = 
     app.state.cifra = Cifra(configuracao.chave_cifra)
     app.state.armazenamento = armazenamento_da_configuracao(configuracao, app.state.cifra)
     app.state.tique = configuracao.tique
+    app.state.alertas_conferidos_em = None  # pelo tique (D-68)
     app.state.segredo_do_cron = (
         configuracao.segredo_do_cron.get_secret_value() if configuracao.segredo_do_cron else None
     )
@@ -130,6 +132,8 @@ def criar_app(configuracao: Configuracao | None = None, senhas: Senhas | None = 
     app.include_router(tela_da_frota.roteador)
     app.include_router(tela_do_link.roteador)
     app.include_router(tela_de_agendamentos.roteador)
+    app.include_router(tela_dos_alertas.roteador)
+    app.include_router(tela_dos_alertas.roteador_da_administracao)
     tela_do_link.esconder_codigo_no_registro_de_acesso()
     app.mount("/estatico", StaticFiles(directory=PASTA_ESTATICA), name="estatico")
     return app

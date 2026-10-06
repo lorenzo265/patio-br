@@ -1,0 +1,9 @@
+<h2>Os graves pelo WhatsApp</h2>
+<p>A caixa ou uma câmera fora do ar{% if not administracao %} e a estadia que passou das 5 horas{% endif %} chegam também pelo WhatsApp, no celular que você ligar.</p>
+{% if celular %}
+<p>Ligado ao celular <strong>{{ celular }}</strong>. Para parar, responda SAIR no WhatsApp.</p>
+{% endif %}
+<form method="post" action="{{ pede_o_whatsapp }}">
+  <input type="hidden" name="_csrf" value="{{ csrf }}">
+  <button type="submit">{% if celular %}Ligar outro celular{% else %}Receber pelo WhatsApp{% endif %}</button>
+</form>

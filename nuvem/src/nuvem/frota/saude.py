@@ -165,7 +165,7 @@ def frota(sessao: Session, _administracao: AcessoAdmin, *, agora: datetime) -> l
     linhas = sessao.execute(
         _caixas_com_site().where(CaixaBorda.revogada_em.is_(None)).order_by(CaixaBorda.id.desc())
     ).all()
-    nomes = _nomes_das_cameras(sessao, {caixa.site_id for caixa, _, _ in linhas})
+    nomes = nomes_das_cameras(sessao, {caixa.site_id for caixa, _, _ in linhas})
     return [_na_frota(caixa, site, empresa, nomes, agora=agora) for caixa, site, empresa in linhas]
 
 
@@ -181,7 +181,7 @@ def caixa_da_frota(
     if linha is None:
         raise NaoEncontradoError(f"caixa {caixa_id}")
     caixa, site, empresa = linha
-    return _na_frota(caixa, site, empresa, _nomes_das_cameras(sessao, {site.id}), agora=agora)
+    return _na_frota(caixa, site, empresa, nomes_das_cameras(sessao, {site.id}), agora=agora)
 
 
 def historico_por_hora(
@@ -250,8 +250,8 @@ def _caixas_com_site() -> Select[CaixaBorda, Site, Empresa]:
     )
 
 
-def _nomes_das_cameras(sessao: Session, sites: set[int]) -> dict[tuple[int, str], str]:
-    # (site, id da câmera em texto, como vem na saúde) → nome. Só as câmeras do próprio site.
+def nomes_das_cameras(sessao: Session, sites: set[int]) -> dict[tuple[int, str], str]:
+    """O nome de cada câmera dos sites, por (site, id da câmera em texto, como vem na saúde)."""
     linhas = sessao.execute(
         select(Portaria.site_id, Camera.id, Camera.nome)
         .join(Faixa, (Faixa.id == Camera.faixa_id) & (Faixa.empresa_id == Camera.empresa_id))

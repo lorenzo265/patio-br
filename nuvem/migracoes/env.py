@@ -11,6 +11,7 @@ from sqlalchemy import Connection
 
 from nuvem import tarefas_de_fundo as _fila  # noqa: F401
 from nuvem.agendamento import modelos as _modelos_do_agendamento  # noqa: F401
+from nuvem.alertas import modelos as _modelos_dos_alertas  # noqa: F401
 from nuvem.banco import Base, motor_da_configuracao
 from nuvem.cadastro import modelos as _modelos_do_cadastro  # noqa: F401  (registra as tabelas)
 from nuvem.config import ConfiguracaoInvalidaError, ler_configuracao

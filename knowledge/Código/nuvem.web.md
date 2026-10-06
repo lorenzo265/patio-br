@@ -62,6 +62,28 @@ acesso troca o código por ``***`` (``EsconderCodigoDoLink``).
 - **`EsconderCodigoDoLink`** (classe): Troca o código do link por ``***`` no registro de acesso do uvicorn.
 - **`esconder_codigo_no_registro_de_acesso`**: Liga o filtro no registro de acesso do uvicorn (uma vez só, mesmo se chamada de novo).
 
+### `nuvem.web.alertas`
+
+`nuvem/src/nuvem/web/alertas.py`
+
+Os alertas nas telas ([[6.2 Telas do MVP|SDD 6.2]] e [[8.1 Falhas|8.1]], [[D-68]]).
+
+- **O sino** (``/alertas/sino``): o número de alertas abertos dos sites de quem é do cliente. A
+  ``base.html`` o põe em todas as telas de quem entrou, e o HTMX o busca ao abrir e a cada minuto.
+  A administração tem o dela (``/administracao/alertas/sino``): a caixa, a câmera e as tarefas.
+- ``/alertas``: os abertos e os fechados das últimas 24 horas, com a hora no fuso do site.
+- ``/alertas/whatsapp``: o gestor pede o código de uso único e recebe o link (e o QR) que abre o
+  WhatsApp com "ALERTAS <código>". O código vale 10 minutos e só aparece nesta resposta, que
+  não fica guardada no navegador. A administração tem o mesmo, em ``/administracao/alertas``.
+
+- **`SEM_CACHE`** = `{'Cache-Control': 'no-store'}`: A resposta com o código não fica guardada no navegador (nem no "voltar").
+- **`tela_dos_alertas`**: Os abertos e os das últimas 24 horas, dos sites que o usuário vê.
+- **`sino`**: O sino: quantos alertas abertos há nos sites do usuário.
+- **`pedir_o_whatsapp`**: O link do WhatsApp com o código de uso único (só o gestor).
+- **`tela_da_administracao`**: Os alertas abertos da caixa, da câmera e das tarefas, de todas as empresas.
+- **`sino_da_administracao`**: O sino da administração.
+- **`pedir_o_whatsapp_da_administracao`**: O link do WhatsApp com o código de uso único, para a administração.
+
 ### `nuvem.web.csrf`
 
 `nuvem/src/nuvem/web/csrf.py`
@@ -214,6 +236,7 @@ com "AVISOS S<site>" pronto, e a mensagem autoriza os avisos daquela empresa.
 - **`qr_da_portaria`**: A placa para imprimir: o QR que abre o WhatsApp com "AVISOS S<site>" ([[D-58]]).
 - **`celular`**: A tela em forma de celular, com a conversa de um agendamento.
 - **`conversa`**: As mensagens de um agendamento (o pedaço da tela que o HTMX troca), com o dia de cada uma.
+- **`celular_escondido`**: Ex.: ``+5511987654321`` vira ``(11) •••••-4321``; vazio sem celular.
 
 ### `nuvem.web.patio`
 
@@ -303,6 +326,7 @@ cookie, recusa o envio que o navegador marca como vindo de outro site (``Sec-Fet
 
 - `nuvem/tests/test_nuvem_web_agendamentos.py`: Tela de agendamentos ([[6.2 Telas do MVP|SDD 6.2]]): o gestor vê e alimenta os agendamentos dos sites dele.
 - `nuvem/tests/test_nuvem_web_agendar.py`: Telas do link da transportadora ([[6.2 Telas do MVP|SDD 6.2]] e [[8.2 Segurança|8.2]]): o formulário, a confirmação e os avisos.
+- `nuvem/tests/test_nuvem_web_alertas.py`: Os alertas nas telas ([[6.2 Telas do MVP|SDD 6.2]] e [[8.1 Falhas|8.1]], [[D-68]]): o sino, a lista e o link do WhatsApp.
 - `nuvem/tests/test_nuvem_web_csrf.py`: O código anti-CSRF ([[8.2 Segurança|SDD 8.2]], [[D-55]]): todo pedido que muda alguma coisa, de quem tem a sessão aberta, leva o código tirado da sessão.
 - `nuvem/tests/test_nuvem_web_demonstracao.py`: A tela do dia de demonstração ([[T45]], [[D-49]]): começar o dia e acompanhar.
 - `nuvem/tests/test_nuvem_web_demonstracao_link.py`: As telas do link de demonstração ([[T48]], [[D-52]] e [[D-54]]): a administração, a página do link e a faixa que troca de papel.
