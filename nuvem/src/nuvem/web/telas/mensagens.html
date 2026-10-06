@@ -5,7 +5,11 @@
 {% if outros_sites %}
 <p>Outros sites: {% for outro in outros_sites %}<a href="/mensagens?site={{ outro.id }}">{{ outro.nome }}</a>{% if not loop.last %} · {% endif %}{% endfor %}</p>
 {% endif %}
+{% if envia %}
+<p>As mensagens vão pelo WhatsApp para quem autorizou e por SMS para os outros.{% if gestor %} <a href="/mensagens/qr?site={{ site.id }}">QR da placa da portaria</a>{% endif %}</p>
+{% else %}
 <p>Demonstração: as mensagens ficam guardadas aqui, e nada é enviado ao motorista.</p>
+{% endif %}
 {% if conversas %}
 <table>
   <thead><tr><th>Agendamento</th><th>Última mensagem</th><th>Quando</th><th></th></tr></thead>

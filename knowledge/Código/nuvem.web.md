@@ -76,10 +76,10 @@ código que outro site não tem como saber: o HMAC do código da sessão com um 
 - **No formulário:** o campo escondido ``_csrf`` (as telas recebem ``csrf`` no contexto).
 - **No HTMX:** o cabeçalho ``X-CSRF-Token`` (o ``hx-headers`` do ``<body>``).
 - **Ficam de fora** só as rotas em que o cookie não decide quem pede (``ISENTAS``): o login
-  (que recusa o envio vindo de outro site), o link da transportadora, o link de demonstração e
-  a API da caixa (pela chave).
+  (que recusa o envio vindo de outro site), o link da transportadora, o link de demonstração, a
+  API da caixa (pela chave) e o webhook do WhatsApp (pela assinatura, [[D-63]]).
 
-- **`ISENTAS`**: O login, exato; os outros, pelo começo do caminho.
+- **`ISENTAS`**: O login e o webhook, exatos; os outros (com a ``/`` no fim), pelo começo do caminho.
 - **`CodigoCsrfRecusadoError`** (classe): O pedido muda alguma coisa, tem a sessão, e não trouxe o código certo (403).
 - **`segredo`**: O segredo do código, tirado da chave da cifra (só a nuvem tem).
 - **`codigo`**: O código anti-CSRF de uma sessão.
@@ -178,14 +178,18 @@ Só o gestor vê. A linha de base de exemplo (a da demonstração) aparece marca
 
 `nuvem/src/nuvem/web/mensagens.py`
 
-O celular do motorista ([[T43]], [[6.2 Telas do MVP|SDD 6.2]] e [[D-47]]): as mensagens que ele receberia.
+O celular do motorista ([[T43]], [[6.2 Telas do MVP|SDD 6.2]] e [[D-47]]): as mensagens ao motorista.
 
 A lista mostra as últimas conversas de um site; cada uma abre numa tela em forma de celular, que
-busca a conversa (``/mensagens/agendamentos/{id}/conversa``) ao abrir e a cada 3 segundos. O
-canal de demonstração não envia nada; a tela diz isso. O número aparece escondido, só com o DDD
-e o fim.
+busca a conversa (``/mensagens/agendamentos/{id}/conversa``) ao abrir e a cada 3 segundos. Sem o
+WhatsApp configurado, o canal de demonstração não envia nada, e a tela diz isso. O número aparece
+escondido, só com o DDD e o fim.
+
+O gestor imprime o QR da placa da portaria (``/mensagens/qr``, [[D-58]]): quem lê abre o WhatsApp
+com "AVISOS S<site>" pronto, e a mensagem autoriza os avisos daquela empresa.
 
 - **`conversas`**: As últimas conversas de um site do usuário (o primeiro, se nenhum for pedido).
+- **`qr_da_portaria`**: A placa para imprimir: o QR que abre o WhatsApp com "AVISOS S<site>" ([[D-58]]).
 - **`celular`**: A tela em forma de celular, com a conversa de um agendamento.
 - **`conversa`**: As mensagens de um agendamento (o pedaço da tela que o HTMX troca), com o dia de cada uma.
 
@@ -290,6 +294,7 @@ cookie, recusa o envio que o navegador marca como vindo de outro site (``Sec-Fet
 - `nuvem/tests/test_nuvem_web_portaria_excecoes.py`: Exceções na tela da portaria ([[T34]]): o porteiro vê, com a foto e os candidatos; resolver é no mês 3.
 - `nuvem/tests/test_nuvem_web_portaria_resolucao.py`: Resolver a exceção e registrar a chegada à mão pela tela da portaria ([[T41]], [[5.2 Estados da visita|SDD 5.2]] e [[D-46]]).
 - `nuvem/tests/test_nuvem_web_portaria_resultado.py`: O resultado do casamento na lista de passagens da portaria ([[T35]], [[6.2 Telas do MVP|SDD 6.2]]).
+- `nuvem/tests/test_nuvem_web_whatsapp.py`: O webhook do WhatsApp e o QR da portaria ([[7.5 WhatsApp e SMS|SDD 7.5]], [[D-58]] e [[D-63]]).
 
 ---
 

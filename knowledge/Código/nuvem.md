@@ -231,7 +231,9 @@ Fila de tarefas no PostgreSQL e o laço do worker ([[6.1 Stack|SDD 6.1]], [[D-16
 - **"Não veio"** ([[5.2 Estados da visita|SDD 5.2]]): a cada 5 minutos, o agendamento ativo sem visita, com a janela
   vencida há mais que a tolerância, ganha a visita em ``NAO_VEIO``. Um worker de cada vez (trava
   do PostgreSQL).
-- **Mensagens ao motorista** ([[D-47]]): a cada volta, as que faltam (``mensagens.preparar``).
+- **Mensagens ao motorista** ([[D-47]]): a cada volta, as que faltam (``mensagens.preparar``); a
+  que sai por um canal de verdade vira a tarefa "enviar mensagem", e o aviso do webhook do
+  WhatsApp, a tarefa "aviso do WhatsApp" ([[D-63]]). As duas usam os canais do ``Contexto``.
 - **Dia de demonstração** ([[D-49]]): a cada volta, se o ambiente tiver, as chegadas e o líder
   automático.
 
@@ -243,7 +245,8 @@ O worker roda em outro processo (``python -m nuvem.worker``).
 - **`TRAVA_DO_NAO_VEIO`** = `7301`: Número da trava do PostgreSQL que deixa um worker de cada vez conferir o "não veio".
 - **`PAUSA`** = `1.0`: Segundos de espera quando a fila está vazia.
 - **`TarefaDeFundo`** (classe): Uma tarefa para o worker. É da plataforma, não de um cliente: os dados dizem o que fazer.
-- **`EXECUTORES`** = `{'casar_passagem': _casar}`: O que cada tipo de tarefa faz.
+- **`Contexto`** (classe): O que as tarefas usam além do banco: os canais das mensagens ([[D-63]]).
+- **`EXECUTORES`**: O que cada tipo de tarefa faz.
 - **`enfileirar`**: Põe uma tarefa na fila, para já; a mesma chave do mesmo tipo de novo não muda nada.
 - **`pegar_proxima`**: A tarefa pendente mais antiga que já pode rodar, travada até o fim da transação.
 - **`situacao_das_tarefas`**: A situação da tarefa de cada chave (ex.: o "casar" de cada passagem), por chave.
@@ -278,10 +281,11 @@ O "não veio" e a faxina das empresas de demonstração ficam para o cron diári
 
 O worker da nuvem ([[6.1 Stack|SDD 6.1]] e [[D-38]]): ``python -m nuvem.worker``.
 
-Executa as tarefas da fila (o casamento das passagens), confere o "não veio", prepara as
-mensagens e, nos ambientes que têm, avança o dia de demonstração ([[D-49]]) e apaga as empresas dos
-links de demonstração vencidos ([[D-54]]), até receber o sinal de parar (SIGTERM do Docker, ou
-Ctrl+C). Lê a configuração do ambiente, como a API.
+Executa as tarefas da fila (o casamento das passagens; o envio das mensagens e o aviso do
+WhatsApp, [[D-63]]), confere o "não veio", prepara as mensagens e, nos ambientes que têm, avança o
+dia de demonstração ([[D-49]]) e apaga as empresas dos links de demonstração vencidos ([[D-54]]), até
+receber o sinal de parar (SIGTERM do Docker, ou Ctrl+C). Lê a configuração do ambiente, como a
+API.
 
 - **`main`**: Sobe o worker e roda até o sinal de parar.
 

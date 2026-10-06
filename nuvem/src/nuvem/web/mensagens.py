@@ -1,9 +1,12 @@
-"""O celular do motorista (T43, SDD 6.2 e D-47): as mensagens que ele receberia.
+"""O celular do motorista (T43, SDD 6.2 e D-47): as mensagens ao motorista.
 
 A lista mostra as últimas conversas de um site; cada uma abre numa tela em forma de celular, que
-busca a conversa (``/mensagens/agendamentos/{id}/conversa``) ao abrir e a cada 3 segundos. O
-canal de demonstração não envia nada; a tela diz isso. O número aparece escondido, só com o DDD
-e o fim.
+busca a conversa (``/mensagens/agendamentos/{id}/conversa``) ao abrir e a cada 3 segundos. Sem o
+WhatsApp configurado, o canal de demonstração não envia nada, e a tela diz isso. O número aparece
+escondido, só com o DDD e o fim.
+
+O gestor imprime o QR da placa da portaria (``/mensagens/qr``, D-58): quem lê abre o WhatsApp
+com "AVISOS S<site>" pronto, e a mensagem autoriza os avisos daquela empresa.
 """
 
 from datetime import datetime
@@ -12,19 +15,23 @@ from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse
+from markupsafe import Markup
 from sqlalchemy.orm import Session
 
 from nuvem.agendamento import servico as agendamentos
 from nuvem.banco import obter_sessao
 from nuvem.cadastro import servico as cadastro
-from nuvem.cadastro.acesso import Acesso, obter_acesso
+from nuvem.cadastro.acesso import Acesso, exigir_papel, obter_acesso
+from nuvem.cadastro.duas_etapas import qr_em_svg
 from nuvem.mensagens import servico as mensagens
+from nuvem.mensagens import whatsapp
 from nuvem.web.rotas import tela
 
 roteador = APIRouter(prefix="/mensagens", include_in_schema=False)
 
 SessaoDaRequisicao = Annotated[Session, Depends(obter_sessao)]
 AcessoDoCliente = Annotated[Acesso, Depends(obter_acesso)]
+AcessoDoGestor = Annotated[Acesso, Depends(exigir_papel("gestor"))]
 
 
 @roteador.get("")
@@ -54,8 +61,29 @@ def conversas(
         "site": escolhido,
         "outros_sites": [outro for outro in sites if outro.id != escolhido.id],
         "conversas": linhas,
+        "envia": request.app.state.whatsapp_numero is not None,
+        "gestor": acesso.papel == "gestor",
     }
     return tela(request, "mensagens.html", contexto)
+
+
+@roteador.get("/qr")
+def qr_da_portaria(
+    request: Request, sessao: SessaoDaRequisicao, acesso: AcessoDoGestor, site: int
+) -> HTMLResponse:
+    """A placa para imprimir: o QR que abre o WhatsApp com "AVISOS S<site>" (D-58)."""
+    escolhido = cadastro.obter_site(sessao, acesso, site)
+    numero: str | None = request.app.state.whatsapp_numero
+    contexto: dict[str, Any] = {"site": escolhido, "numero": None}
+    if numero is not None:
+        pedido = whatsapp.pedido_do_site(escolhido.id)
+        contexto |= {
+            "numero": f"+{numero[:2]} ({numero[2:4]}) {numero[4:-4]}-{numero[-4:]}",
+            "pedido": pedido,
+            # O SVG sai do segno, a partir do link que montamos: pode ir direto na tela.
+            "qr": Markup(qr_em_svg(whatsapp.link_para_autorizar(numero, pedido))),
+        }
+    return tela(request, "mensagens_qr.html", contexto)
 
 
 @roteador.get("/agendamentos/{agendamento_id}")
@@ -70,6 +98,7 @@ def celular(
         "codigo": agendamento.codigo_externo,
         "site": site,
         "para": _escondido(agendamento.motorista_celular),
+        "envia": request.app.state.whatsapp_numero is not None,
     }
     return tela(request, "mensagens_celular.html", contexto)
 

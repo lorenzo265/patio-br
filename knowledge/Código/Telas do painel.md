@@ -32,6 +32,7 @@ Os arquivos Jinja de `nuvem/src/nuvem/web/telas/`, a função que mostra cada um
 | `mensagens.html` | `nuvem.web.mensagens.conversas` | `base.html` |  |
 | `mensagens_celular.html` | `nuvem.web.mensagens.celular` | `base.html` |  |
 | `mensagens_conversa.html` | `nuvem.web.mensagens.conversa` |  |  |
+| `mensagens_qr.html` | `nuvem.web.mensagens.qr_da_portaria` | `base.html` |  |
 | `painel.html` | `nuvem.web.extrato.painel` | `base.html` |  |
 | `patio.html` | `nuvem.web.patio.tela_do_patio` | `base.html` |  |
 | `patio_chamar.html` | `nuvem.web.patio._chamar` | `base.html` |  |

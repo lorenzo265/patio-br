@@ -281,6 +281,15 @@ def horario_do_site(sessao: Session, *, empresa_id: int, site_id: int) -> Horari
 # --- Administração (nós) -------------------------------------------------------------------
 
 
+def empresa_do_site(sessao: Session, site_id: int) -> int | None:
+    """A empresa de um site, ou ``None`` se ele não existe.
+
+    Para a autorização do WhatsApp pelo QR da portaria (D-58): o motorista manda o número do
+    site, e a autorização vale para a empresa dele.
+    """
+    return sessao.scalar(select(Site.empresa_id).where(Site.id == site_id))
+
+
 def obter_site_para_administracao(sessao: Session, site_id: int) -> Site:
     """Um site de qualquer empresa. Só para a administração (as rotas dela conferem).
 

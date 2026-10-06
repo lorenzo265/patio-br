@@ -119,7 +119,13 @@ def test_toda_rota_que_muda_confere_o_codigo(app: FastAPI, cenario: Demonstracao
 
 
 def test_so_ficam_de_fora_as_rotas_em_que_o_cookie_nao_decide() -> None:
-    assert csrf.ISENTAS == ("/entrar", "/agendar/", "/demonstracao/link/", "/api/borda/")
+    assert csrf.ISENTAS == (
+        "/entrar",
+        "/agendar/",
+        "/demonstracao/link/",
+        "/api/borda/",
+        "/api/whatsapp",
+    )
 
 
 def test_todo_formulario_do_painel_leva_o_codigo() -> None:

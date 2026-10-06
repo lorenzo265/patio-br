@@ -13,6 +13,7 @@ from typing import Annotated
 from fastapi import Depends, FastAPI, Request, status
 from fastapi.responses import JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
+from pydantic import SecretStr
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
@@ -32,6 +33,7 @@ from nuvem.erros import (
     SemPermissaoError,
 )
 from nuvem.frota import rotas as frota
+from nuvem.mensagens import rotas as webhook_do_whatsapp
 from nuvem.portaria import rotas as portaria
 from nuvem.senhas import Senhas
 from nuvem.web import agendamentos as tela_de_agendamentos
@@ -88,6 +90,10 @@ def criar_app(configuracao: Configuracao | None = None, senhas: Senhas | None = 
     app.state.cookie_seguro = configuracao.cookie_seguro
     app.state.tem_demonstracao = configuracao.tem_demonstracao
     app.state.exige_duas_etapas = configuracao.exige_duas_etapas
+    # O WhatsApp (D-63): a API só usa o número (os links e o QR) e o que confere o webhook.
+    app.state.whatsapp_numero = configuracao.whatsapp_numero
+    app.state.whatsapp_segredo_do_app = _segredo(configuracao.whatsapp_segredo_do_app)
+    app.state.whatsapp_codigo_do_webhook = _segredo(configuracao.whatsapp_codigo_do_webhook)
     app.state.url_publica = str(configuracao.url_publica) if configuracao.url_publica else None
     app.state.segredo_csrf = csrf.segredo(configuracao.chave_cifra.get_secret_value())
     app.state.cabecalho_do_ip = configuracao.cabecalho_do_ip
@@ -106,6 +112,7 @@ def criar_app(configuracao: Configuracao | None = None, senhas: Senhas | None = 
         app.include_router(portaria.roteador_borda)
     app.include_router(frota.roteador_admin)
     app.include_router(cron.roteador)
+    app.include_router(webhook_do_whatsapp.roteador)
     app.include_router(agendamento.roteador)
     app.include_router(web.roteador)
     app.include_router(telas_das_duas_etapas.roteador)
@@ -122,6 +129,10 @@ def criar_app(configuracao: Configuracao | None = None, senhas: Senhas | None = 
     tela_do_link.esconder_codigo_no_registro_de_acesso()
     app.mount("/estatico", StaticFiles(directory=PASTA_ESTATICA), name="estatico")
     return app
+
+
+def _segredo(valor: SecretStr | None) -> str | None:
+    return valor.get_secret_value() if valor is not None else None
 
 
 def _e_da_api(requisicao: Request) -> bool:

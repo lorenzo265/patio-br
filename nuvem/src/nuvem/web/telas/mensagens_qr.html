@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block titulo %}QR da portaria · {{ site.nome }}{% endblock %}
+{% block cabeca %}
+<style>
+  .placa { text-align: center; border: 2px solid #000; padding: 1.5rem; }
+  .placa h1 { margin-top: 0; }
+  .placa svg { width: 16rem; height: auto; }
+  @media print { .so-na-tela { display: none; } }
+</style>
+{% endblock %}
+{% block conteudo %}
+{% if numero %}
+<div class="placa">
+  <h1>Avisos da fila pelo WhatsApp</h1>
+  <p>Leia o QR com a câmera do celular e mande a mensagem que aparece. Os avisos da fila e da doca
+  de {{ site.nome }} chegam pelo WhatsApp.</p>
+  <div>{{ qr }}</div>
+  <p>Ou mande <strong>{{ pedido }}</strong> para o WhatsApp <strong>{{ numero }}</strong>.</p>
+  <p>Para parar, responda SAIR.</p>
+</div>
+<p class="so-na-tela">Imprima esta página e cole perto da placa de aviso da portaria.</p>
+{% else %}
+<h1>QR da portaria · {{ site.nome }}</h1>
+<p>O WhatsApp não está configurado neste ambiente: as mensagens ficam só guardadas.</p>
+{% endif %}
+<p class="so-na-tela"><a href="/mensagens?site={{ site.id }}">Mensagens</a> · <a href="/">Início</a></p>
+{% endblock %}

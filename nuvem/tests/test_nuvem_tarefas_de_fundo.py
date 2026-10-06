@@ -128,7 +128,9 @@ def falha(monkeypatch: pytest.MonkeyPatch) -> list[int]:
     """Troca o executor do "casar" por um que sempre falha; conta as chamadas."""
     chamadas: list[int] = []
 
-    def _falhar(sessao: Session, dados: dict[str, Any], agora: datetime) -> None:
+    def _falhar(
+        sessao: Session, dados: dict[str, Any], agora: datetime, contexto: fila.Contexto
+    ) -> None:
         chamadas.append(1)
         raise RuntimeError("falha de propósito")
 
@@ -191,11 +193,13 @@ def test_o_erro_de_uma_tarefa_nao_desfaz_o_que_outra_gravou(
     ruim = registrar_passagem(inicio=AGORA + timedelta(minutes=1))
     original = fila.EXECUTORES["casar_passagem"]
 
-    def _uma_falha(sessao: Session, dados: dict[str, Any], agora: datetime) -> None:
+    def _uma_falha(
+        sessao: Session, dados: dict[str, Any], agora: datetime, contexto: fila.Contexto
+    ) -> None:
         if dados["passagem_id"] == str(ruim.id):
-            original(sessao, dados, agora)  # grava a visita...
+            original(sessao, dados, agora, contexto)  # grava a visita...
             raise RuntimeError("e falha depois")  # ...e o erro a desfaz
-        original(sessao, dados, agora)
+        original(sessao, dados, agora, contexto)
 
     monkeypatch.setitem(fila.EXECUTORES, "casar_passagem", _uma_falha)
 
@@ -206,7 +210,9 @@ def test_o_erro_de_uma_tarefa_nao_desfaz_o_que_outra_gravou(
 
 
 def test_o_texto_do_erro_e_cortado(sessao: Session, monkeypatch: pytest.MonkeyPatch) -> None:
-    def _falhar(sessao: Session, dados: dict[str, Any], agora: datetime) -> None:
+    def _falhar(
+        sessao: Session, dados: dict[str, Any], agora: datetime, contexto: fila.Contexto
+    ) -> None:
         raise ValueError("x" * 5000)
 
     monkeypatch.setitem(fila.EXECUTORES, "casar_passagem", _falhar)
@@ -325,7 +331,7 @@ def test_o_laco_segue_depois_de_um_erro_inesperado(
 ) -> None:
     parar = threading.Event()
 
-    def quebrar(sessao: Session, *, agora: datetime) -> int:
+    def quebrar(sessao: Session, **_argumentos: object) -> int:
         parar.set()
         raise RuntimeError("banco fora do ar")
 

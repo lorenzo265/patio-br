@@ -15,25 +15,86 @@ Mensagens ao motorista ([[2.2 A jornada de um caminhão (modo A)|SDD 2.2]], [[7.
 
 ## Módulos
 
+### `nuvem.mensagens.canais`
+
+`nuvem/src/nuvem/mensagens/canais.py`
+
+Os canais de envio das mensagens ao motorista ([[7.5 WhatsApp e SMS|SDD 7.5]], [[D-63]]).
+
+Cada canal (o WhatsApp, o SMS) manda uma mensagem e devolve o id dela no canal. O erro diz se
+vale tentar de novo: o **passageiro** (a rede, o limite de envio) faz a tarefa da fila tentar
+mais tarde; o **definitivo** (o número sem WhatsApp, o modelo recusado) deixa a mensagem como
+falhou. O canal de demonstração não manda nada, e não é um canal de envio.
+
+- **`EnvioFalhouError`** (classe): O envio falhou por um motivo passageiro: a tarefa tenta de novo, mais tarde.
+- **`EnvioRecusadoError`** (classe): O canal recusou a mensagem de vez: tentar de novo não muda nada.
+- **`Envio`** (classe): A mensagem aceita pelo canal.
+- **`CanalDeEnvio`** (classe): Um canal que manda as mensagens ao motorista.
+- **`CanalDoWhatsApp`** (classe): O WhatsApp: além de mandar o modelo, responde ao motorista e tem o número dos links.
+- **`Canais`** (classe): Os canais configurados. Sem o WhatsApp, as mensagens ficam no canal de demonstração.
+
 ### `nuvem.mensagens.modelos`
 
 `nuvem/src/nuvem/mensagens/modelos.py`
 
-Tabela das mensagens ao motorista ([[5.1 Entidades|SDD 5.1]] e [[D-47]]).
+Tabelas das mensagens ao motorista ([[5.1 Entidades|SDD 5.1]], [[D-47]], [[D-58]] e [[D-63]]).
 
 A mensagem aponta para o agendamento, para o evento que a gerou e para o site pela dupla (pai,
 empresa) ([[5.5 Garantias|SDD 5.5]]). O texto fica pronto: é o que o motorista leu.
 
+A autorização do WhatsApp é do celular, numa empresa ([[D-58]]). A mensagem recebida é da
+plataforma, como a fila de tarefas: o número do WhatsApp é um só para todos os clientes, e a
+empresa só se sabe pelo que o texto diz.
+
 - **`ModeloDeMensagem`**: A confirmação do agendamento e os avisos do check-in, da chamada e do fim na doca.
-- **`Canal`** = `Literal['demonstracao']`: Por onde a mensagem vai. O de demonstração só guarda; WhatsApp e SMS entram no mês 4.
-- **`SituacaoDaMensagem`** = `Literal['guardada']`: No canal de demonstração, a mensagem só fica guardada (no mês 4: enviada, entregue...).
+- **`Canal`**: Por onde a mensagem vai. O de demonstração só guarda ([[D-45]] e [[D-63]]).
+- **`SituacaoDaMensagem`**: Guardada é a que ainda não saiu (no canal de demonstração, nunca sai).
 - **`Mensagem`** (classe): Uma mensagem ao motorista de um agendamento.
+- **`AutorizacaoWhatsApp`** (classe): O celular que autorizou receber os avisos de uma empresa pelo WhatsApp ([[D-58]]).
+- **`MensagemRecebida`** (classe): Uma mensagem que alguém mandou ao número do produto ([[D-63]]).
+
+### `nuvem.mensagens.modelos_do_whatsapp`
+
+`nuvem/src/nuvem/mensagens/modelos_do_whatsapp.py`
+
+Os modelos de mensagem do WhatsApp ([[7.5 WhatsApp e SMS|SDD 7.5]], [[D-63]]): um por tipo de mensagem.
+
+A Meta só deixa a empresa começar a conversa com um **modelo aprovado**: o texto fixo, com as
+variáveis numeradas (``{{1}}``, ``{{2}}``...). Os textos ficam aqui, e é este texto que se manda à
+Meta para aprovar ([[N19]]). A tela da conversa mostra o mesmo texto, já preenchido.
+
+Regras da Meta seguidas aqui: nenhum modelo começa nem termina com uma variável, as variáveis
+vão numeradas a partir de 1, e o nome só tem letras minúsculas, números e ``_``. Todos são da
+categoria utilidade, em português (``pt_BR``).
+
+- **`ModeloDoWhatsApp`** (classe): Um modelo de mensagem: o nome aprovado na Meta e o texto, com as variáveis.
+- **`MODELOS`**: O modelo de cada tipo de mensagem ao motorista.
+- **`preencher`**: O texto do modelo com as variáveis, como o motorista lê.
+
+### `nuvem.mensagens.rotas`
+
+`nuvem/src/nuvem/mensagens/rotas.py`
+
+O webhook do WhatsApp ([[7.5 WhatsApp e SMS|SDD 7.5]], [[D-63]]): ``/api/whatsapp``.
+
+- ``GET``: a Meta confere o webhook ao cadastrá-lo, com o código que escolhemos; a resposta é o
+  desafio que ela mandou.
+- ``POST``: o aviso da Meta (a situação das mensagens, as mensagens recebidas). Só passa com a
+  assinatura do segredo do app (``X-Hub-Signature-256``); o aviso vira a tarefa "aviso do
+  WhatsApp", e o worker faz o resto. O mesmo aviso duas vezes vira uma tarefa só.
+
+Sem o WhatsApp configurado, as duas respondem 404. O cookie não decide quem pede, então a rota
+fica fora do código anti-CSRF ([[D-55]]).
+
+- **`corpo_do_pedido`**: O corpo cru, como a Meta assinou (a assinatura é dos bytes, não do JSON lido).
+- **`conferir_o_webhook`**: A conferência da Meta: devolve o desafio se o código for o nosso.
+- **`receber_o_aviso`**: Guarda o aviso assinado numa tarefa e responde logo (a Meta repete o que demora).
 
 ### `nuvem.mensagens.servico`
 
 `nuvem/src/nuvem/mensagens/servico.py`
 
-Mensagens ao motorista ([[2.2 A jornada de um caminhão (modo A)|SDD 2.2]] e [[D-47]]): nascem dos eventos, pelo worker.
+Mensagens ao motorista ([[2.2 A jornada de um caminhão (modo A)|SDD 2.2]], [[D-47]], [[D-58]] e [[D-63]]): nascem dos eventos, pelo worker.
 
 - **Confirmação:** o agendamento ativo com celular, que ainda não terminou, recebe uma para cada
   celular que teve (o celular novo ainda não sabe de nada).
@@ -41,25 +102,62 @@ Mensagens ao motorista ([[2.2 A jornada de um caminhão (modo A)|SDD 2.2]] e [[D
   sair. Cada evento avisa uma vez só, no celular que o agendamento tem na hora.
 - **Só o recente:** o worker olha os eventos dos últimos 30 minutos (aviso mais velho chegaria
   tarde) e os agendamentos criados ou mudados no último dia.
-- **Canal de demonstração:** a mensagem só fica guardada; o WhatsApp entra no mês 4, aqui.
+- **O canal** ([[D-63]]): sem o WhatsApp configurado, o de demonstração, que só guarda; com ele, o
+  WhatsApp para o celular que autorizou a empresa, e o SMS para os outros. A mensagem que sai
+  vira a tarefa "enviar mensagem".
+- **O aviso da Meta** (``tratar_aviso``): a situação de cada mensagem (enviada, entregue, lida,
+  falhou) e as mensagens que o motorista mandou: a autorização ("AVISOS ...") e o "SAIR".
 
 O texto fica pronto na mensagem, sem o nome do motorista. O módulo lê a portaria, o pátio e o
-agendamento só pelas funções de serviço deles ([[3.3 Módulos da nuvem no MVP|SDD 3.3]]). ``preparar`` grava sem ``commit``; quem
+agendamento só pelas funções de serviço deles ([[3.3 Módulos da nuvem no MVP|SDD 3.3]]). As funções gravam sem ``commit``; quem
 lê passa o ``Acesso``.
 
 - **`AVISOS_OLHADOS`** = `timedelta(minutes=30)`: O evento mais velho que isso não avisa mais: o aviso chegaria tarde (ex.: a doca já mudou).
 - **`AGENDAMENTOS_OLHADOS`** = `timedelta(days=1)`: A confirmação olha os agendamentos criados ou mudados no último dia (cobre o worker parado).
-- **`CANAL`** = `'demonstracao'`: O canal do mês 3: só guarda.
+- **`SEM_ENVIO`** = `'demonstracao'`: O canal sem o WhatsApp configurado: só guarda ([[D-45]]).
+- **`ORDEM_DA_SITUACAO`**: O aviso da Meta chega fora de ordem: a situação só anda para a frente (falhar, só antes de entregar).
 - **`AVISO_DO_EVENTO`**: Os eventos da visita que avisam o motorista, e o modelo de cada aviso.
 - **`ULTIMAS_CONVERSAS`** = `50`: Quantas conversas a lista de um site mostra.
 - **`Conversa`** (classe): As mensagens de um agendamento, pela última.
 - **`preparar`**: Grava as mensagens que faltam, de todos os sites (sem ``commit``).
+- **`enviar`**: Manda uma mensagem guardada pelo canal dela (a tarefa "enviar mensagem"; sem ``commit``).
+- **`tratar_aviso`**: Trata um aviso do webhook do WhatsApp (a tarefa "aviso do WhatsApp"; sem ``commit``).
 - **`conversa`**: As mensagens de um agendamento que o usuário vê, na ordem em que foram feitas.
 - **`conversas`**: As conversas de um site que o usuário vê, da última mensagem para a primeira.
+
+### `nuvem.mensagens.whatsapp`
+
+`nuvem/src/nuvem/mensagens/whatsapp.py`
+
+O WhatsApp pela Cloud API da Meta, direto e sem biblioteca dela ([[7.5 WhatsApp e SMS|SDD 7.5]], [[D-12]] e [[D-63]]).
+
+- **Mandar:** o modelo aprovado, com as variáveis, por ``POST /<versão>/<número>/messages``; e a
+  resposta curta, em texto livre, a quem acabou de mandar uma mensagem.
+- **O webhook:** a Meta assina o corpo com o segredo do app (``X-Hub-Signature-256``); aqui se
+  confere a assinatura e se lê o aviso (as situações das mensagens e as recebidas).
+- **O motorista:** o link ``wa.me`` abre o WhatsApp com a mensagem pronta ([[D-58]]), e o texto que
+  ele manda diz o que pediu ("AVISOS A<agendamento>", "AVISOS S<site>" ou "SAIR").
+
+- **`VERSAO_PADRAO`** = `'v25.0'`: A versão da API da Meta (de 02/2026); configurável, porque cada versão vale cerca de 2 anos.
+- **`ERROS_PASSAGEIROS`**: Os códigos de erro da Meta que passam: o limite de envio, o serviço fora, o token vencido (até alguém trocar). Os outros (o número sem WhatsApp, o modelo recusado) são definitivos.
+- **`SITUACOES`**: A situação que a Meta avisa, no nome daqui.
+- **`Situacao`** (classe): A situação de uma mensagem nossa, como a Meta avisou.
+- **`Recebida`** (classe): Uma mensagem que alguém mandou ao número do produto.
+- **`CanalWhatsApp`** (classe): O canal do WhatsApp: manda os modelos e as respostas pela Cloud API.
+- **`assinatura_confere`**: Se o ``X-Hub-Signature-256`` é o HMAC-SHA256 do corpo com o segredo do app.
+- **`celular_do_whatsapp`**: O celular do Brasil como o agendamento guarda (``+55``, o DDD e os 9 números).
+- **`link_para_autorizar`**: O link que abre o WhatsApp no número do produto, com o texto já escrito ([[D-58]]).
+- **`pedido_do_agendamento`**: O texto pronto do link do SMS: autoriza a empresa do agendamento.
+- **`pedido_do_site`**: O texto pronto do QR da portaria: autoriza a empresa do site.
+- **`o_que_pediu`**: O que o motorista pediu na mensagem, ou ``None`` se não é um pedido.
+- **`ler_aviso`**: As situações e as mensagens recebidas de um aviso do webhook.
+- **`canal_da_configuracao`**: O canal do WhatsApp da configuração, ou ``None`` se ele não está configurado.
 
 ## Testes
 
 - `nuvem/tests/test_nuvem_mensagens.py`: Mensagens do motorista ([[T43]], [[2.2 A jornada de um caminhão (modo A)|SDD 2.2]] e [[D-47]]): nascem dos eventos, no canal de demonstração.
+- `nuvem/tests/test_nuvem_mensagens_envio.py`: O envio das mensagens ao motorista ([[7.5 WhatsApp e SMS|SDD 7.5]], [[D-58]] e [[D-63]]): o canal de cada uma, a fila, as situações que a Meta avisa, a autorização do motorista e o "SAIR". A Meta é imitada.
+- `nuvem/tests/test_nuvem_mensagens_whatsapp.py`: O canal do WhatsApp ([[7.5 WhatsApp e SMS|SDD 7.5]], [[D-12]] e [[D-63]]), sem banco: a Cloud API da Meta imitada.
 
 ---
 

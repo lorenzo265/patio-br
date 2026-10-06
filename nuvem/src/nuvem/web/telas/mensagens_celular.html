@@ -31,6 +31,6 @@
   </div>
 </div>
 <p class="legenda">Agendamento {{ codigo }} · {% if para %}celular {{ para }}{% else %}O agendamento não tem celular: as mensagens novas não têm para onde ir.{% endif %}</p>
-<p class="legenda">Demonstração: as mensagens ficam guardadas aqui, e nada é enviado ao motorista.</p>
+{% if not envia %}<p class="legenda">Demonstração: as mensagens ficam guardadas aqui, e nada é enviado ao motorista.</p>{% endif %}
 <p class="legenda"><a href="/mensagens?site={{ site.id }}">Outras conversas</a> · <a href="/">Início</a></p>
 {% endblock %}

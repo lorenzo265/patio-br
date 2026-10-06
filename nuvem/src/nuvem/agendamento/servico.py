@@ -169,7 +169,7 @@ def gravar_inventados(
             "codigo_externo": a.codigo_externo, "situacao": "ativo", "link_id": None,
             "janela_inicio": a.janela_inicio, "janela_fim": a.janela_fim, "tipo": a.tipo,
             "placa_cavalo": a.placa_cavalo, "placas_reboques": [], "motorista_nome": None,
-            "motorista_celular": a.motorista_celular, "whatsapp_autorizado_em": None,
+            "motorista_celular": a.motorista_celular,
             "toneladas": a.toneladas, "chave_nfe": None,
             "criado_em": a.janela_inicio - timedelta(days=1),
             "atualizado_em": a.janela_inicio - timedelta(days=1),
@@ -286,11 +286,6 @@ def _atualizar(
         if atual != valor:
             antes[campo], depois[campo] = _json(atual), _json(valor)
             setattr(agendamento, campo, valor)
-    if "motorista_celular" in depois and agendamento.whatsapp_autorizado_em is not None:
-        # A autorização é do número: o celular novo ainda não autorizou nada.
-        antes["whatsapp_autorizado_em"] = _json(agendamento.whatsapp_autorizado_em)
-        depois["whatsapp_autorizado_em"] = None
-        agendamento.whatsapp_autorizado_em = None
     if not depois:
         return Gravado(agendamento, "igual")
     agendamento.atualizado_em = agora
@@ -435,6 +430,15 @@ def para_confirmar(
             .order_by(Agendamento.id)
         )
     )
+
+
+def empresa_do_agendamento(sessao: Session, agendamento_id: int) -> int | None:
+    """A empresa de um agendamento de qualquer site, ou ``None`` se ele não existe.
+
+    Para a autorização do WhatsApp (D-58): o motorista manda o número do agendamento, e a
+    autorização vale para a empresa dele.
+    """
+    return sessao.scalar(select(Agendamento.empresa_id).where(Agendamento.id == agendamento_id))
 
 
 def com_celular(sessao: Session, agendamento_ids: Sequence[int]) -> dict[int, Agendamento]:

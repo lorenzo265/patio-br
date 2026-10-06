@@ -5,6 +5,7 @@ atual (o mesmo que o docker compose lê; as variáveis dele, sem o prefixo, são
 Valor obrigatório ausente impede a nuvem de iniciar: melhor parar na hora do que rodar errado.
 """
 
+import re
 import ssl
 from pathlib import Path
 from typing import Literal, Self
@@ -110,6 +111,24 @@ class Configuracao(BaseSettings):
     fotos_s3_chave: SecretStr | None = None
     fotos_s3_segredo: SecretStr | None = None
 
+    whatsapp_token: SecretStr | None = None
+    """O token do usuário de sistema da Meta, que manda as mensagens (D-63)."""
+    whatsapp_numero_id: str | None = None
+    """O id do número do produto na Meta (não é o número)."""
+    whatsapp_numero: str | None = None
+    """O número do produto, só números, com o 55 (ex.: ``5511900000000``): vai no link ``wa.me``."""
+    whatsapp_segredo_do_app: SecretStr | None = None
+    """O segredo do app da Meta, que assina os avisos do webhook."""
+    whatsapp_codigo_do_webhook: SecretStr | None = None
+    """O código que a Meta manda ao conferir o webhook (escolhido por nós, ao cadastrá-lo)."""
+    whatsapp_versao: str = "v25.0"
+    """A versão da API da Meta (de 02/2026)."""
+
+    @property
+    def tem_whatsapp(self) -> bool:
+        """Se as mensagens ao motorista saem de verdade (D-63); sem, ficam na demonstração."""
+        return self.whatsapp_token is not None
+
     @property
     def cookie_seguro(self) -> bool:
         """Se o cookie da sessão só pode andar por HTTPS (``Secure``)."""
@@ -146,6 +165,31 @@ class Configuracao(BaseSettings):
         if self.fotos_s3_endereco and not (self.fotos_s3_chave and self.fotos_s3_segredo):
             raise ValueError("fotos_s3: com o endereço, a chave e o segredo são obrigatórios")
         return self
+
+    @model_validator(mode="after")
+    def _whatsapp_completo(self) -> Self:
+        partes = (
+            self.whatsapp_token,
+            self.whatsapp_numero_id,
+            self.whatsapp_numero,
+            self.whatsapp_segredo_do_app,
+            self.whatsapp_codigo_do_webhook,
+        )
+        if any(partes) and not all(partes):
+            raise ValueError(
+                "whatsapp: o token, o id do número, o número, o segredo do app e o código do "
+                "webhook vão juntos"
+            )
+        if any(partes) and self.ambiente == "demonstracao":
+            raise ValueError("whatsapp: a demonstração nunca manda mensagem (D-45)")
+        return self
+
+    @field_validator("whatsapp_numero")
+    @classmethod
+    def _numero_do_whatsapp(cls, numero: str | None) -> str | None:
+        if numero is not None and not re.fullmatch(r"55\d{10,11}", numero):
+            raise ValueError("whatsapp_numero: só números, com o 55 na frente")
+        return numero
 
     @field_validator("url_publica", mode="before")
     @classmethod

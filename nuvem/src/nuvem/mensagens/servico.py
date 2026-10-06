@@ -1,4 +1,4 @@
-"""Mensagens ao motorista (SDD 2.2 e D-47): nascem dos eventos, pelo worker.
+"""Mensagens ao motorista (SDD 2.2, D-47, D-58 e D-63): nascem dos eventos, pelo worker.
 
 - **Confirmação:** o agendamento ativo com celular, que ainda não terminou, recebe uma para cada
   celular que teve (o celular novo ainda não sabe de nada).
@@ -6,31 +6,55 @@
   sair. Cada evento avisa uma vez só, no celular que o agendamento tem na hora.
 - **Só o recente:** o worker olha os eventos dos últimos 30 minutos (aviso mais velho chegaria
   tarde) e os agendamentos criados ou mudados no último dia.
-- **Canal de demonstração:** a mensagem só fica guardada; o WhatsApp entra no mês 4, aqui.
+- **O canal** (D-63): sem o WhatsApp configurado, o de demonstração, que só guarda; com ele, o
+  WhatsApp para o celular que autorizou a empresa, e o SMS para os outros. A mensagem que sai
+  vira a tarefa "enviar mensagem".
+- **O aviso da Meta** (``tratar_aviso``): a situação de cada mensagem (enviada, entregue, lida,
+  falhou) e as mensagens que o motorista mandou: a autorização ("AVISOS ...") e o "SAIR".
 
 O texto fica pronto na mensagem, sem o nome do motorista. O módulo lê a portaria, o pátio e o
-agendamento só pelas funções de serviço deles (SDD 3.3). ``preparar`` grava sem ``commit``; quem
+agendamento só pelas funções de serviço deles (SDD 3.3). As funções gravam sem ``commit``; quem
 lê passa o ``Acesso``.
 """
 
+import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
+from nuvem import tarefas_de_fundo
 from nuvem.agendamento import servico as agendamentos
 from nuvem.agendamento.modelos import Agendamento
 from nuvem.cadastro import servico as cadastro
 from nuvem.cadastro.acesso import Acesso
 from nuvem.cadastro.servico import HorarioDoSite
-from nuvem.mensagens.modelos import Canal, Mensagem, ModeloDeMensagem
+from nuvem.mensagens import whatsapp
+from nuvem.mensagens.canais import (
+    Canais,
+    CanalDeEnvio,
+    EnvioFalhouError,
+    EnvioRecusadoError,
+)
+from nuvem.mensagens.modelos import (
+    AutorizacaoWhatsApp,
+    Canal,
+    Mensagem,
+    MensagemRecebida,
+    ModeloDeMensagem,
+    ResultadoDaRecebida,
+    SituacaoDaMensagem,
+)
+from nuvem.mensagens.modelos_do_whatsapp import preencher
 from nuvem.patio import servico as patio
 from nuvem.portaria import visitas
 from nuvem.portaria.modelos import Evento, TipoDeEvento, Visita
+
+_registro = logging.getLogger(__name__)
 
 AVISOS_OLHADOS = timedelta(minutes=30)
 """O evento mais velho que isso não avisa mais: o aviso chegaria tarde (ex.: a doca já mudou)."""
@@ -38,8 +62,31 @@ AVISOS_OLHADOS = timedelta(minutes=30)
 AGENDAMENTOS_OLHADOS = timedelta(days=1)
 """A confirmação olha os agendamentos criados ou mudados no último dia (cobre o worker parado)."""
 
-CANAL: Canal = "demonstracao"
-"""O canal do mês 3: só guarda."""
+SEM_ENVIO: Canal = "demonstracao"
+"""O canal sem o WhatsApp configurado: só guarda (D-45)."""
+
+RESPOSTA_DA_AUTORIZACAO = (
+    "Pronto! Os avisos da fila e da doca vão chegar por aqui. Para parar, responda SAIR."
+)
+RESPOSTA_DO_SAIR = (
+    "Pronto, você não vai mais receber avisos por aqui. Se mudar de ideia, use o link do SMS "
+    "ou o QR da portaria."
+)
+ORDEM_DA_SITUACAO: dict[SituacaoDaMensagem, int] = {
+    "guardada": 0,
+    "enviada": 1,
+    "entregue": 2,
+    "lida": 3,
+    "falhou": 1,
+}
+"""O aviso da Meta chega fora de ordem: a situação só anda para a frente (falhar, só antes de
+entregar)."""
+QUANDO_DA_SITUACAO = {
+    "enviada": "enviada_em",
+    "entregue": "entregue_em",
+    "lida": "lida_em",
+    "falhou": "falhou_em",
+}
 
 AVISO_DO_EVENTO: dict[TipoDeEvento, ModeloDeMensagem] = {
     "check_in": "na_fila",
@@ -64,10 +111,11 @@ class Conversa:
 # --- Preparar ---------------------------------------------------------------------------------
 
 
-def preparar(sessao: Session, *, agora: datetime) -> int:
+def preparar(sessao: Session, *, agora: datetime, canais: Canais | None = None) -> int:
     """Grava as mensagens que faltam, de todos os sites (sem ``commit``).
 
     Dois workers ao mesmo tempo não repetem nada: o banco recusa a segunda, e ela fica de fora.
+    A mensagem de um canal configurado vira a tarefa "enviar mensagem".
 
     Returns:
         Quantas mensagens gravou.
@@ -76,10 +124,53 @@ def preparar(sessao: Session, *, agora: datetime) -> int:
     novas = _confirmacoes(sessao, sites, agora) + _avisos(sessao, sites, agora)
     if not novas:
         return 0
-    gravadas = sessao.scalars(
-        insert(Mensagem).values(novas).on_conflict_do_nothing().returning(Mensagem.id)
+    _escolher_os_canais(sessao, novas, canais)
+    gravadas = sessao.execute(
+        insert(Mensagem)
+        .values(novas)
+        .on_conflict_do_nothing()
+        .returning(Mensagem.id, Mensagem.canal)
     ).all()
+    for mensagem_id, canal in gravadas:
+        if canais is not None and _canal_de_envio(canais, canal) is not None:
+            tarefas_de_fundo.enfileirar(
+                sessao,
+                "enviar_mensagem",
+                {"mensagem_id": mensagem_id},
+                chave=str(mensagem_id),
+                agora=agora,
+            )
     return len(gravadas)
+
+
+def _escolher_os_canais(
+    sessao: Session, novas: list[dict[str, Any]], canais: Canais | None
+) -> None:
+    # O WhatsApp só para o celular que autorizou aquela empresa (D-58); os outros, por SMS.
+    if canais is None or canais.whatsapp is None:
+        for nova in novas:
+            nova["canal"] = SEM_ENVIO
+        return
+    autorizados = {
+        (empresa_id, celular)
+        for empresa_id, celular in sessao.execute(
+            select(AutorizacaoWhatsApp.empresa_id, AutorizacaoWhatsApp.celular).where(
+                AutorizacaoWhatsApp.celular.in_({nova["para"] for nova in novas}),
+                AutorizacaoWhatsApp.revogada_em.is_(None),
+            )
+        )
+    }
+    for nova in novas:
+        par = (nova["empresa_id"], nova["para"])
+        nova["canal"] = "whatsapp" if par in autorizados else "sms"
+
+
+def _canal_de_envio(canais: Canais, canal: Canal) -> CanalDeEnvio | None:
+    if canal == "whatsapp":
+        return canais.whatsapp
+    if canal == "sms":
+        return canais.sms
+    return None
 
 
 def _confirmacoes(sessao: Session, sites: "_Sites", agora: datetime) -> list[dict[str, Any]]:
@@ -96,7 +187,7 @@ def _confirmacoes(sessao: Session, sites: "_Sites", agora: datetime) -> list[dic
         )
     }
     return [
-        _mensagem(a, "confirmacao", _confirmacao(a, sites.de(a)), agora)
+        _mensagem(a, "confirmacao", _variaveis_da_confirmacao(a, sites.de(a)), agora)
         for a in candidatos
         if (a.id, a.motorista_celular) not in confirmados
     ]
@@ -119,15 +210,17 @@ def _avisos(sessao: Session, sites: "_Sites", agora: datetime) -> list[dict[str,
         if agendamento is None:
             continue
         modelo = AVISO_DO_EVENTO[evento.tipo]
-        texto = _aviso(sessao, modelo, evento, visita, agendamento, sites.de(agendamento))
-        novas.append(_mensagem(agendamento, modelo, texto, agora, evento_id=evento.id))
+        variaveis = _variaveis_do_aviso(
+            sessao, modelo, evento, visita, agendamento, sites.de(agendamento)
+        )
+        novas.append(_mensagem(agendamento, modelo, variaveis, agora, evento_id=evento.id))
     return novas
 
 
 def _mensagem(
     agendamento: Agendamento,
     modelo: ModeloDeMensagem,
-    texto: str,
+    variaveis: list[str],
     agora: datetime,
     evento_id: int | None = None,
 ) -> dict[str, Any]:
@@ -137,9 +230,10 @@ def _mensagem(
         "agendamento_id": agendamento.id,
         "evento_id": evento_id,
         "modelo": modelo,
-        "canal": CANAL,
+        "canal": SEM_ENVIO,
         "para": agendamento.motorista_celular,
-        "texto": texto,
+        "texto": preencher(modelo, variaveis),
+        "variaveis": variaveis,
         "situacao": "guardada",
         "criada_em": agora,
     }
@@ -161,38 +255,196 @@ class _Sites:
         return self._lidos[chave]
 
 
-# --- Os textos --------------------------------------------------------------------------------
+# --- As variáveis dos modelos (os textos estão em ``modelos_do_whatsapp``) --------------------
 
 
-def _confirmacao(agendamento: Agendamento, site: HorarioDoSite) -> str:
+def _variaveis_da_confirmacao(agendamento: Agendamento, site: HorarioDoSite) -> list[str]:
     fuso = ZoneInfo(site.fuso)
     inicio = agendamento.janela_inicio.astimezone(fuso)
     fim = agendamento.janela_fim.astimezone(fuso)
-    return (
-        f"Olá! {agendamento.tipo.capitalize()} agendada: {site.nome}, {inicio:%d/%m}, "
-        f"das {inicio:%H:%M} às {fim:%H:%M} (agendamento {agendamento.codigo_externo}). "
-        "Os avisos da fila e da doca vão chegar por aqui."
-    )
+    return [
+        agendamento.tipo.capitalize(),
+        site.nome,
+        f"{inicio:%d/%m}",
+        f"{inicio:%H:%M}",
+        f"{fim:%H:%M}",
+        agendamento.codigo_externo,
+    ]
 
 
-def _aviso(
+def _variaveis_do_aviso(
     sessao: Session,
     modelo: ModeloDeMensagem,
     evento: Evento,
     visita: Visita,
     agendamento: Agendamento,
     site: HorarioDoSite,
-) -> str:
+) -> list[str]:
     if modelo == "na_fila":
         chegada = (visita.chegou_em or evento.momento).astimezone(ZoneInfo(site.fuso))
-        posicao = patio.posicao_na_fila(sessao, visita)
-        return (
-            f"Chegada registrada às {chegada:%H:%M}. Você está na fila, posição {posicao}. "
-            "Espere o aviso da doca por aqui."
-        )
+        return [f"{chegada:%H:%M}", str(patio.posicao_na_fila(sessao, visita))]
     if modelo == "chamada":
-        return f"Sua vez! Siga para a {evento.dados['doca']}."
-    return f"{agendamento.tipo.capitalize()} terminada. Pode sair pela portaria. Boa viagem!"
+        return [str(evento.dados["doca"])]
+    return [agendamento.tipo.capitalize()]
+
+
+# --- Enviar -----------------------------------------------------------------------------------
+
+
+def enviar(sessao: Session, canais: Canais, mensagem_id: int, *, agora: datetime) -> None:
+    """Manda uma mensagem guardada pelo canal dela (a tarefa "enviar mensagem"; sem ``commit``).
+
+    A que já saiu não sai de novo. A recusa definitiva deixa a mensagem como falhou.
+
+    Raises:
+        EnvioFalhouError: se vale tentar de novo (a tarefa volta para a fila); também quando o
+            canal da mensagem não está configurado.
+    """
+    mensagem = sessao.get(Mensagem, mensagem_id)
+    if mensagem is None or mensagem.situacao != "guardada":
+        return
+    canal = _canal_de_envio(canais, mensagem.canal)
+    if canal is None:
+        raise EnvioFalhouError(f"o canal {mensagem.canal} não está configurado")
+    try:
+        envio = canal.enviar(mensagem)
+    except EnvioRecusadoError as erro:
+        mensagem.situacao = "falhou"
+        mensagem.falhou_em = agora
+        mensagem.erro = str(erro)[:300]
+    else:
+        mensagem.situacao = "enviada"
+        mensagem.id_no_canal = envio.id_no_canal
+        mensagem.enviada_em = agora
+    sessao.flush()
+
+
+# --- O aviso da Meta --------------------------------------------------------------------------
+
+
+def tratar_aviso(
+    sessao: Session, canais: Canais, aviso: dict[str, Any], *, agora: datetime
+) -> None:
+    """Trata um aviso do webhook do WhatsApp (a tarefa "aviso do WhatsApp"; sem ``commit``).
+
+    Atualiza a situação das mensagens e trata as que chegaram: "AVISOS A<agendamento>" ou
+    "AVISOS S<site>" autoriza o celular de quem mandou na empresa do pedido; "SAIR" cancela a
+    autorização dele em todas as empresas (D-58). O resto fica registrado, sem resposta.
+    """
+    situacoes, recebidas = whatsapp.ler_aviso(aviso)
+    for situacao in situacoes:
+        _atualizar(sessao, situacao)
+    for recebida in recebidas:
+        _tratar_recebida(sessao, canais, recebida, agora)
+    sessao.flush()
+
+
+def _atualizar(sessao: Session, situacao: whatsapp.Situacao) -> None:
+    mensagem = sessao.scalar(
+        select(Mensagem).where(
+            Mensagem.canal == "whatsapp", Mensagem.id_no_canal == situacao.id_no_canal
+        )
+    )
+    if mensagem is None:
+        return
+    coluna = QUANDO_DA_SITUACAO[situacao.situacao]
+    if getattr(mensagem, coluna) is None:
+        setattr(mensagem, coluna, situacao.momento)
+    atual = ORDEM_DA_SITUACAO[mensagem.situacao]
+    if situacao.situacao == "falhou":
+        if mensagem.situacao in ("guardada", "enviada"):
+            mensagem.situacao = "falhou"
+            mensagem.erro = (situacao.erro or "")[:300] or None
+    elif ORDEM_DA_SITUACAO[situacao.situacao] > atual and mensagem.situacao != "falhou":
+        mensagem.situacao = situacao.situacao
+    if situacao.categoria:
+        mensagem.cobranca = situacao.categoria[:30]
+
+
+def _tratar_recebida(
+    sessao: Session, canais: Canais, recebida: whatsapp.Recebida, agora: datetime
+) -> None:
+    repetida = sessao.scalar(
+        select(MensagemRecebida.id).where(
+            MensagemRecebida.id_no_whatsapp == recebida.id_no_whatsapp
+        )
+    )
+    if repetida is not None:
+        return  # a Meta repete o aviso que demorou a responder
+    celular = whatsapp.celular_do_whatsapp(recebida.de)
+    pedido = whatsapp.o_que_pediu(recebida.texto)
+    resultado: ResultadoDaRecebida = "ignorada"
+    empresa_id: int | None = None
+    resposta: str | None = None
+    if celular is not None and pedido is not None:
+        if pedido[0] == "sair":
+            sessao.execute(
+                update(AutorizacaoWhatsApp)
+                .where(
+                    AutorizacaoWhatsApp.celular == celular,
+                    AutorizacaoWhatsApp.revogada_em.is_(None),
+                )
+                .values(revogada_em=agora)
+            )
+            resultado, resposta = "saiu", RESPOSTA_DO_SAIR
+        else:
+            empresa_id = _empresa_do_pedido(sessao, pedido)
+            if empresa_id is not None:
+                _autorizar(sessao, empresa_id, celular, recebida, agora)
+                resultado, resposta = "autorizou", RESPOSTA_DA_AUTORIZACAO
+    sessao.add(
+        MensagemRecebida(
+            id_no_whatsapp=recebida.id_no_whatsapp,
+            de=recebida.de[:20],
+            texto=recebida.texto[:1000],
+            recebida_em=recebida.momento,
+            empresa_id=empresa_id,
+            resultado=resultado,
+            tratada_em=agora,
+        )
+    )
+    sessao.flush()
+    if resposta is not None and celular is not None and canais.whatsapp is not None:
+        # A resposta é cortesia: se falha, não se tenta de novo o aviso inteiro (quem já
+        # recebeu a resposta de outra mensagem do mesmo aviso receberia outra).
+        try:
+            canais.whatsapp.responder(celular, resposta)
+        except (EnvioFalhouError, EnvioRecusadoError) as erro:
+            _registro.warning(
+                "a resposta à mensagem recebida %s falhou: %s", recebida.id_no_whatsapp, erro
+            )
+
+
+def _empresa_do_pedido(sessao: Session, pedido: whatsapp.Pedido) -> int | None:
+    tipo, numero = pedido
+    if numero is None:
+        return None
+    if tipo == "agendamento":
+        return agendamentos.empresa_do_agendamento(sessao, numero)
+    return cadastro.empresa_do_site(sessao, numero)
+
+
+def _autorizar(
+    sessao: Session,
+    empresa_id: int,
+    celular: str,
+    recebida: whatsapp.Recebida,
+    agora: datetime,
+) -> None:
+    # Autorizar de novo não muda nada: uma autorização ativa por empresa e celular.
+    sessao.execute(
+        insert(AutorizacaoWhatsApp)
+        .values(
+            empresa_id=empresa_id,
+            celular=celular,
+            autorizada_em=agora,
+            texto=recebida.texto[:1000],
+            id_no_whatsapp=recebida.id_no_whatsapp,
+        )
+        .on_conflict_do_nothing(
+            index_elements=["empresa_id", "celular"], index_where=text("revogada_em IS NULL")
+        )
+    )
 
 
 # --- Ler --------------------------------------------------------------------------------------
