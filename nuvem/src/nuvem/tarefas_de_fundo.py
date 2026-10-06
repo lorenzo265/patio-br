@@ -18,6 +18,7 @@
 - **Prova** (D-69): a passagem com fotos vira também a tarefa "resumir as fotos"; a cada minuto,
   o worker sela o que chegou; a cada 10 minutos, grava a âncora dos dias que terminaram.
 - **Guarda** (D-70): a cada hora, apaga as fotos vencidas pelo prazo de guarda.
+- **Treino** (D-71): a cada hora, as conferências autorizadas viram rótulos a revisar.
 
 O worker roda em outro processo (``python -m nuvem.worker``).
 """
@@ -58,6 +59,8 @@ from nuvem.portaria.visitas import SiteDaVisita
 from nuvem.prova import servico as prova
 from nuvem.prova.ancoras import GuardaDasAncoras
 from nuvem.relogio import agora as agora_de_verdade
+from nuvem.treino import servico as treino
+from nuvem.treino.guarda import GuardaDoTreino
 
 _registro = logging.getLogger(__name__)
 
@@ -342,6 +345,7 @@ def rodar(
     armazenamento: Armazenamento | None = None,
     ancoras: GuardaDasAncoras | None = None,
     dias_das_fotos: int | None = None,
+    base_de_treino: GuardaDoTreino | None = None,
 ) -> None:
     """Executa as tarefas, confere o "não veio" e prepara as mensagens até ``parar`` ser ligado.
 
@@ -349,7 +353,8 @@ def rodar(
     a cada volta: as passagens que ela manda casam na mesma volta. Com ``canais``, as mensagens
     saem por eles (D-63); sem, ficam no canal de demonstração. Com ``armazenamento``, as fotos
     são resumidas; com ``ancoras``, a âncora de cada dia é gravada (D-69); com os dois,
-    ``armazenamento`` e ``dias_das_fotos``, a foto vencida sai (D-70).
+    ``armazenamento`` e ``dias_das_fotos``, a foto vencida sai (D-70); com ``armazenamento`` e
+    ``base_de_treino``, as conferências autorizadas viram rótulos (D-71).
 
     Um erro inesperado (ex.: o banco fora do ar) fica registrado, e o laço segue.
     """
@@ -359,6 +364,7 @@ def rodar(
     ultimo_selo: datetime | None = None
     ultimas_ancoras: datetime | None = None
     ultima_guarda: datetime | None = None
+    ultimos_rotulos: datetime | None = None
     while not parar.is_set():
         try:
             with abrir_sessao() as sessao:
@@ -407,6 +413,19 @@ def rodar(
                         _registro.info("guarda: %d fotos vencidas apagadas", apagadas)
                     sessao.commit()
                     ultima_guarda = momento
+                if (
+                    armazenamento is not None
+                    and base_de_treino is not None
+                    and (
+                        ultimos_rotulos is None or momento - ultimos_rotulos >= INTERVALO_DA_GUARDA
+                    )
+                ):
+                    if novos := treino.rotular(
+                        sessao, armazenamento, base_de_treino, agora=momento
+                    ):
+                        _registro.info("treino: %d rótulos novos", novos)
+                    sessao.commit()
+                    ultimos_rotulos = momento
         except Exception:
             _registro.exception("erro no laço do worker; ele segue")
             dormir(PAUSA_DEPOIS_DE_ERRO)

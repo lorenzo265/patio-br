@@ -43,6 +43,7 @@ from nuvem.mensagens import modelos as _mensagens  # noqa: F401
 from nuvem.portaria.modelos import PassagemRecebida
 from nuvem.prova import modelos as _prova  # noqa: F401
 from nuvem.senhas import Senhas, resumo_rapido
+from nuvem.treino import modelos as _treino  # noqa: F401
 
 _registro = logging.getLogger(__name__)
 

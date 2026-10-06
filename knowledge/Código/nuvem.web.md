@@ -358,6 +358,24 @@ acesso. A resposta não fica guardada no navegador.
 - **`formulario`**: O formulário do pedido do titular.
 - **`levantar`**: Tudo o que existe da placa ou do celular na empresa, na tela ou em arquivo.
 
+### `nuvem.web.treino`
+
+`nuvem/src/nuvem/web/treino.py`
+
+A base de treino na administração ([[6.2 Telas do MVP|SDD 6.2]], [[D-71]]).
+
+- ``/administracao/treino``: as empresas, cada uma com a cláusula do contrato (registrar e
+  revogar), e os rótulos a revisar, com o recorte na tela.
+- ``/administracao/treino/rotulos/<rótulo>``: aceitar, corrigir (com a placa certa) ou descartar.
+- ``/administracao/treino/rotulos/<rótulo>/recorte``: a cópia do recorte (não fica guardada no
+  navegador).
+
+- **`tela_do_treino`**: As cláusulas e os rótulos a revisar.
+- **`registrar_clausula`**: Registra a data da cláusula do contrato de uma empresa.
+- **`revogar_clausula`**: Revoga a autorização: os rótulos e os recortes da empresa se apagam.
+- **`revisar`**: Aceita, corrige ou descarta um rótulo e volta à tela.
+- **`recorte`**: A cópia do recorte de um rótulo.
+
 ## Testes
 
 - `nuvem/tests/test_nuvem_web_agendamentos.py`: Tela de agendamentos ([[6.2 Telas do MVP|SDD 6.2]]): o gestor vê e alimenta os agendamentos dos sites dele.
@@ -382,6 +400,7 @@ acesso. A resposta não fica guardada no navegador.
 - `nuvem/tests/test_nuvem_web_portaria_resultado.py`: O resultado do casamento na lista de passagens da portaria ([[T35]], [[6.2 Telas do MVP|SDD 6.2]]).
 - `nuvem/tests/test_nuvem_web_prova.py`: A prova da visita nas telas ([[6.2 Telas do MVP|SDD 6.2]], [[D-69]]): a busca, a página e o arquivo, só do gestor.
 - `nuvem/tests/test_nuvem_web_sms.py`: O retorno do SMS ([[7.5 WhatsApp e SMS|SDD 7.5]], [[D-64]]): ``/api/sms/<segredo>``, e o segredo fora do registro.
+- `nuvem/tests/test_nuvem_web_treino.py`: A base de treino na administração ([[6.2 Telas do MVP|SDD 6.2]], [[D-71]]): a cláusula e a rotulagem.
 - `nuvem/tests/test_nuvem_web_versoes.py`: As versões da caixa nas telas da administração ([[6.2 Telas do MVP|SDD 6.2]], [[D-67]]).
 - `nuvem/tests/test_nuvem_web_whatsapp.py`: O webhook do WhatsApp e o QR da portaria ([[7.5 WhatsApp e SMS|SDD 7.5]], [[D-58]] e [[D-63]]).
 

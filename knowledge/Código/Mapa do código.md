@@ -61,4 +61,5 @@ Aplicação da nuvem: API, painel e módulos do produto.
 	- [[nuvem.patio]]: Pátio e docas ([[2.2 A jornada de um caminhão (modo A)|SDD 2.2]], passos 4 e 5): a fila, a chamada para a doca, o início e o fim.
 	- [[nuvem.portaria]]: Portaria ([[3.3 Módulos da nuvem no MVP|SDD 3.3]]): recebe as passagens da borda; no mês 2, casa com o agendamento.
 	- [[nuvem.prova]]: A prova da visita ([[5.5 Garantias|SDD 5.5]], [[D-69]]): a cadeia de resumos, a âncora do dia e a conferência.
+	- [[nuvem.treino]]: A base de treino ([[4.6 Dados de treino|SDD 4.6]] e [[8.3 LGPD|8.3]], [[D-71]]): a conferência do porteiro vira rótulo, com o contrato.
 	- [[nuvem.web]]: Telas do painel ([[6.2 Telas do MVP|SDD 6.2]]): páginas feitas no servidor, com Jinja.

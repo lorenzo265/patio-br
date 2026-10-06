@@ -27,6 +27,11 @@ Os endereços da API e das telas, lidos dos decoradores (`@roteador.get(...)`) c
 | `/administracao/frota/{caixa_id}` | GET | `tela_da_caixa` | [[nuvem.web]] | Uma caixa: a última saúde e os últimos 7 dias, hora a hora (404 se não existir). |
 | `/administracao/titular` | GET | `formulario` | [[nuvem.web]] | O formulário do pedido do titular. |
 | `/administracao/titular` | POST | `levantar` | [[nuvem.web]] | Tudo o que existe da placa ou do celular na empresa, na tela ou em arquivo. |
+| `/administracao/treino` | GET | `tela_do_treino` | [[nuvem.web]] | As cláusulas e os rótulos a revisar. |
+| `/administracao/treino/autorizacoes` | POST | `registrar_clausula` | [[nuvem.web]] | Registra a data da cláusula do contrato de uma empresa. |
+| `/administracao/treino/autorizacoes/{empresa_id}/revogar` | POST | `revogar_clausula` | [[nuvem.web]] | Revoga a autorização: os rótulos e os recortes da empresa se apagam. |
+| `/administracao/treino/rotulos/{rotulo_id}` | POST | `revisar` | [[nuvem.web]] | Aceita, corrige ou descarta um rótulo e volta à tela. |
+| `/administracao/treino/rotulos/{rotulo_id}/recorte` | GET | `recorte` | [[nuvem.web]] | A cópia do recorte de um rótulo. |
 | `/agendamentos` | GET | `tela_de_agendamentos` | [[nuvem.web]] | A lista do dia (ou da semana) de um site do gestor, com a planilha e os links. |
 | `/agendamentos/links` | POST | `gerar_link` | [[nuvem.web]] | Gera um link para uma transportadora e mostra o endereço, uma vez só. |
 | `/agendamentos/links/{link_id}/revogar` | POST | `revogar_link` | [[nuvem.web]] | Revoga um link: ele deixa de valer na hora. |

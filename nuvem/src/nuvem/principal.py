@@ -37,6 +37,7 @@ from nuvem.mensagens import rotas as webhook_do_whatsapp
 from nuvem.portaria import rotas as portaria
 from nuvem.prova.ancoras import guarda_da_configuracao
 from nuvem.senhas import Senhas
+from nuvem.treino.guarda import guarda_do_treino_da_configuracao
 from nuvem.web import agendamentos as tela_de_agendamentos
 from nuvem.web import agendar as tela_do_link
 from nuvem.web import alertas as tela_dos_alertas
@@ -53,6 +54,7 @@ from nuvem.web import prova as tela_da_prova
 from nuvem.web import resolucao as tela_de_resolucao
 from nuvem.web import rotas as web
 from nuvem.web import titular as tela_do_titular
+from nuvem.web import treino as tela_do_treino
 
 _registro = logging.getLogger(__name__)
 
@@ -90,6 +92,7 @@ def criar_app(configuracao: Configuracao | None = None, senhas: Senhas | None = 
     app.state.armazenamento = armazenamento_da_configuracao(configuracao, app.state.cifra)
     app.state.ancoras = guarda_da_configuracao(configuracao)
     app.state.guarda_fotos_dias = configuracao.guarda_fotos_dias
+    app.state.base_de_treino = guarda_do_treino_da_configuracao(configuracao)
     app.state.tique = configuracao.tique
     app.state.alertas_conferidos_em = None  # pelo tique (D-68)
     app.state.segredo_do_cron = (
@@ -141,6 +144,7 @@ def criar_app(configuracao: Configuracao | None = None, senhas: Senhas | None = 
     app.include_router(tela_dos_alertas.roteador_da_administracao)
     app.include_router(tela_da_prova.roteador)
     app.include_router(tela_do_titular.roteador)
+    app.include_router(tela_do_treino.roteador)
     tela_do_link.esconder_codigo_no_registro_de_acesso()
     app.mount("/estatico", StaticFiles(directory=PASTA_ESTATICA), name="estatico")
     return app
