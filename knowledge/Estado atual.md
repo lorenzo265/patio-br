@@ -111,7 +111,8 @@ dele.
 
 ## Mês 4: a versão do piloto ([[Plano do mês 4]])
 
-O plano está em rascunho, esperando a aprovação do Lorenzo. Nenhuma tarefa começou.
+O plano ([#52](https://github.com/lorenzo265/patio-br/pull/52)) está em rascunho, esperando a
+aprovação do Lorenzo. Nenhuma tarefa começou.
 
 | Tarefa | Situação |
 |---|---|
