@@ -1,7 +1,7 @@
 ---
 tipo: "tema"
 escrita: "à mão"
-atualizada: "2026-10-05"
+atualizada: "2026-10-06"
 tags: [tema]
 ---
 
@@ -20,7 +20,13 @@ Depois do check-in: a fila, a chamada para a doca, a carga ou descarga e os avis
 - **Hoje o canal é o de demonstração**, que só guarda: a tela em forma de celular mostra as
   mensagens, sem enviar nada ([[T43]]). **No mês 4**, o WhatsApp pela Cloud API oficial
   ([[D-12]]), com SMS de reserva, manda as mesmas mensagens, só com a autorização do motorista
-  ([[7.5 WhatsApp e SMS]], [[N1]]).
+  ([[7.5 WhatsApp e SMS]], [[N1]], [[T52]], [[T53]]).
+- **A autorização antes da primeira mensagem** ([[ABERTO-22]]): a política da Meta pede a
+  autorização de quem recebe, e o número vem da transportadora. A proposta do plano (F2): o
+  primeiro aviso por SMS, com um link que abre o WhatsApp com a mensagem pronta; a mensagem do
+  motorista é a autorização.
+- **Os alertas** (a estadia, a caixa e a câmera fora do ar, o motorista não avisado) vão para o
+  painel e, os graves, por mensagem ([[T57]]).
 
 ## Onde ler
 
@@ -28,4 +34,4 @@ Depois do check-in: a fila, a chamada para a doca, a carga ou descarga e os avis
   [[7.5 WhatsApp e SMS]].
 - Decisões: [[D-12]], [[D-47]].
 - Código: [[nuvem.patio]], [[nuvem.mensagens]], [[nuvem.web]].
-- Tarefas: [[T42]], [[T43]].
+- Tarefas: [[T42]], [[T43]], [[T52]], [[T53]], [[T57]].

@@ -1,7 +1,7 @@
 ---
 tipo: "mapa"
 escrita: "à mão"
-atualizada: "2026-10-05"
+atualizada: "2026-10-06"
 tags: [pendencias]
 ---
 
@@ -10,7 +10,7 @@ tags: [pendencias]
 O que só o Lorenzo pode fazer ou decidir. O código não resolve nenhum item em aberto sem passar
 por ele ([[0. Como usar este documento|SDD, seção 0]]).
 
-> [!info] Retrato de 05/10/2026
+> [!info] Retrato de 06/10/2026
 > A situação dos itens da trilha não técnica não fica registrada no repositório: confira e
 > atualize esta nota quando algum andar.
 
@@ -28,8 +28,23 @@ por ele ([[0. Como usar este documento|SDD, seção 0]]).
   - o acesso passa pelo cofre de segredos do ambiente, nunca pelo repositório;
   - o passo a passo, com as variáveis de ambiente: [[Guia da demonstração na internet]].
 - [ ] **Listar as empresas para apresentar** e marcar as conversas ([[N18]]).
-- [ ] **Juntar os PRs abertos:** o [#47](https://github.com/lorenzo265/patio-br/pull/47) (decisões
-  e prompt) e, depois dele, o deste vault.
+
+## Para o mês 4 (a versão do piloto)
+
+- [ ] **Aprovar o [[Plano do mês 4]]** e decidir as seis perguntas da seção 2 dele, cada uma com
+  a recomendação:
+  - F1: a produção na AWS, como na [[D-11]] (ou o Supabase Pro com uma máquina);
+  - F2: como o motorista autoriza o WhatsApp antes da primeira mensagem ([[ABERTO-22]]);
+  - F3: o fornecedor de SMS (Zenvia ou Twilio);
+  - F4: a verificação em duas etapas pelo app autenticador;
+  - F5: os erros e as quedas avisados pela própria AWS (ou pelo Sentry);
+  - F6: para quem vão os alertas, e por onde.
+- [ ] **Abrir as contas do mês:** o número do WhatsApp e os modelos de mensagem ([[N19]], depois
+  da verificação da [[N1]]), o SMS ([[N20]]), a AWS e o domínio ([[N21]]) e o Tailscale e uma
+  caixa de teste ([[N23]]).
+- [ ] **Levar ao advogado** a autorização do motorista, o SMS, os prazos de guarda, a cláusula do
+  treino e o contrato do piloto ([[N22]]).
+- [ ] **Fechar o piloto pago:** o cliente, o site, o preço e a data da instalação ([[N24]]).
 
 ## Com o advogado
 

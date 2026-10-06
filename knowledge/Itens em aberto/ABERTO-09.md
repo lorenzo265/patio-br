@@ -21,9 +21,12 @@ tags: [item-em-aberto]
 - [[5.1 Entidades]]
 - [[5.2 Estados da visita]]
 - [[5.3 Casamento da chegada com o agendamento]]
+- [[N24]]
 - [[nuvem]]
 - [[nuvem.patio]]
 - [[nuvem.portaria]]
+- [[Plano do mês 4]]
+- [[T57]]
 
 ---
 

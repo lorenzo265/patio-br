@@ -1,7 +1,7 @@
 # SDD — patio-br (nome provisório)
 
 **Documento de desenho do software (SDD) do MVP do piloto**
-Versão 0.40 · 2026-10-05 · Situação: aprovado como base; itens em aberto na seção 12
+Versão 0.41 · 2026-10-06 · Situação: aprovado como base; itens em aberto na seção 12
 
 ---
 
@@ -108,7 +108,9 @@ Os critérios vêm do "Test Card" da validação (`docs/validacao/relatorio-vali
    janela, placas esperadas (cavalo e reboques), motorista e celular, tipo (carga ou descarga),
    toneladas e, se houver, a chave da NF-e.
 2. **Confirmação.** O motorista recebe um WhatsApp para confirmar; ao responder, autoriza
-   receber as próximas mensagens.
+   receber as próximas mensagens. A política da Meta pede a autorização antes da primeira
+   mensagem, e o número vem da transportadora ou da planilha: como colher essa autorização é o
+   `[ABERTO-22]`.
 3. **Chegada.** A câmera lê as placas; a caixa de borda monta a composição; a nuvem casa com o
    agendamento. Se casar, o **check-in é automático**: a hora de chegada fica registrada como
    prova e o motorista recebe "você está na fila, posição X". Se ficar em dúvida ou não houver
@@ -789,8 +791,11 @@ Serve para desenvolver sem câmera, para os testes de ponta a ponta e para simul
   da empresa e modelos de mensagem aprovados. Respostas chegam por webhook na nossa API.
   Bibliotecas não oficiais (Baileys, whatsapp-web.js) **não** são usadas: violam os termos do
   WhatsApp.
+- **Autorização:** a política da Meta só deixa a empresa começar a conversa com quem deu o
+  número **e** autorizou receber as mensagens dela (conferida em 2026-10-06, em
+  `docs/validacao/fatos-tecnicos-stack.md`). Como o motorista autoriza é o `[ABERTO-22]`.
 - **Limite inicial da Meta:** 250 destinatários únicos por 24h; sobe para 2.000 após
-  verificação.
+  verificação. O limite é do portfólio da empresa na Meta, dividido entre os números dele.
 - **SMS de reserva:** Zenvia ou Twilio.
 
 ### 7.6 Custos de operação (piloto, 1 site; preços de 2026-09-29)
@@ -925,7 +930,7 @@ folga.
 | 1. Out | repositório, CI, Docker local, `contratos/`, esqueleto da nuvem (cadastro, login, empresas), simulador básico; kit de bancada com leitor v0 em vídeo gravado | pedir verificação da empresa na Meta; conta AWS; modelo de contrato e acordo LGPD; começar 15–25 conversas; achar o site parceiro; comprar hardware | vídeo gravado → passagem → aparece no painel |
 | 2. Nov | kit gravando no site parceiro; rotular 3–5 mil placas; treinar detector e OCR v1; régua fixa; agendamento (link + planilha) e casamento | conversas; oferta de piloto anual pré-pago | **teste técnico: nosso leitor × comercial** |
 | 3. Dez | **demonstração comercial na internet** (D-45): visual próprio; portaria e pátio definitivos; painel e extrato em R$; mensagens do motorista simuladas; visão do recebimento e do estoque; link de demonstração por empresa | apresentar às empresas | **demonstração no ar** |
-| 4. Jan | WhatsApp e SMS; trilha de prova completa; alertas; base de treino; caixa de borda com saúde, atualização e contêiner; frota de borda; produção na AWS com backups e monitoramento | fechar o piloto pago | versão do piloto em homologação |
+| 4. Jan | produção na AWS com backups e monitoramento; verificação em duas etapas; WhatsApp e SMS; alertas; caixa de borda com saúde, atualização e contêiner; frota de borda; trilha de prova completa; prazos de guarda; base de treino e placas sintéticas; API e webhooks (se o cliente pedir) | fechar o piloto pago; contas da Meta, do SMS e da AWS; advogado | versão do piloto em homologação |
 | 5. Fev | 6 câmeras e caixa definitiva no site; modo sombra 2–4 semanas; ajustes e retreino | linha de base do extrato | acerto real medido |
 | 6. Mar | check-in automático ligado; WhatsApp ativo; primeiro extrato real | apresentar o extrato | **decisão seguir / iterar / parar** (até 31/03/2027) |
 
@@ -933,6 +938,11 @@ folga.
 completo antes de levá-lo ao site. A gravação e o teste técnico saem do mês 2, e as primeiras
 placas vêm de outra fonte (`[ABERTO-18]`). Na mesma data, o mês 3 virou a demonstração
 comercial na internet (D-45, `docs/planos/2026-12-plano-mes-3.md`).
+
+**Plano do mês 4 (06/10):** a versão do piloto, em `docs/planos/2027-01-plano-mes-4.md`, com
+as decisões F1 a F6 para o Lorenzo. Além do que o cronograma já previa, o mês traz a
+verificação em duas etapas (seção 8.2), os prazos de guarda (seção 8.3), as placas sintéticas
+(D-44) e a API com os webhooks do MVP (seção 2.3).
 
 **Depois de março:** se a decisão for seguir, começa o desenho do recebimento, do estoque e
 do cuidado de cargas (D-43).
@@ -1036,6 +1046,7 @@ do cuidado de cargas (D-43).
 | ABERTO-18 | Placas reais para o leitor, com o site parceiro adiado (seção 4.6). O treino começa com placas sintéticas e bases abertas (D-44). Falta decidir: a régua fixa com cerca de 1.000 placas reais (proposta: fotografar a frota própria parada de transportadoras e locadoras, com carta de autorização) e a coleta própria para treinar (proposta: gravar em 1 a 3 portões de conhecidos, com o sim do advogado) (`docs/validacao/fontes-de-placas.md`) | com o Lorenzo e o advogado, antes da régua e do treino com placas reais |
 | ABERTO-19 | Recebimento: de onde vêm os itens da NF-e (o XML que o fornecedor manda, o certificado digital do cliente ou outro caminho) e como o resultado volta ao sistema do cliente (`docs/validacao/recebimento-e-estoque.md`) | no desenho do módulo, depois do piloto aprovado |
 | ABERTO-20 | Estoque e cuidado de cargas: estoque próprio (endereços, saldo, busca, visão 3D) ou ligado ao sistema do cliente; o que entra em "cuidado de cargas e controle de entregas" e se inclui a conferência de carga e lacre da Fase 3 | no desenho dos módulos, depois do piloto aprovado |
+| ABERTO-22 | Como o motorista autoriza o WhatsApp antes da primeira mensagem: a política da Meta pede a autorização de quem recebe, e o número vem da transportadora ou da planilha do cliente (seções 2.2 e 7.5). Proposta: o primeiro aviso vai por SMS, com um link que abre o WhatsApp com a mensagem pronta, e a mensagem do motorista é a autorização; um QR na placa de aviso da portaria faz o mesmo; "SAIR" cancela; quem não autoriza recebe por SMS (plano do mês 4, F2) | com o Lorenzo e o advogado, antes do WhatsApp de verdade (T52) |
 
 ---
 
@@ -1118,3 +1129,4 @@ do cuidado de cargas (D-43).
 | 0.38 | 2026-10-05 | link de demonstração por empresa (T48): a entidade `LinkDemonstracao`, a página do link, a faixa que troca de papel, o histórico completado a cada entrada e a empresa vencida apagada inteira, com a exceção da prova só para ela (D-54) (seções 5.1, 5.5, 6.2, 8.2 e 11) |
 | 0.39 | 2026-10-05 | segurança antes da internet (T47, parte 1): limite de login por endereço IP, código anti-CSRF tirado da sessão (D-55) e o comando para criar a administração (seções 8.2 e 11) |
 | 0.40 | 2026-10-05 | a demonstração na Vercel, por dentro (T47, parte 2): fotos pela API S3 com o boto3, o tique, o cron diário, a API da caixa fechada no ambiente `demonstracao` e o banco pelo pooler do Supabase com SSL (D-56) (seções 6.1 e 11) |
+| 0.41 | 2026-10-06 | plano do mês 4 criado, a versão do piloto (`docs/planos/2027-01-plano-mes-4.md`): o cronograma do mês 4 com a verificação em duas etapas, os prazos de guarda, as placas sintéticas e a API com os webhooks; novo `[ABERTO-22]`, a autorização do motorista para o WhatsApp antes da primeira mensagem (seções 2.2, 7.5, 10 e 12); os fatos do WhatsApp e do SMS conferidos em 06/10 |
