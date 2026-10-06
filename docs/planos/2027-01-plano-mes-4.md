@@ -170,6 +170,17 @@ de verdade (os itens "Verificar") espera a conta da AWS e o domínio (N21).
 - um erro de propósito chega por e-mail;
 - a restauração de teste passa.
 
+*Detalhado na execução (D-74):* quem faz a cópia diária e a restauração de teste é o **worker**,
+e não um agendador da máquina: ele já roda sempre e é vigiado pelo `/saude`, então nenhuma
+falha fica sem alarme. A restauração de teste volta a cópia num banco temporário no **mesmo
+servidor** (`patio_restauracao_...`, apagado no fim), e não num contêiner à parte; o usuário do
+banco precisa poder criar banco (`CREATEDB`, no guia). A guarda de 30 dias das cópias também é do
+worker (como a das fotos, D-70), e não uma regra do balde; a mais nova nunca é apagada. As
+contagens conferidas são as das tabelas só de acréscimo (SDD 5.5). O `/saude` verificado de fora
+é a cada 30 segundos, com duas falhas seguidas. O registro e os alarmes ficam em dois modelos do
+CloudFormation (`infra/producao/aws/`), porque o Route 53 e o gasto só são medidos na
+`us-east-1`. A conferência de verdade (os itens "Verificar") espera a conta da AWS (N21).
+
 **Commit:** `infra: cópias, restauração testada e alarmes`
 
 #### T51. Verificação em duas etapas

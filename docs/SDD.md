@@ -1,7 +1,7 @@
 # SDD — patio-br (nome provisório)
 
 **Documento de desenho do software (SDD) do MVP do piloto**
-Versão 0.54 · 2026-10-06 · Situação: aprovado como base; itens em aberto na seção 12
+Versão 0.55 · 2026-10-06 · Situação: aprovado como base; itens em aberto na seção 12
 
 ---
 
@@ -490,6 +490,8 @@ acadêmico (`docs/validacao/fontes-de-placas.md`). Por isso:
 | `FotoApagada` | passagem, o número da foto, o `ref`, por quê (o prazo de guarda), quando — **só se acrescenta**; o resumo da foto continua em `FotoRecebida` (D-70) |
 | `MarcaDeDisputa` | visita, marcar ou desmarcar, o motivo, quem, quando — **só se acrescenta**; vale a última (D-70) |
 | `AncoraDoDia` | o dia, onde está o arquivo, o resumo do arquivo, quantas visitas, se está travado, gravada em — da plataforma, uma por dia (D-69) |
+| `CopiaDoBanco` | o nome do arquivo, feita em, o tamanho, o resumo, a migração do banco, as contagens das tabelas só de acréscimo e o último evento (contados antes de a cópia começar), apagada em — da plataforma (D-74) |
+| `RestauracaoDeTeste` | a cópia, feita em, se passou, o que não conferiu — da plataforma (D-74) |
 | `MensagemRecebida` | de (o celular), texto, id no WhatsApp, recebida em, a empresa (quando o texto diz), o que se fez (autorizou, saiu ou ignorada) — da plataforma, como a fila de tarefas (D-63) |
 | `ParametrosSite` | custo mensal de um ponto de portaria, postos antes/depois, valor da estadia (R$/t·h), franquia (h), custo hora-doca (opcional); a tolerância de janela e as horas para o alerta continuam fixas no código até o `[ABERTO-09]` |
 | `LinhaDeBase` | site, origem (exemplo, na demonstração; modo sombra, no piloto), período, as mesmas medidas do extrato (D-48) |
@@ -666,7 +668,8 @@ até 10 min), até 8 tentativas; depois, fica como falhou, com o erro, para o su
 minutos, o worker confere o "não veio" (seção 5.2), um worker de cada vez; a cada minuto, os
 alertas (seção 8.1, D-68) e sela a prova do que chegou (seção 5.5, D-69); uma vez por dia, grava
 a âncora do dia anterior; a cada hora, apaga as fotos vencidas pelo prazo de guarda (seção 8.3,
-D-70).
+D-70). Uma vez por dia, faz a cópia do banco, e uma vez por mês, a restauração de teste (seção
+7.2, D-74). A cada 30 segundos, marca a hora (a **batida**), que o `/saude` confere.
 
 **Sem worker, na demonstração na Vercel** (D-51 e D-56): com `PATIO_TIQUE`, cada tela que se
 atualiza sozinha (portaria, pátio, mensagens e o dia de demonstração) roda antes um
@@ -774,6 +777,21 @@ Serve para desenvolver sem câmera, para os testes de ponta a ponta e para simul
   minuto dos últimos 7 dias. Cópia diária extra no S3, guardada 30 dias. Restauração testada
   todo mês.
 - **S3** para fotos (US$ 0,04/GB-mês), com expiração automática conforme a seção 8.3.
+
+Por dentro (D-74): a cópia diária é do **worker**, depois das 3h de Brasília. O `pg_dump` vai
+direto para um balde S3 só das cópias, sem passar pelo disco. Antes de a cópia começar, o worker
+anota a migração do banco, quantas linhas tem cada tabela só de acréscimo e o último evento; ao
+terminar, anota o resumo e o tamanho do arquivo. As cópias de mais de 30 dias são apagadas, menos
+a mais nova. No dia 1º de cada mês, depois das 4h, o worker volta a última cópia num banco
+temporário, no mesmo servidor (`patio_restauracao_...`), e confere:
+
+- o resumo do arquivo;
+- a migração;
+- cada contagem e o último evento, que precisam ser pelo menos os anotados.
+
+Depois, apaga o banco temporário. O resultado fica registrado. Se falhar, vira um erro (e um
+alarme, seção 8.1), e o worker tenta de novo no dia seguinte. A cópia nunca sai da AWS. A
+homologação faz o mesmo, com o balde dela.
 - Motivo da AWS: mais documentação. O código não depende dela (Magalu Cloud é alternativa
   mais barata, em reais).
 
@@ -979,6 +997,24 @@ etiqueta `nuvem-v<versão>` vai para a produção só com a aprovação do Loren
 | WhatsApp não chega | SMS; se falhar, o painel mostra "motorista não avisado" |
 | Relógio da caixa errado | NTP; diferença acima de 2 s gera alerta |
 | Erro no código | sempre registrado e alertado; nunca ignorado (pela própria AWS, D-61) |
+
+**Os erros e as quedas por dentro** (D-61 e D-74):
+
+- **O registro:** na homologação e na produção, cada registro é uma linha JSON (o erro, com o
+  rastro, numa linha só). O Docker manda tudo ao CloudWatch, que guarda por 30 dias.
+- **Sem dado pessoal:** o código registra só os ids. Um filtro troca o que parecer placa ou
+  telefone por `[placa]` e `[telefone]`, na mensagem e no erro. O banco não põe os valores das
+  consultas nas mensagens de erro.
+- **Os alarmes:** cada registro de erro conta, e um erro num minuto manda um e-mail. Também mandam
+  e-mail:
+  - o `/saude` falhando duas vezes seguidas na verificação de fora, feita pelo Route 53 a cada 30
+    segundos;
+  - o gasto do mês passando do valor combinado.
+- **O `/saude`:** na homologação e na produção, ele também falha se a batida do worker passar de
+  2 minutos.
+- **O que está no repositório:** os alarmes estão em dois modelos do CloudFormation, em
+  `infra/producao/aws/`. Um é de São Paulo (o registro e o alarme de erro). O outro é da região
+  `us-east-1`, onde a AWS mede a verificação de fora e o gasto.
 
 **Os alertas** (D-62 e D-68):
 
@@ -1272,6 +1308,7 @@ do cuidado de cargas (D-43).
 | D-70 | **A guarda e o pedido do titular por dentro** (T59): os prazos ficam como parâmetros até o `[ABERTO-04]` (fotos 90 dias, `PATIO_GUARDA_FOTOS_DIAS`); a cada hora, o worker apaga o arquivo das fotos das passagens vencidas, menos as de visita com exceção aberta ou em disputa, e grava a foto apagada, que entra na cadeia (a conferência aceita a foto que sumiu se ela foi apagada pela guarda); a disputa é uma marca só de acréscimo, à parte dos eventos, que o gestor põe e tira na página da prova; o apagar das visitas e da trilha (5 anos) fica para antes de 2031; a guarda do registro de erros (30 dias) é a do CloudWatch; o pedido do titular é uma tela da administração, por empresa, com a placa ou o celular no corpo do pedido | a foto é o dado mais sensível que guardamos e o que mais pesa no armazenamento; a prova de uma disputa não pode sumir no meio dela; o resumo prova a foto que existiu sem guardar a foto; a visita encerrada não aceita evento novo, e a disputa quase sempre vem depois de o caminhão sair; nenhum dado do piloto chega a 5 anos antes de 2031; o endereço do pedido fica no registro de acesso, e a placa e o celular não podem ir para lá | apagar a passagem inteira (perde a prova do horário); a disputa como evento da visita (só serve com a visita aberta); o pedido do titular como comando de terminal (precisaria da senha do banco de produção) |
 | D-71 | **A base de treino por dentro** (T60): a administração registra a data da cláusula do contrato de cada empresa (a empresa de demonstração não entra); a cada hora, o worker transforma as conferências do porteiro feitas desde aquela data em rótulos a revisar e copia o recorte para a base de treino (uma pasta à parte no armazenamento, fora da guarda das fotos); 1 em cada 10 rótulos vai para a régua, pelo resumo da passagem e da foto, e o conjunto fica gravado e não muda; a tela de rotulagem aceita, corrige ou descarta, e só os aceitos e os corrigidos vão para o treino; o comando `tarefas treino` monta a pasta para o ambiente de treino (D-40): os recortes e um CSV por conjunto; revogar a autorização apaga os rótulos e os recortes daquela empresa | o recorte precisa durar mais que os 90 dias da foto, e a cópia só existe com o contrato; o sorteio pelo resumo é repetível e não depende da ordem em que as conferências chegam; a régua não pode receber nada do treino (seção 4.7); a pasta é o que o ambiente de treino lê, sem acesso ao banco | guardar só a referência à foto (some aos 90 dias); escolher a régua à mão (lento e enviesado); mandar direto para o Label Studio (fica para o `[ABERTO-18]`) |
 | D-72 | **O gerador de placas sintéticas por dentro** (T39): as placas de carro e caminhão (400 × 130 mm), Mercosul (fundo branco, faixa azul com "BRASIL" e a cor dos caracteres pela categoria: particular, comercial, oficial, especial, colecionador e diplomática) e antigas (cinza ou vermelha, com o hífen e a faixa da cidade), sempre com o texto no formato válido (seção 4.2); as letras são uma fonte de traços desenhada por nós, e o gerador aceita uma fonte TTF de licença permissiva ou OFL no lugar; as variações imitam o recorte da câmera (perspectiva, borrão, luz, sujeira, um pedaço coberto, a compressão do JPEG e o tamanho); a mesma semente gera as mesmas imagens; as imagens vão para `dados/sinteticas` (fora do Git), com um CSV dos rótulos; a base Artificial Mercosur leva o crédito em `ml/CREDITOS.md`; só Pillow e numpy | a fonte oficial da placa Mercosul e a Mandatory, da placa cinza, não têm licença que sirva; a fonte nossa não depende de baixar nada e não tem licença a conferir; o leitor aprende o formato com as variações, e não com o desenho exato da letra; Pillow e numpy já estão no projeto, e o OpenCV não acrescenta nada aqui | a GL-Nummernschild (licença M+, permissiva, mas um arquivo de fora a mais a conferir e guardar); as fontes de sistema (licença de cada máquina); a placa de moto (o pátio é de caminhões) |
+| D-74 | **As cópias, a restauração testada e os alarmes por dentro** (T50): o worker faz a cópia diária do banco (`pg_dump`, direto para um balde S3 só das cópias, sem disco), depois das 3h de Brasília, anotando antes de começar a migração, as contagens das tabelas só de acréscimo e o último evento, e, depois, o resumo e o tamanho; apaga as de mais de 30 dias, menos a mais nova; todo dia 1º, depois das 4h, volta a última cópia num banco temporário no mesmo servidor, confere o resumo, a migração e se as contagens e o último evento são pelo menos os anotados, e apaga o banco temporário; o worker marca a batida a cada 30 s, e o `/saude` da homologação e da produção falha se ela passar de 2 minutos; o registro é uma linha JSON por registro, com placas e telefones trocados por um filtro, e o motor do banco não põe os valores das consultas nos erros; o Docker manda o registro ao CloudWatch (30 dias); os alarmes (erro, `/saude` de fora pelo Route 53 e gasto) ficam em dois modelos do CloudFormation; a imagem da nuvem leva o cliente do PostgreSQL da mesma versão do servidor (16) | o worker já roda sempre e é vigiado pelo `/saude`: se a cópia ou a restauração falham, o erro vira alarme, e se o worker para, a verificação de fora toca; nada depende de um agendador na máquina que ninguém vigia; o banco temporário no mesmo servidor dispensa outra máquina, e a cópia não sai da AWS; contar antes de copiar faz o "pelo menos" valer com a nuvem gravando no meio; com o banco do piloto, a cópia e a restauração levam segundos; o `pg_dump` é o jeito padrão e serve a outra nuvem (seção 7.2); uma linha por registro deixa o CloudWatch achar os erros pelo nível, e o filtro é a segunda barreira (a primeira é registrar só ids); a verificação do Route 53 e o gasto só são medidos na `us-east-1` | um agendador da máquina (systemd ou cron) chamando a cópia num contêiner à parte (sem vigia); o AWS Backup, com o teste de restauração dele (só serve ao RDS, e não à homologação nem a outra nuvem); a restauração num contêiner temporário (pediria comandar o Docker de dentro da nuvem); uma cópia num formato nosso, tabela por tabela (dispensaria o `pg_dump` na imagem, mas a volta dependeria do nosso código); o registro em texto (um erro de várias linhas viraria vários registros) |
 | D-73 | **A produção e a homologação por dentro** (T49): a imagem `patio-nuvem` no registro do GitHub, com o resumo do commit como versão; o compose de `infra/producao/` com as migrações num serviço que roda uma vez e termina antes de a API subir, a API, o worker e o Caddy (só ele com portas abertas); a homologação usa o mesmo compose com o PostgreSQL num contêiner (um perfil a mais); o deploy pela Tailscale SSH, com a etiqueta do GitHub Actions na rede da Tailscale; a etiqueta `nuvem-v*` vai para a produção pelo ambiente "producao" do GitHub, que pede a aprovação; os segredos num `.env` da máquina, só do dono | a mesma imagem e o mesmo compose nos dois ambientes; a migração antes da API, e não dentro dela, não deixa duas réplicas migrarem juntas; a Tailscale SSH não precisa de chave guardada nem de porta aberta (D-13); a aprovação do ambiente é do próprio GitHub, sem ferramenta a mais | migrar dentro da API ao subir; a chave SSH nos segredos do GitHub com a porta 22 aberta; um orquestrador (Kubernetes, ECS) para duas máquinas |
 
 ---
@@ -1334,6 +1371,10 @@ do cuidado de cargas (D-43).
 | **Cadeia de resumos** | uma lista em que cada item leva o resumo do anterior: mudar um item do meio muda o resumo dele e quebra a ligação com o seguinte |
 | **Âncora (da prova)** | o arquivo do dia com o último resumo de cada visita, guardado fora do banco e travado: serve para provar que a cadeia não foi refeita depois |
 | **Object Lock** | a trava do S3 que impede apagar ou trocar um arquivo até a data marcada; no modo de conformidade, nem o dono da conta consegue tirar a trava |
+| **Cópia do banco (`pg_dump`)** | o banco inteiro num arquivo, feito pelo programa do próprio PostgreSQL, de onde se volta o banco como ele estava |
+| **Restauração de teste** | voltar uma cópia num banco à parte, só para conferir que ela serve, e apagá-lo depois |
+| **Batida (do worker)** | a hora que o worker marca a cada volta; parada, quer dizer que ele parou ou travou |
+| **CloudWatch** | o serviço da AWS que guarda os registros e dispara os alarmes (por e-mail) |
 | **Registro de imagens** | o lugar na internet de onde a caixa baixa as imagens dos contêineres; cada imagem tem um resumo, que o Docker confere ao baixar |
 
 ---
@@ -1396,3 +1437,4 @@ do cuidado de cargas (D-43).
 | 0.52 | 2026-10-06 | a base de treino por dentro (T60): a autorização do contrato, o rótulo que nasce da conferência com a cópia do recorte, a régua sorteada pelo resumo, a rotulagem, a exportação e o apagar ao revogar (D-71); a entidade `AutorizacaoDeTreino` (seções 3.3, 5.1, 6.2, 8.3 e 11) |
 | 0.53 | 2026-10-06 | o gerador de placas sintéticas por dentro (T39): os tipos, as cores e as proporções, a fonte de traços nossa, as variações do recorte, a semente e o crédito da Artificial Mercosur (D-72; seção 11) |
 | 0.54 | 2026-10-06 | a produção e a homologação por dentro (T49): a imagem da nuvem, o compose das máquinas com as migrações antes da API, o deploy pela Tailscale SSH e a aprovação da produção no GitHub (D-73; seções 7.3 e 11) |
+| 0.55 | 2026-10-06 | as cópias, a restauração testada e os alarmes por dentro (T50): a cópia diária e a restauração de teste mensal pelo worker, a batida do worker no `/saude`, o registro em JSON sem placa nem telefone, e os alarmes no CloudFormation (D-74); as entidades `CopiaDoBanco` e `RestauracaoDeTeste` (seções 5.1, 6.1, 7.2, 8.1, 11 e 13) |
