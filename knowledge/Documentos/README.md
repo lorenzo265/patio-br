@@ -143,12 +143,17 @@ uv run caixa rodar                                       # até Ctrl+C ou o sina
 ```
 
 O código de ativação é gerado pela administração para o site (vale 24 horas, uso único). A
-chave fica em `dados/caixa/caixa.json` e a fila em `dados/caixa/fila.sqlite`, fora do Git.
+chave fica em `dados/caixa/caixa.json`, a última configuração em `dados/caixa/configuracao.json`
+(com ela, a caixa começa sem a nuvem) e a fila em `dados/caixa/fila.sqlite`, fora do Git.
 Detalhes no [[7.4 A caixa de borda|SDD, seção 7.4]].
 
+No site, a caixa roda em contêineres (o agente e o go2rtc, em `infra/caixa/`), num Ubuntu com o
+disco cifrado: o passo a passo está em [[Guia de preparação da caixa de borda|docs/guias/preparar-a-caixa.md]].
+
 A CI (`.github/workflows/ci.yml`) roda em cada PR e na `main`: o mesmo `tarefas check` (com o
-banco de testes), a checagem de licenças das dependências, a de falhas de segurança conhecidas
-e o `tarefas up` com a API construída, as migrações aplicadas e o `/saude` respondendo.
+banco de testes), a checagem de licenças das dependências, a de falhas de segurança conhecidas,
+o `tarefas up` com a API construída, as migrações aplicadas e o `/saude` respondendo, e a
+montagem das duas imagens da caixa, com o go2rtc no ar recebendo uma câmera.
 
 O repositório é um workspace `uv` com cinco pacotes: `contratos/`, `borda/`, `nuvem/`,
 `ferramentas/` e `ml/` (ver [[SDD|docs/SDD.md]], seção 6.3).
