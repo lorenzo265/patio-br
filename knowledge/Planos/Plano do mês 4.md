@@ -10,7 +10,7 @@ tags: [plano]
 # Plano do mês 4: a versão do piloto
 
 Plano de implementação do mês 4 do cronograma do SDD ([[SDD|docs/SDD.md]], seção 10).
-Versão 1 · 2026-10-06 · **Rascunho para aprovação do Lorenzo**
+Versão 2 · 2026-10-06 · **Aprovado pelo Lorenzo em 06/10, com as recomendações**
 
 ---
 
@@ -67,14 +67,14 @@ fica vazia até o contrato e o acordo de tratamento de dados do piloto estarem a
 
 ## 2. Antes de começar: decisões do Lorenzo
 
-| # | Decisão | Trava | Recomendação |
-|---|---|---|---|
-| F1 | **Onde roda a produção.** O SDD escolheu a AWS ([[D-11]]). A demonstração foi para a Vercel e o Supabase ([[D-51]]), mas o piloto é diferente. | [[T49]] e [[T50]] | **Manter a AWS da [[D-11]]**, em São Paulo: Lightsail 4 GB (API, worker e Caddy), RDS PostgreSQL e S3 para as fotos. A homologação fica numa Lightsail 2 GB, com o PostgreSQL num contêiner e um balde S3 próprio. Os preços estão no [[Validação - fatos técnicos da stack\|docs/validacao/fatos-tecnicos-stack.md]]. O motivo: o piloto precisa do worker rodando sempre (o check-in e o aviso ao motorista na hora, sem esperar alguém abrir uma tela), da API da caixa ligada e de voltar o banco a qualquer minuto dos últimos 7 dias. A alternativa é o Supabase Pro para o banco e as fotos, mais uma máquina para a API e o worker: uma conta a menos, mas voltar a qualquer minuto é um adicional pago. |
-| F2 | **Como o motorista autoriza o WhatsApp** ([[ABERTO-22]]). A política da Meta só deixa a empresa começar a conversa com quem autorizou receber as mensagens dela. O número do motorista vem da transportadora ou da planilha, e o [[2.2 A jornada de um caminhão (modo A)\|SDD 2.2]] manda o primeiro WhatsApp antes dessa autorização. | [[T52]] e [[T53]] | **O motorista começa a conversa.** O primeiro aviso vai por SMS, com um link que abre o WhatsApp com a mensagem pronta. Quando o motorista manda, isso é a autorização, e a conversa no WhatsApp fica aberta. Um QR na placa de aviso da portaria faz o mesmo para quem chega sem ter autorizado. "SAIR" cancela na hora. Quem não autoriza recebe os avisos por SMS. A alternativa: a transportadora declara, no link e na planilha, que o motorista autorizou, e o primeiro WhatsApp vai direto. É mais simples e mais barato, mas a autorização vem de outra pessoa, e uma denúncia de "spam" baixa a qualidade do número na Meta e o limite de envio. Levar ao advogado ([[N22]]). |
-| F3 | **Qual fornecedor de SMS** (o [[7.5 WhatsApp e SMS\|SDD 7.5]] deixa a Zenvia ou a Twilio). | [[T53]] | **Pedir o orçamento da Zenvia** e comparar com a Twilio (US$ 0,0599 por SMS ao Brasil). Ficar com a Zenvia se o preço em reais for menor: ela cobra em reais, com nota, e tem suporte no Brasil. As duas entram pela mesma interface, então trocar depois é escrever outra classe. |
-| F4 | **Como funciona a verificação em duas etapas** ([[8.2 Segurança\|SDD 8.2]], para o gestor e a administração). | [[T51]] | **App autenticador** (Google Authenticator, Microsoft Authenticator e outros): o código de 6 números que muda a cada 30 segundos, mais 10 códigos de recuperação. Não depende de serviço de fora e funciona sem sinal de celular. As alternativas: código por e-mail, que precisa de um serviço de e-mail, ou por SMS, que custa e cai com a troca de chip. O porteiro e o líder de pátio continuam sem ela: usam o tablet da portaria, com o PIN. |
-| F5 | **Como os erros e as quedas chegam até nós** ([[8.1 Falhas\|SDD 8.1]]: "erro no código: sempre registrado e alertado"). | [[T50]] | **Tudo dentro da AWS:** o registro de erros no CloudWatch, um alarme para cada erro e a verificação do `/saude` a cada minuto pelo Route 53, com aviso por e-mail. Custa menos de US$ 5 por mês, e nenhum dado sai da nossa nuvem. A alternativa é o Sentry: lê melhor os erros, mas é mais um fornecedor recebendo dados, o que pede um acordo LGPD com ele. |
-| F6 | **Para quem vão os alertas, e por onde.** | [[T57]] | **No painel, sempre:** um sino com os alertas abertos do site, em todas as telas. **Por WhatsApp ao gestor que autorizar, só os graves:** a caixa ou uma câmera fora do ar, e a estadia que passou das 5 horas. **Para a administração (nós):** a caixa e a câmera fora do ar, e os erros. A alternativa é o e-mail, que precisa de um serviço de e-mail e é lido mais tarde. |
+| # | Decisão | Trava | Recomendação | Decidido em 06/10 |
+|---|---|---|---|---|
+| F1 | **Onde roda a produção.** O SDD escolheu a AWS ([[D-11]]). A demonstração foi para a Vercel e o Supabase ([[D-51]]), mas o piloto é diferente. | [[T49]] e [[T50]] | **Manter a AWS da [[D-11]]**, em São Paulo: Lightsail 4 GB (API, worker e Caddy), RDS PostgreSQL e S3 para as fotos. A homologação fica numa Lightsail 2 GB, com o PostgreSQL num contêiner e um balde S3 próprio. Os preços estão no [[Validação - fatos técnicos da stack\|docs/validacao/fatos-tecnicos-stack.md]]. O motivo: o piloto precisa do worker rodando sempre (o check-in e o aviso ao motorista na hora, sem esperar alguém abrir uma tela), da API da caixa ligada e de voltar o banco a qualquer minuto dos últimos 7 dias. A alternativa é o Supabase Pro para o banco e as fotos, mais uma máquina para a API e o worker: uma conta a menos, mas voltar a qualquer minuto é um adicional pago. | **a recomendação** ([[D-57]]) |
+| F2 | **Como o motorista autoriza o WhatsApp** ([[ABERTO-22]]). A política da Meta só deixa a empresa começar a conversa com quem autorizou receber as mensagens dela. O número do motorista vem da transportadora ou da planilha, e o [[2.2 A jornada de um caminhão (modo A)\|SDD 2.2]] manda o primeiro WhatsApp antes dessa autorização. | [[T52]] e [[T53]] | **O motorista começa a conversa.** O primeiro aviso vai por SMS, com um link que abre o WhatsApp com a mensagem pronta. Quando o motorista manda, isso é a autorização, e a conversa no WhatsApp fica aberta. Um QR na placa de aviso da portaria faz o mesmo para quem chega sem ter autorizado. "SAIR" cancela na hora. Quem não autoriza recebe os avisos por SMS. A alternativa: a transportadora declara, no link e na planilha, que o motorista autorizou, e o primeiro WhatsApp vai direto. É mais simples e mais barato, mas a autorização vem de outra pessoa, e uma denúncia de "spam" baixa a qualidade do número na Meta e o limite de envio. Levar ao advogado ([[N22]]). | **a recomendação** ([[D-58]], fecha o [[ABERTO-22]]; o advogado confere antes do primeiro motorista de verdade) |
+| F3 | **Qual fornecedor de SMS** (o [[7.5 WhatsApp e SMS\|SDD 7.5]] deixa a Zenvia ou a Twilio). | [[T53]] | **Pedir o orçamento da Zenvia** e comparar com a Twilio (US$ 0,0599 por SMS ao Brasil). Ficar com a Zenvia se o preço em reais for menor: ela cobra em reais, com nota, e tem suporte no Brasil. As duas entram pela mesma interface, então trocar depois é escrever outra classe. | **a recomendação** ([[D-59]]) |
+| F4 | **Como funciona a verificação em duas etapas** ([[8.2 Segurança\|SDD 8.2]], para o gestor e a administração). | [[T51]] | **App autenticador** (Google Authenticator, Microsoft Authenticator e outros): o código de 6 números que muda a cada 30 segundos, mais 10 códigos de recuperação. Não depende de serviço de fora e funciona sem sinal de celular. As alternativas: código por e-mail, que precisa de um serviço de e-mail, ou por SMS, que custa e cai com a troca de chip. O porteiro e o líder de pátio continuam sem ela: usam o tablet da portaria, com o PIN. | **a recomendação** ([[D-60]]) |
+| F5 | **Como os erros e as quedas chegam até nós** ([[8.1 Falhas\|SDD 8.1]]: "erro no código: sempre registrado e alertado"). | [[T50]] | **Tudo dentro da AWS:** o registro de erros no CloudWatch, um alarme para cada erro e a verificação do `/saude` a cada minuto pelo Route 53, com aviso por e-mail. Custa menos de US$ 5 por mês, e nenhum dado sai da nossa nuvem. A alternativa é o Sentry: lê melhor os erros, mas é mais um fornecedor recebendo dados, o que pede um acordo LGPD com ele. | **a recomendação** ([[D-61]]) |
+| F6 | **Para quem vão os alertas, e por onde.** | [[T57]] | **No painel, sempre:** um sino com os alertas abertos do site, em todas as telas. **Por WhatsApp ao gestor que autorizar, só os graves:** a caixa ou uma câmera fora do ar, e a estadia que passou das 5 horas. **Para a administração (nós):** a caixa e a câmera fora do ar, e os erros. A alternativa é o e-mail, que precisa de um serviço de e-mail e é lido mais tarde. | **a recomendação** ([[D-62]]) |
 
 ---
 
@@ -146,7 +146,9 @@ As mesmas regras dos meses anteriores ([[CLAUDE - regras do repositório|CLAUDE.
   - os prazos de guarda (seção 8.3);
   - as placas sintéticas ([[D-44]]).
 - O novo [[ABERTO-22]], sobre a autorização do motorista para o WhatsApp, e a nota dele nas
-  seções 2.2 e 7.5.
+  seções 2.2 e 7.5 (SDD 0.41).
+- Com a aprovação, as decisões [[D-57]] a [[D-62]] e a jornada do motorista nas seções 2.2 e 7.5; o
+  [[ABERTO-22]] fecha pela [[D-58]] (SDD 0.42).
 - Os fatos do WhatsApp e do SMS conferidos em 06/10, com as fontes, em
   [[Validação - fatos técnicos da stack|docs/validacao/fatos-tecnicos-stack.md]].
 
@@ -154,7 +156,7 @@ As mesmas regras dos meses anteriores ([[CLAUDE - regras do repositório|CLAUDE.
 
 ## 7. Checklist de "mês 4 pronto"
 
-- [ ] F1 a F6 decididas e registradas no SDD.
+- [x] F1 a F6 decididas e registradas no SDD ([[D-57]] a [[D-62]]).
 - [ ] Produção e homologação na AWS, com o deploy pela `main` e pela tag.
 - [ ] Cópias diárias, restauração testada e alarmes funcionando.
 - [ ] Verificação em duas etapas para o gestor e a administração.

@@ -1,7 +1,7 @@
 # SDD — patio-br (nome provisório)
 
 **Documento de desenho do software (SDD) do MVP do piloto**
-Versão 0.41 · 2026-10-06 · Situação: aprovado como base; itens em aberto na seção 12
+Versão 0.42 · 2026-10-06 · Situação: aprovado como base; itens em aberto na seção 12
 
 ---
 
@@ -107,10 +107,9 @@ Os critérios vêm do "Test Card" da validação (`docs/validacao/relatorio-vali
 1. **Agendamento.** Vem pelo link da transportadora ou pela planilha do cliente. Contém: data e
    janela, placas esperadas (cavalo e reboques), motorista e celular, tipo (carga ou descarga),
    toneladas e, se houver, a chave da NF-e.
-2. **Confirmação.** O motorista recebe um WhatsApp para confirmar; ao responder, autoriza
-   receber as próximas mensagens. A política da Meta pede a autorização antes da primeira
-   mensagem, e o número vem da transportadora ou da planilha: como colher essa autorização é o
-   `[ABERTO-22]`.
+2. **Confirmação.** O motorista recebe um SMS com o agendamento e um link que abre o WhatsApp
+   com a mensagem pronta. Ao mandá-la, ele autoriza receber as próximas mensagens pelo
+   WhatsApp; sem isso, os avisos seguem por SMS (D-58).
 3. **Chegada.** A câmera lê as placas; a caixa de borda monta a composição; a nuvem casa com o
    agendamento. Se casar, o **check-in é automático**: a hora de chegada fica registrada como
    prova e o motorista recebe "você está na fila, posição X". Se ficar em dúvida ou não houver
@@ -717,8 +716,8 @@ Serve para desenvolver sem câmera, para os testes de ponta a ponta e para simul
 | Ambiente | Onde | Para quê |
 |---|---|---|
 | Local | `docker compose up` | PostgreSQL, API, worker, simulador |
-| Homologação | nuvem, máquina pequena | testar cada versão antes do cliente |
-| Produção | AWS São Paulo | o piloto |
+| Homologação | AWS São Paulo: Lightsail 2 GB, com o PostgreSQL num contêiner e um balde S3 próprio (D-57) | testar cada versão antes do cliente, só com dados inventados |
+| Produção | AWS São Paulo (D-11 e D-57) | o piloto |
 | Demonstração | a API como função da Vercel e o banco e as fotos no Supabase, os dois em São Paulo (D-51) | apresentar o produto às empresas, só com dados inventados; cada empresa visitada ganha uma empresa de demonstração, apagada depois (D-45); a nuvem roda com `PATIO_AMBIENTE=demonstracao`, e só nele (e no local) existe o dia de demonstração (D-49) |
 
 ### 7.2 Nuvem (AWS, sa-east-1)
@@ -793,10 +792,15 @@ Serve para desenvolver sem câmera, para os testes de ponta a ponta e para simul
   WhatsApp.
 - **Autorização:** a política da Meta só deixa a empresa começar a conversa com quem deu o
   número **e** autorizou receber as mensagens dela (conferida em 2026-10-06, em
-  `docs/validacao/fatos-tecnicos-stack.md`). Como o motorista autoriza é o `[ABERTO-22]`.
+  `docs/validacao/fatos-tecnicos-stack.md`). Por isso, **o motorista começa a conversa**
+  (D-58): o primeiro aviso vai por SMS, com um link que abre o WhatsApp com a mensagem pronta,
+  e a mensagem dele é a autorização, guardada com o texto e o horário; um QR na placa de aviso
+  da portaria faz o mesmo; "SAIR" cancela na hora. Quem não autoriza recebe os avisos por SMS.
 - **Limite inicial da Meta:** 250 destinatários únicos por 24h; sobe para 2.000 após
   verificação. O limite é do portfólio da empresa na Meta, dividido entre os números dele.
-- **SMS de reserva:** Zenvia ou Twilio.
+- **SMS de reserva:** Zenvia, confirmada pelo orçamento contra a Twilio (D-59); as duas
+  entram pela mesma interface de canal. O texto usa só os caracteres do GSM-7, para caber em
+  um pedaço de 160.
 
 ### 7.6 Custos de operação (piloto, 1 site; preços de 2026-09-29)
 
@@ -824,12 +828,13 @@ Serve para desenvolver sem câmera, para os testes de ponta a ponta e para simul
 | Nuvem fora | a caixa acumula; banco volta a qualquer minuto dos últimos 7 dias |
 | WhatsApp não chega | SMS; se falhar, o painel mostra "motorista não avisado" |
 | Relógio da caixa errado | NTP; diferença acima de 2 s gera alerta |
-| Erro no código | sempre registrado e alertado; nunca ignorado |
+| Erro no código | sempre registrado e alertado; nunca ignorado (pela própria AWS, D-61) |
 
 ### 8.2 Segurança
 
 - Login individual por e-mail e senha; verificação em duas etapas para gestor e administração
-  (mês 4); troca de porteiro por PIN no tablet.
+  (mês 4), pelo app autenticador do celular, com 10 códigos de recuperação (D-60); troca de
+  porteiro por PIN no tablet.
 - Senha e PIN são guardados só como **resumo argon2**, nunca o texto. A senha tem de 10 a 128
   caracteres; o PIN, 6 números.
 - **Sessão no servidor** (D-20): ao entrar, o navegador recebe um cookie com um código aleatório
@@ -939,8 +944,8 @@ completo antes de levá-lo ao site. A gravação e o teste técnico saem do mês
 placas vêm de outra fonte (`[ABERTO-18]`). Na mesma data, o mês 3 virou a demonstração
 comercial na internet (D-45, `docs/planos/2026-12-plano-mes-3.md`).
 
-**Plano do mês 4 (06/10):** a versão do piloto, em `docs/planos/2027-01-plano-mes-4.md`, com
-as decisões F1 a F6 para o Lorenzo. Além do que o cronograma já previa, o mês traz a
+**Plano do mês 4 (06/10):** a versão do piloto, em `docs/planos/2027-01-plano-mes-4.md`,
+aprovado pelo Lorenzo no mesmo dia, com as decisões D-57 a D-62. Além do que o cronograma já previa, o mês traz a
 verificação em duas etapas (seção 8.2), os prazos de guarda (seção 8.3), as placas sintéticas
 (D-44) e a API com os webhooks do MVP (seção 2.3).
 
@@ -1026,6 +1031,12 @@ do cuidado de cargas (D-43).
 | D-54 | **O link de demonstração por dentro** (T48): a página do link só mostra para quem é e o botão "Entrar"; quem aperta cria a empresa de demonstração, na primeira vez, e entra como gestor. **Uma empresa por link**: quem abre o mesmo link entra na mesma. **A cada entrada, os dias que faltam até ontem entram no histórico.** **Uma faixa no topo troca de papel sem senha** (gestor, porteiro, líder de pátio; o motorista é a tela do celular), só nos ambientes da demonstração e só dentro da mesma empresa; as pessoas da empresa do link têm senha sorteada, que ninguém sabe, e entram só pelo link. **A empresa vencida ou revogada é apagada inteira**, com as fotos e as linhas de prova: o gatilho `so_acrescenta` deixa apagar só linha de uma empresa que nasceu de um link de demonstração, e só quando a própria transação avisa qual empresa está apagando (`patio.apagar_empresa`) | o pré-visualizador do WhatsApp e do e-mail abre o link sozinho, e não pode criar empresa nem sessão; criar a empresa leva cerca de 15 segundos, e quem volta entra na hora; sem completar o histórico, o painel teria buraco nos dias entre as visitas; a garantia de prova (seção 5.5) protege dado de cliente, e a empresa de demonstração só tem dado inventado; o Supabase Free tem 500 MB | criar a empresa ao gerar o link (o histórico pararia no dia em que o link foi gerado); uma empresa por pessoa que abre (o link passado adiante viraria várias empresas); desligar os gatilhos para apagar (o banco deixaria de garantir que só a demonstração se apaga); só desativar a empresa vencida (o banco cresceria sem parar) |
 | D-55 | **O código anti-CSRF sai da própria sessão**: é o HMAC do código da sessão com um segredo só da nuvem (tirado da chave da cifra), e muda a cada login; nada novo se grava no banco. Ele vai num campo escondido de cada formulário e no cabeçalho dos pedidos do HTMX, e a nuvem confere em todo pedido que muda alguma coisa de quem tem o cookie da sessão; um teste passa por todas as rotas e confere que cada uma confere o código ou está na lista curta das que não usam o cookie | sem tabela e sem estado; o código da sessão já é secreto e longo, e outro site não sabe o segredo para calcular; a conferência num lugar só não depende de cada rota lembrar | guardar um código à parte na sessão do banco (mais uma coluna e uma escrita); o cookie duplo (*double submit*: um subdomínio poderia escrever o cookie); só os cabeçalhos `Sec-Fetch-Site` (navegador antigo não manda, e o SDD pede o código) |
 | D-56 | **A demonstração na Vercel, por dentro** (T47, parte 2): as fotos vão para o Supabase Storage pela **API S3**, com o boto3; o mesmo código serve à AWS no mês 4. Sem worker, um **tique** roda antes das telas que se atualizam sozinhas (com `PATIO_TIQUE`), e um **cron diário** (`/api/cron/diaria`, com o `CRON_SECRET` da Vercel) apaga as empresas vencidas e confere o "não veio". No ambiente `demonstracao`, a API da caixa não existe (as passagens só vêm do dia de demonstração). O banco vai pelo pooler do Supabase em **modo sessão**, sem pool na função (`PATIO_BANCO_SEM_POOL`) e com SSL (`PATIO_BANCO_SSL`, e o certificado do Supabase em `PATIO_BANCO_CA`) | uma só implementação de armazenamento para a demonstração e a produção; o tique só trabalha quando alguém olha, e a trava evita dois ao mesmo tempo; o modo sessão aceita tudo o que o pg8000 faz, e a demonstração tem pouco tráfego; caixa de verdade não tem o que fazer num ambiente de dados inventados | a API própria do Supabase Storage (só serviria à demonstração); um worker em outra hospedagem (mais uma conta e uma máquina); o pooler em modo transação (não aceita *prepared statements*; fica para conferir com o pg8000 quando houver a conta); deixar a API da caixa aberta (uma porta a mais na internet) |
+| D-57 | **A produção e a homologação ficam na AWS de São Paulo**, como na D-11: a produção numa Lightsail 4 GB (API, worker e Caddy), com o RDS PostgreSQL e as fotos no S3; a homologação numa Lightsail 2 GB, com o PostgreSQL num contêiner e um balde S3 próprio, só com dados inventados. A demonstração continua na Vercel e no Supabase (D-51) | decisão do Lorenzo em 06/10 (plano do mês 4, F1): o piloto precisa do worker rodando sempre (o check-in e o aviso ao motorista na hora, sem esperar alguém abrir uma tela), da API da caixa ligada e de voltar o banco a qualquer minuto dos últimos 7 dias | o Supabase Pro para o banco e as fotos, com uma máquina para a API e o worker (voltar a qualquer minuto é um adicional pago); a produção na Vercel (sem worker) |
+| D-58 | **O motorista começa a conversa no WhatsApp.** O primeiro aviso do agendamento vai por SMS, com um link que abre o WhatsApp com a mensagem pronta; a mensagem que o motorista manda é a autorização, guardada com o texto e o horário, por número e por empresa. Um QR na placa de aviso da portaria faz o mesmo para quem chega sem ter autorizado. "SAIR" cancela na hora. Quem não autoriza recebe os avisos por SMS. Fecha o `[ABERTO-22]`; o advogado confere o caminho antes do primeiro motorista de verdade (N22) | decisão do Lorenzo em 06/10 (plano do mês 4, F2): a política da Meta só deixa a empresa começar a conversa com quem autorizou receber as mensagens dela, e o número vem da transportadora ou da planilha; a autorização dada pelo próprio motorista não depende de terceiro, e menos denúncias mantêm a qualidade do número e o limite de envio | a transportadora declarar, no link e na planilha, que o motorista autorizou, e o primeiro WhatsApp ir direto (mais simples e barato, mas a autorização vem de outra pessoa) |
+| D-59 | **O SMS de reserva é pela Zenvia**, confirmada pelo orçamento contra a Twilio; o código só conhece a interface de canal, e trocar de fornecedor é escrever outra classe | decisão do Lorenzo em 06/10 (plano do mês 4, F3): a Zenvia cobra em reais, com nota, e tem suporte no Brasil; a Twilio cobra US$ 0,0599 por SMS ao Brasil (`docs/validacao/fatos-tecnicos-stack.md`) | a Twilio |
+| D-60 | **A verificação em duas etapas é pelo app autenticador do celular**: o código de 6 números que muda a cada 30 segundos, mais 10 códigos de recuperação, mostrados uma vez e guardados só como resumo. Obrigatória para o gestor e a administração na homologação e na produção; o porteiro e o líder de pátio continuam com a senha e o PIN | decisão do Lorenzo em 06/10 (plano do mês 4, F4): não depende de serviço de fora, funciona sem sinal de celular e não cai com a troca de chip | código por e-mail (precisa de um serviço de e-mail); código por SMS (custa e cai com a troca de chip) |
+| D-61 | **Os erros e as quedas chegam até nós pela própria AWS**: o registro de erros no CloudWatch (sem placa, telefone nem nome, só os ids), um alarme para cada erro, a verificação do `/saude` a cada minuto pelo Route 53 (o `/saude` confere também o worker) e o aviso por e-mail | decisão do Lorenzo em 06/10 (plano do mês 4, F5): custa menos de US$ 5 por mês, e nenhum dado sai da nossa nuvem | o Sentry (lê melhor os erros, mas é mais um fornecedor recebendo dados, com acordo LGPD) |
+| D-62 | **Os alertas aparecem sempre no painel**, num sino com os alertas abertos do site, em todas as telas dele. **Por WhatsApp, ao gestor que autorizar, só os graves:** a caixa ou uma câmera fora do ar e a estadia que passou das 5 horas. **Para a administração:** a caixa e a câmera fora do ar e os erros | decisão do Lorenzo em 06/10 (plano do mês 4, F6): quem está no painel vê na hora, e a mensagem fica para o que não pode esperar alguém olhar a tela | o e-mail (precisa de um serviço de e-mail e é lido mais tarde) |
 
 ---
 
@@ -1046,7 +1057,6 @@ do cuidado de cargas (D-43).
 | ABERTO-18 | Placas reais para o leitor, com o site parceiro adiado (seção 4.6). O treino começa com placas sintéticas e bases abertas (D-44). Falta decidir: a régua fixa com cerca de 1.000 placas reais (proposta: fotografar a frota própria parada de transportadoras e locadoras, com carta de autorização) e a coleta própria para treinar (proposta: gravar em 1 a 3 portões de conhecidos, com o sim do advogado) (`docs/validacao/fontes-de-placas.md`) | com o Lorenzo e o advogado, antes da régua e do treino com placas reais |
 | ABERTO-19 | Recebimento: de onde vêm os itens da NF-e (o XML que o fornecedor manda, o certificado digital do cliente ou outro caminho) e como o resultado volta ao sistema do cliente (`docs/validacao/recebimento-e-estoque.md`) | no desenho do módulo, depois do piloto aprovado |
 | ABERTO-20 | Estoque e cuidado de cargas: estoque próprio (endereços, saldo, busca, visão 3D) ou ligado ao sistema do cliente; o que entra em "cuidado de cargas e controle de entregas" e se inclui a conferência de carga e lacre da Fase 3 | no desenho dos módulos, depois do piloto aprovado |
-| ABERTO-22 | Como o motorista autoriza o WhatsApp antes da primeira mensagem: a política da Meta pede a autorização de quem recebe, e o número vem da transportadora ou da planilha do cliente (seções 2.2 e 7.5). Proposta: o primeiro aviso vai por SMS, com um link que abre o WhatsApp com a mensagem pronta, e a mensagem do motorista é a autorização; um QR na placa de aviso da portaria faz o mesmo; "SAIR" cancela; quem não autoriza recebe por SMS (plano do mês 4, F2) | com o Lorenzo e o advogado, antes do WhatsApp de verdade (T52) |
 
 ---
 
@@ -1130,3 +1140,4 @@ do cuidado de cargas (D-43).
 | 0.39 | 2026-10-05 | segurança antes da internet (T47, parte 1): limite de login por endereço IP, código anti-CSRF tirado da sessão (D-55) e o comando para criar a administração (seções 8.2 e 11) |
 | 0.40 | 2026-10-05 | a demonstração na Vercel, por dentro (T47, parte 2): fotos pela API S3 com o boto3, o tique, o cron diário, a API da caixa fechada no ambiente `demonstracao` e o banco pelo pooler do Supabase com SSL (D-56) (seções 6.1 e 11) |
 | 0.41 | 2026-10-06 | plano do mês 4 criado, a versão do piloto (`docs/planos/2027-01-plano-mes-4.md`): o cronograma do mês 4 com a verificação em duas etapas, os prazos de guarda, as placas sintéticas e a API com os webhooks; novo `[ABERTO-22]`, a autorização do motorista para o WhatsApp antes da primeira mensagem (seções 2.2, 7.5, 10 e 12); os fatos do WhatsApp e do SMS conferidos em 06/10 |
+| 0.42 | 2026-10-06 | plano do mês 4 aprovado pelo Lorenzo com as recomendações: a produção e a homologação na AWS (D-57), o motorista começa a conversa no WhatsApp, com o primeiro aviso por SMS (D-58, fecha o `[ABERTO-22]`), o SMS pela Zenvia (D-59), a verificação em duas etapas pelo app autenticador (D-60), os erros avisados pela AWS (D-61) e para quem vão os alertas (D-62) (seções 2.2, 7.1, 7.5, 8.1, 8.2, 11 e 12) |

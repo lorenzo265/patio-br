@@ -31,19 +31,15 @@ por ele ([[0. Como usar este documento|SDD, seção 0]]).
 
 ## Para o mês 4 (a versão do piloto)
 
-- [ ] **Aprovar o [[Plano do mês 4]]** e decidir as seis perguntas da seção 2 dele, cada uma com
-  a recomendação:
-  - F1: a produção na AWS, como na [[D-11]] (ou o Supabase Pro com uma máquina);
-  - F2: como o motorista autoriza o WhatsApp antes da primeira mensagem ([[ABERTO-22]]);
-  - F3: o fornecedor de SMS (Zenvia ou Twilio);
-  - F4: a verificação em duas etapas pelo app autenticador;
-  - F5: os erros e as quedas avisados pela própria AWS (ou pelo Sentry);
-  - F6: para quem vão os alertas, e por onde.
+- [x] **Aprovar o [[Plano do mês 4]]**: aprovado em 06/10, com as recomendações ([[D-57]] a
+  [[D-62]]).
+- [ ] **Pedir o orçamento da Zenvia** e conferir que ganha da Twilio ([[D-59]], [[N20]]).
 - [ ] **Abrir as contas do mês:** o número do WhatsApp e os modelos de mensagem ([[N19]], depois
   da verificação da [[N1]]), o SMS ([[N20]]), a AWS e o domínio ([[N21]]) e o Tailscale e uma
   caixa de teste ([[N23]]).
-- [ ] **Levar ao advogado** a autorização do motorista, o SMS, os prazos de guarda, a cláusula do
-  treino e o contrato do piloto ([[N22]]).
+- [ ] **Levar ao advogado** a autorização do motorista ([[D-58]]: ele confere antes do primeiro
+  motorista de verdade), o SMS, os prazos de guarda, a cláusula do treino e o contrato do piloto
+  ([[N22]]).
 - [ ] **Fechar o piloto pago:** o cliente, o site, o preço e a data da instalação ([[N24]]).
 
 ## Com o advogado

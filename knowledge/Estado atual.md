@@ -7,7 +7,7 @@ tags: [estado]
 
 # Estado atual
 
-> [!info] Retrato de 06/10/2026 (SDD 0.41)
+> [!info] Retrato de 06/10/2026 (SDD 0.42)
 > Escrito à mão: o que entrou depois está nos PRs do GitHub e nos planos. Os checklists de "mês
 > pronto" dos planos não foram marcados a cada tarefa; esta nota é a lista do que entrou.
 
@@ -26,8 +26,8 @@ tags: [estado]
   [[Guia da demonstração na internet]].
 - **Falta para a demonstração no ar (mês 3):** o visual próprio ([[T40]], depois da identidade
   visual, [[ABERTO-01]]) e o deploy, que espera as contas da Vercel e do Supabase ([[N17]]).
-- **O [[Plano do mês 4]], a versão do piloto, espera a aprovação do Lorenzo** (as decisões F1 a
-  F6 e o [[ABERTO-22]]): a produção na AWS, o WhatsApp e o SMS de verdade, os alertas, a caixa
+- **O [[Plano do mês 4]], a versão do piloto, foi aprovado** em 06/10, com as recomendações
+  ([[D-57]] a [[D-62]]): a produção na AWS, o WhatsApp e o SMS de verdade, os alertas, a caixa
   em contêineres, a prova encadeada e a verificação em duas etapas.
 - **O leitor próprio espera as placas:** o treino ([[T22]] a [[T26]]) depende das placas reais
   do [[ABERTO-18]]; o leitor v0, com pesos de terceiros, serve só para avaliação interna
@@ -111,16 +111,16 @@ dele.
 
 ## Mês 4: a versão do piloto ([[Plano do mês 4]])
 
-O plano ([#52](https://github.com/lorenzo265/patio-br/pull/52)) está em rascunho, esperando a
-aprovação do Lorenzo. Nenhuma tarefa começou.
+O plano ([#52](https://github.com/lorenzo265/patio-br/pull/52)) foi aprovado em 06/10, com as
+recomendações ([[D-57]] a [[D-62]]). As tarefas que não precisam de conta começam primeiro.
 
 | Tarefa | Situação |
 |---|---|
-| [[T49]] produção e homologação na AWS e [[T50]] cópias e alarmes | esperam a F1 e a conta da AWS ([[N21]]) |
-| [[T51]] verificação em duas etapas | espera a F4 |
-| [[T52]] WhatsApp e [[T53]] SMS | esperam a F2 ([[ABERTO-22]]), a F3 e as contas ([[N19]], [[N20]]) |
+| [[T49]] produção e homologação na AWS e [[T50]] cópias e alarmes | esperam a conta da AWS ([[N21]]) |
+| [[T51]] verificação em duas etapas | pode começar ([[D-60]]) |
+| [[T52]] WhatsApp e [[T53]] SMS | o código anda com a Meta e a Zenvia imitadas; a conferência de verdade espera as contas ([[N19]], [[N20]]) |
 | [[T54]] saúde e frota, [[T55]] contêineres e [[T56]] atualização da caixa | podem começar; o N150 de verdade é a [[N23]] |
-| [[T57]] alertas | espera a F6 |
+| [[T57]] alertas | pode começar ([[D-62]]) |
 | [[T58]] prova encadeada, [[T59]] prazos de guarda, [[T60]] base de treino e [[T39]] placas sintéticas | podem começar; os prazos de verdade esperam o [[ABERTO-04]] |
 | [[T61]] API e webhooks | só se o cliente do piloto pedir |
 | [[T62]] o roteiro do piloto em homologação (o marco) | depois das outras |
@@ -142,8 +142,9 @@ aprovação do Lorenzo. Nenhuma tarefa começou.
 
 ## O próximo passo
 
-1. O Lorenzo aprova o [[Plano do mês 4]] (F1 a F6) e leva o [[ABERTO-22]] ao advogado
-   ([[N22]]); as tarefas sem conta (a caixa, a prova, a guarda e o treino) podem começar logo.
+1. As tarefas do [[Plano do mês 4]] que não precisam de conta: a verificação em duas etapas, a
+   caixa, os alertas, a prova, a guarda e o treino; o WhatsApp e o SMS com os serviços imitados.
+   O Lorenzo leva a autorização do motorista ([[D-58]]) ao advogado ([[N22]]).
 2. A sessão da identidade visual ([[Prompt da identidade visual]]): decide o nome, as cores e as
    fontes ([[ABERTO-01]]) e faz a [[T40]].
 3. O Lorenzo abre as contas da Vercel e do Supabase ([[N17]]); então o deploy da demonstração,
