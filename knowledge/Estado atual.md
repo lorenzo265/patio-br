@@ -126,7 +126,8 @@ recomendações ([[D-57]] a [[D-62]]). As tarefas que não precisam de conta com
 | [[T55]] a caixa em contêineres | feita ([#57](https://github.com/lorenzo265/patio-br/pull/57), [[D-66]]): as imagens montam na CI; a conferência num N150 de verdade é a [[N23]] |
 | [[T56]] atualização da caixa | feita ([#58](https://github.com/lorenzo265/patio-br/pull/58), [[D-67]]): a primeira versão publicada espera a conta do GitHub com o registro ligado; a conferência num N150 é a [[N23]] |
 | [[T57]] alertas | feita ([#59](https://github.com/lorenzo265/patio-br/pull/59), [[D-62]] e [[D-68]]): o modelo `patio_alerta` entra na lista para a Meta aprovar ([[N19]]) |
-| [[T58]] prova encadeada, [[T59]] prazos de guarda, [[T60]] base de treino e [[T39]] placas sintéticas | podem começar; os prazos de verdade esperam o [[ABERTO-04]] |
+| [[T58]] prova encadeada | feita ([#60](https://github.com/lorenzo265/patio-br/pull/60), [[D-69]]): a trava de verdade das âncoras espera o balde da AWS com Object Lock ([[T49]]) |
+| [[T59]] prazos de guarda, [[T60]] base de treino e [[T39]] placas sintéticas | podem começar; os prazos de verdade esperam o [[ABERTO-04]] |
 | [[T61]] API e webhooks | só se o cliente do piloto pedir |
 | [[T62]] o roteiro do piloto em homologação (o marco) | depois das outras |
 
