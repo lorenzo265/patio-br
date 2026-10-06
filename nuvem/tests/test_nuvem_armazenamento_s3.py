@@ -135,3 +135,14 @@ def test_da_configuracao_usa_o_endereco_e_o_caminho_no_endereco() -> None:
     endereco = armazenamento.endereco_de_envio(7, "p/1.jpg", agora=AGORA)
 
     assert endereco.startswith("https://projeto.storage.supabase.co/storage/v1/s3/fotos/caixa-7/")
+
+
+def test_apagar_uma_foto(armazenamento: ArmazenamentoS3, cliente: Any) -> None:
+    # O prazo de guarda (D-70): a foto vencida sai; a de outra caixa, não.
+    armazenamento.guardar(1, "p/1.jpg", FOTO)
+    armazenamento.guardar(2, "p/1.jpg", FOTO)
+
+    assert armazenamento.apagar(1, "p/1.jpg") is True
+    assert armazenamento.apagar(1, "p/1.jpg") is False
+
+    assert _chaves(cliente) == ["caixa-2/p/1.jpg"]

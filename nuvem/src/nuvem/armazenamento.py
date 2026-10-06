@@ -128,6 +128,10 @@ class Armazenamento(Protocol):
         """
         ...
 
+    def apagar(self, caixa_id: int, ref: str) -> bool:
+        """Apaga uma foto vencida pelo prazo de guarda (D-70); ``False`` se ela não estava lá."""
+        ...
+
     def apagar_da_caixa(self, caixa_id: int) -> None:
         """Apaga todas as fotos de uma caixa (a da empresa de demonstração apagada, D-54)."""
         ...
@@ -225,6 +229,20 @@ class ArmazenamentoS3:
         )
         return True
 
+    def apagar(self, caixa_id: int, ref: str) -> bool:
+        """Apaga uma foto vencida pelo prazo de guarda; ``False`` se ela não estava lá."""
+        chave = self._chave(caixa_id, ref)
+        from botocore.exceptions import ClientError
+
+        try:
+            self._cliente.head_object(Bucket=self._balde, Key=chave)
+        except ClientError as erro:
+            if erro.response.get("Error", {}).get("Code") in ("NoSuchKey", "404", "NotFound"):
+                return False
+            raise
+        self._cliente.delete_object(Bucket=self._balde, Key=chave)
+        return True
+
     def apagar_da_caixa(self, caixa_id: int) -> None:
         """Apaga todas as fotos da caixa, de mil em mil (o limite do S3)."""
         paginas = self._cliente.get_paginator("list_objects_v2").paginate(
@@ -296,6 +314,14 @@ class ArmazenamentoLocal:
         if not conteudo.startswith(_INICIO_DO_JPEG):
             raise FotoNaoJpegError("a foto precisa ser JPEG")
         return self._gravar_sem_trocar(self._caminho(caixa_id, ref), conteudo)
+
+    def apagar(self, caixa_id: int, ref: str) -> bool:
+        """Apaga uma foto vencida pelo prazo de guarda; ``False`` se ela não estava lá."""
+        caminho = self._caminho(caixa_id, ref)
+        if not caminho.is_file():
+            return False
+        caminho.unlink()
+        return True
 
     def apagar_da_caixa(self, caixa_id: int) -> None:
         """Apaga a pasta das fotos da caixa (se ela existir)."""

@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block titulo %}Pedido do titular · patio-br{% endblock %}
+{% block cabeca %}
+<style>body { max-width: 60rem; }</style>
+{% endblock %}
+{% block conteudo %}
+<h1>Pedido do titular</h1>
+<p>Tudo o que existe de uma placa ou de um celular numa empresa. O cliente é o controlador e responde ao titular com isto.</p>
+<form method="post" action="/administracao/titular">
+  <input type="hidden" name="_csrf" value="{{ csrf }}">
+  <label for="empresa">Empresa</label>
+  <select id="empresa" name="empresa">
+    {% for e in empresas %}<option value="{{ e.id }}"{% if empresa == e.id %} selected{% endif %}>{{ e.nome }}</option>{% endfor %}
+  </select>
+  <label for="placa">Placa</label>
+  <input id="placa" name="placa" value="{{ placa or '' }}" autocomplete="off">
+  <label for="celular">ou celular</label>
+  <input id="celular" name="celular" value="{{ celular or '' }}" autocomplete="off">
+  <button type="submit" name="formato" value="tela">Levantar</button>
+  <button type="submit" name="formato" value="json">Baixar o arquivo</button>
+</form>
+{% if erro %}<p class="erro" role="alert">{{ erro }}</p>{% endif %}
+{% if achado %}
+<h2>{{ achado.procurado }} · {{ achado.empresa }}</h2>
+<h3>Visitas ({{ achado.visitas | length }})</h3>
+<ul>{% for v in achado.visitas %}<li>Visita {{ v.id }} · {{ v.site }} · {{ v.placas | join(" + ") }} · {{ v.estado }} · chegou {{ v.chegou_em or "—" }}{% if v.saiu_em %} · saiu {{ v.saiu_em }}{% endif %}</li>{% endfor %}</ul>
+<h3>Passagens ({{ achado.passagens | length }})</h3>
+<ul>{% for p in achado.passagens %}<li>{{ p.inicio }} · {{ p.sentido }} · {{ p.placas | join(", ") }} · fotos: {% for f in p.fotos %}{{ f.tipo }} ({{ f.situacao }}){% if not loop.last %}, {% endif %}{% else %}nenhuma{% endfor %}</li>{% endfor %}</ul>
+<h3>Conferências da placa ({{ achado.conferencias | length }})</h3>
+<ul>{% for c in achado.conferencias %}<li>{{ c.momento }} · lida {{ c.placa_lida or "nada" }} · conferida {{ c.placa }}</li>{% endfor %}</ul>
+<h3>Agendamentos ({{ achado.agendamentos | length }})</h3>
+<ul>{% for a in achado.agendamentos %}<li>{{ a.codigo }} · {{ a.janela_inicio }} · {{ a.placa_cavalo }} · {{ a.motorista_nome or "sem nome" }} · {{ a.motorista_celular or "sem celular" }} · {{ a.situacao }}</li>{% endfor %}</ul>
+<h3>Mensagens ({{ achado.mensagens | length }})</h3>
+<ul>{% for m in achado.mensagens %}<li>{{ m.criada_em }} · {{ m.modelo }} ({{ m.canal }}) para {{ m.para }} · {{ m.situacao }}</li>{% endfor %}</ul>
+<h3>Autorizações do WhatsApp ({{ achado.autorizacoes | length }})</h3>
+<ul>{% for a in achado.autorizacoes %}<li>{{ a.celular }} · autorizada {{ a.autorizada_em }}{% if a.revogada_em %} · revogada {{ a.revogada_em }}{% endif %}</li>{% endfor %}</ul>
+<h3>Mensagens recebidas ({{ achado.recebidas | length }})</h3>
+<ul>{% for r in achado.recebidas %}<li>{{ r.recebida_em }} · de {{ r.de }} · "{{ r.texto }}" · {{ r.resultado }}</li>{% endfor %}</ul>
+{% endif %}
+<p><a href="/">Início</a></p>
+{% endblock %}

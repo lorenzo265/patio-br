@@ -5,23 +5,26 @@
   falta e confere tudo: a cadeia, cada registro de origem, as fotos e as âncoras.
 - ``/prova/visitas/<visita>.json``: o arquivo da prova, com os elos e a regra do resumo, para
   qualquer um conferir sem nós.
+- ``/prova/visitas/<visita>/disputa``: marcar ou desmarcar a disputa, que segura as fotos da
+  visita além do prazo de guarda (D-70).
 
 As horas aparecem no fuso do site; as do arquivo, em UTC.
 """
 
 from collections.abc import Sequence
 from datetime import datetime
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 from zoneinfo import ZoneInfo
 
-from fastapi import APIRouter, Depends, Request
-from fastapi.responses import HTMLResponse, Response
+from fastapi import APIRouter, Depends, Form, Request, status
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from sqlalchemy.orm import Session
 
 from contratos.placa import PlacaInvalidaError, normalizar_placa
 from nuvem.banco import obter_sessao
 from nuvem.cadastro import servico as cadastro
 from nuvem.cadastro.acesso import Acesso, exigir_papel
+from nuvem.guarda import servico as guarda
 from nuvem.portaria.modelos import TipoDeEvento, Visita
 from nuvem.prova import cadeia
 from nuvem.prova import servico as prova
@@ -191,6 +194,17 @@ def pagina(
             if elo.tipo == "conferencia"
         ],
         "mensagens": _mensagens(elos, fuso),
+        "disputa": _disputa(sessao, acesso, visita.id, fuso),
+        "disputas": [
+            {
+                "quando": _local(_hora(elo.conteudo["momento"]), fuso),
+                "acao": "marcada" if elo.conteudo["acao"] == "marcar" else "desmarcada",
+                "motivo": elo.conteudo["motivo"],
+                "quem": pessoas.get(elo.conteudo["usuario_id"], ""),
+            }
+            for elo in elos
+            if elo.tipo == "disputa"
+        ],
         "elos": [
             {
                 "ordem": elo.ordem,
@@ -204,6 +218,31 @@ def pagina(
         "regra": cadeia.REGRA,
     }
     return tela(request, "prova.html", contexto)
+
+
+@roteador.post("/visitas/{visita_id}/disputa")
+def disputa(
+    sessao: SessaoDaRequisicao,
+    acesso: AcessoDoGestor,
+    momento: Agora,
+    visita_id: int,
+    acao: Annotated[Literal["marcar", "desmarcar"], Form()],
+    motivo: Annotated[str, Form(max_length=guarda.TAMANHO_DO_MOTIVO)] = "",
+) -> RedirectResponse:
+    """Marca ou desmarca a visita em disputa e volta à página da prova."""
+    if acao == "marcar":
+        guarda.marcar_disputa(sessao, acesso, visita_id, motivo=motivo, agora=momento)
+    else:
+        guarda.desmarcar_disputa(sessao, acesso, visita_id, motivo=motivo, agora=momento)
+    sessao.commit()
+    return RedirectResponse(f"/prova/visitas/{visita_id}", status.HTTP_303_SEE_OTHER)
+
+
+def _disputa(sessao: Session, acesso: Acesso, visita_id: int, fuso: str) -> dict[str, str] | None:
+    marca = guarda.ultima_marca(sessao, acesso, visita_id)
+    if marca is None:
+        return None
+    return {"desde": _local(marca.momento, fuso), "motivo": marca.motivo}
 
 
 def _selar_e_conferir(
@@ -255,6 +294,13 @@ def _passagens(
         for elo in elos
         if elo.tipo == "foto"
     }
+    apagadas = {
+        (elo.conteudo["passagem"], elo.conteudo["indice"]): _local(
+            _hora(elo.conteudo["apagada_em"]), fuso
+        )[:5]
+        for elo in elos
+        if elo.tipo == "foto_apagada" and elo.conteudo["existia"]
+    }
     passagens = []
     for elo in elos:
         if elo.tipo != "passagem":
@@ -286,6 +332,7 @@ def _passagens(
                         "tipo": foto["tipo"],
                         "camera": cameras.get(foto["camera_id"], f"câmera {foto['camera_id']}"),
                         "resumo": resumos.get((passagem["id"], indice)),
+                        "apagada": apagadas.get((passagem["id"], indice)),
                     }
                     for indice, foto in enumerate(como_veio["fotos"])
                 ],

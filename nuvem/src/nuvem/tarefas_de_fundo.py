@@ -17,6 +17,7 @@
   automático.
 - **Prova** (D-69): a passagem com fotos vira também a tarefa "resumir as fotos"; a cada minuto,
   o worker sela o que chegou; a cada 10 minutos, grava a âncora dos dias que terminaram.
+- **Guarda** (D-70): a cada hora, apaga as fotos vencidas pelo prazo de guarda.
 
 O worker roda em outro processo (``python -m nuvem.worker``).
 """
@@ -47,6 +48,7 @@ from nuvem.agendamento import servico as agendamentos
 from nuvem.alertas import servico as alertas
 from nuvem.armazenamento import Armazenamento
 from nuvem.banco import Base, texto_de_lista
+from nuvem.guarda import servico as guarda
 from nuvem.mensagens import servico as mensagens
 from nuvem.mensagens.canais import Canais
 from nuvem.portaria import visitas
@@ -84,6 +86,8 @@ INTERVALO_DE_SELAR = timedelta(minutes=1)
 """O worker sela a prova do que chegou a cada minuto (D-69)."""
 INTERVALO_DAS_ANCORAS = timedelta(minutes=10)
 """E procura dia terminado sem âncora a cada 10 minutos."""
+INTERVALO_DA_GUARDA = timedelta(hours=1)
+"""A cada hora, as fotos vencidas pelo prazo de guarda saem (D-70)."""
 JANELAS_OLHADAS = timedelta(days=7)
 """O "não veio" olha as janelas que terminaram nos últimos 7 dias (cobre o worker parado)."""
 TRAVA_DO_NAO_VEIO = 7301
@@ -337,13 +341,15 @@ def rodar(
     canais: Canais | None = None,
     armazenamento: Armazenamento | None = None,
     ancoras: GuardaDasAncoras | None = None,
+    dias_das_fotos: int | None = None,
 ) -> None:
     """Executa as tarefas, confere o "não veio" e prepara as mensagens até ``parar`` ser ligado.
 
     Com ``demonstracao`` (só nos ambientes que têm o dia de demonstração, D-49), ela roda antes,
     a cada volta: as passagens que ela manda casam na mesma volta. Com ``canais``, as mensagens
     saem por eles (D-63); sem, ficam no canal de demonstração. Com ``armazenamento``, as fotos
-    são resumidas; com ``ancoras``, a âncora de cada dia é gravada (D-69).
+    são resumidas; com ``ancoras``, a âncora de cada dia é gravada (D-69); com os dois,
+    ``armazenamento`` e ``dias_das_fotos``, a foto vencida sai (D-70).
 
     Um erro inesperado (ex.: o banco fora do ar) fica registrado, e o laço segue.
     """
@@ -352,6 +358,7 @@ def rodar(
     ultimos_alertas: datetime | None = None
     ultimo_selo: datetime | None = None
     ultimas_ancoras: datetime | None = None
+    ultima_guarda: datetime | None = None
     while not parar.is_set():
         try:
             with abrir_sessao() as sessao:
@@ -389,6 +396,17 @@ def rodar(
                         _registro.info("âncoras da prova: %d dias", gravadas)
                     sessao.commit()
                     ultimas_ancoras = momento
+                if (
+                    armazenamento is not None
+                    and dias_das_fotos is not None
+                    and (ultima_guarda is None or momento - ultima_guarda >= INTERVALO_DA_GUARDA)
+                ):
+                    if apagadas := guarda.apagar_fotos_vencidas(
+                        sessao, armazenamento, agora=momento, dias=dias_das_fotos
+                    ):
+                        _registro.info("guarda: %d fotos vencidas apagadas", apagadas)
+                    sessao.commit()
+                    ultima_guarda = momento
         except Exception:
             _registro.exception("erro no laço do worker; ele segue")
             dormir(PAUSA_DEPOIS_DE_ERRO)

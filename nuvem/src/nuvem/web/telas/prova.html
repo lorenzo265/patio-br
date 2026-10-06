@@ -14,6 +14,25 @@
 <p><strong>{{ visita.placa }}</strong> · {{ visita.site }} · chegou {{ visita.chegou or "—" }}{% if visita.saiu %} · saiu {{ visita.saiu }}{% endif %} · {{ visita.estado }}</p>
 <p class="acoes"><a href="/prova/visitas/{{ visita.id }}.json">Baixar o arquivo da prova</a> · imprima esta página ou salve em PDF pelo navegador.</p>
 
+<h2>Disputa</h2>
+{% if disputa %}
+<p><strong>Em disputa desde {{ disputa.desde }}{% if disputa.motivo %}: {{ disputa.motivo }}{% endif %}.</strong> As fotos desta visita ficam guardadas além do prazo de guarda enquanto ela estiver em disputa.</p>
+{% else %}
+<p>Não está em disputa. Marque se a estadia ou a passagem for contestada: as fotos ficam guardadas além do prazo de guarda.</p>
+{% endif %}
+<form method="post" action="/prova/visitas/{{ visita.id }}/disputa" class="acoes">
+  <input type="hidden" name="_csrf" value="{{ csrf }}">
+  <input type="hidden" name="acao" value="{{ 'desmarcar' if disputa else 'marcar' }}">
+  <label for="motivo">Motivo</label>
+  <input id="motivo" name="motivo" maxlength="300">
+  <button type="submit">{{ "Tirar da disputa" if disputa else "Marcar em disputa" }}</button>
+</form>
+{% if disputas %}
+<ul>
+  {% for d in disputas %}<li>{{ d.quando }}: {{ d.acao }} por {{ d.quem }}{% if d.motivo %} ({{ d.motivo }}){% endif %}</li>{% endfor %}
+</ul>
+{% endif %}
+
 <h2>Conferência</h2>
 {% if conferencia.quebrado %}
 <p class="erro" role="alert">Elo quebrado: nº {{ conferencia.quebrado.ordem }} ({{ conferencia.quebrado.tipo }} {{ conferencia.quebrado.referencia }}): {{ conferencia.quebrado.motivo }}.</p>
@@ -47,7 +66,8 @@
   </table>
   {% for foto in passagem.fotos %}
   <p>Foto {{ foto.indice }} ({{ foto.tipo }}, {{ foto.camera }}):
-    {% if foto.resumo %}<br><img class="recorte" src="/portaria/fotos/{{ passagem.id }}/{{ foto.indice }}" alt="foto {{ foto.indice }} da passagem"><br><span class="resumo">SHA-256 {{ foto.resumo }}</span>
+    {% if foto.apagada %}foto apagada pelo prazo de guarda em {{ foto.apagada }}{% if foto.resumo %}<br><span class="resumo">SHA-256 {{ foto.resumo }}</span>{% endif %}
+    {% elif foto.resumo %}<br><img class="recorte" src="/portaria/fotos/{{ passagem.id }}/{{ foto.indice }}" alt="foto {{ foto.indice }} da passagem"><br><span class="resumo">SHA-256 {{ foto.resumo }}</span>
     {% else %}não chegou{% endif %}
   </p>
   {% endfor %}

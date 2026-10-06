@@ -3,7 +3,8 @@
 - **O resumo das fotos:** logo que a passagem chega (as fotos chegam antes dela), a tarefa
   "resumir as fotos" lê cada foto do armazenamento e guarda o SHA-256 (``FotoRecebida``).
 - **Selar:** cada registro da visita (a passagem, cada foto, cada evento, cada conferência da
-  placa e cada situação das mensagens ao motorista) vira um elo da cadeia (``prova.cadeia``),
+  placa, cada situação das mensagens ao motorista, cada marca de disputa e cada foto apagada
+  pela guarda, D-70) vira um elo da cadeia (``prova.cadeia``),
   com o retrato do registro. O worker sela a cada minuto o que chegou nos últimos 7 dias; a
   página da prova sela a visita que abre. Os novos de uma vez entram na ordem em que chegaram.
 - **Conferir:** refaz a cadeia, compara cada elo com o registro de origem, relê as fotos e
@@ -28,6 +29,7 @@ from nuvem.armazenamento import Armazenamento
 from nuvem.cadastro.acesso import Acesso
 from nuvem.cadastro.modelos import Usuario
 from nuvem.frota.modelos import SaudeCaixa
+from nuvem.guarda.modelos import FotoApagada, MarcaDeDisputa
 from nuvem.mensagens.modelos import Mensagem
 from nuvem.portaria.modelos import ConferenciaPlaca, Evento, PassagemRecebida, Visita
 from nuvem.portaria.visitas import obter_visita
@@ -51,6 +53,8 @@ ORDEM_DOS_TIPOS: dict[TipoDeElo, int] = {
     "evento": 2,
     "conferencia": 3,
     "mensagem": 4,
+    "disputa": 5,
+    "foto_apagada": 6,
 }
 """Os que chegaram na mesma hora entram nesta ordem."""
 SITUACOES_DA_MENSAGEM = (
@@ -315,7 +319,29 @@ def _visitas_com_novidade(desde: datetime) -> Any:
             )
         )
     )
-    return eventos.union(fotos, conferencias, mensagens)
+    disputas = select(MarcaDeDisputa.visita_id).where(
+        MarcaDeDisputa.momento >= desde,
+        sem_elo(MarcaDeDisputa.visita_id, "disputa", _texto(MarcaDeDisputa.id)),
+    )
+    apagadas = (
+        select(Evento.visita_id)
+        .join(
+            FotoApagada,
+            and_(
+                FotoApagada.passagem_id == Evento.passagem_id,
+                FotoApagada.empresa_id == Evento.empresa_id,
+            ),
+        )
+        .where(
+            FotoApagada.apagada_em >= desde,
+            sem_elo(
+                Evento.visita_id,
+                "foto_apagada",
+                _texto(FotoApagada.passagem_id) + ":" + _texto(FotoApagada.indice),
+            ),
+        )
+    )
+    return eventos.union(fotos, conferencias, mensagens, disputas, apagadas)
 
 
 def _texto(coluna: Any) -> Any:
@@ -353,6 +379,18 @@ def _registros(sessao: Session, visita: Visita) -> list[Registro]:
         )
     ):
         registros.append(_da_conferencia(conferida))
+    for apagada in sessao.scalars(
+        select(FotoApagada).where(
+            FotoApagada.empresa_id == visita.empresa_id, FotoApagada.passagem_id.in_(ids)
+        )
+    ):
+        registros.append(_da_foto_apagada(apagada))
+    for marca in sessao.scalars(
+        select(MarcaDeDisputa).where(
+            MarcaDeDisputa.empresa_id == visita.empresa_id, MarcaDeDisputa.visita_id == visita.id
+        )
+    ):
+        registros.append(_da_disputa(marca))
     if visita.agendamento_id is not None:
         for mensagem in sessao.scalars(
             select(Mensagem).where(
@@ -411,6 +449,30 @@ def _da_foto(foto: FotoRecebida) -> Registro:
         "resumida_em": _hora(foto.resumida_em),
     }
     return Registro("foto", f"{foto.passagem_id}:{foto.indice}", retrato, foto.resumida_em)
+
+
+def _da_foto_apagada(apagada: FotoApagada) -> Registro:
+    retrato = {
+        "passagem": str(apagada.passagem_id),
+        "indice": apagada.indice,
+        "ref": apagada.ref,
+        "existia": apagada.existia,
+        "motivo": apagada.motivo,
+        "apagada_em": _hora(apagada.apagada_em),
+    }
+    referencia = f"{apagada.passagem_id}:{apagada.indice}"
+    return Registro("foto_apagada", referencia, retrato, apagada.apagada_em)
+
+
+def _da_disputa(marca: MarcaDeDisputa) -> Registro:
+    retrato = {
+        "id": marca.id,
+        "acao": marca.acao,
+        "motivo": marca.motivo,
+        "usuario_id": marca.usuario_id,
+        "momento": _hora(marca.momento),
+    }
+    return Registro("disputa", str(marca.id), retrato, marca.momento)
 
 
 def _do_evento(evento: Evento) -> Registro:
@@ -513,11 +575,15 @@ def _conferir_as_fotos(
         for elo in elos
         if elo.tipo == "passagem"
     }
+    # A foto vencida pelo prazo de guarda some de propósito: o resumo dela continua na cadeia.
+    apagadas = {elo.referencia for elo in elos if elo.tipo == "foto_apagada"}
     for elo in elos:
         if elo.tipo != "foto":
             continue
         caixa_id = caixas.get(elo.conteudo["passagem"])
         conteudo = armazenamento.ler(caixa_id, elo.conteudo["ref"]) if caixa_id else None
+        if conteudo is None and elo.referencia in apagadas:
+            continue
         if conteudo is None:
             return Quebra(elo.ordem, "a foto sumiu")
         if hashlib.sha256(conteudo).hexdigest() != elo.conteudo["resumo"]:
