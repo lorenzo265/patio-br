@@ -83,11 +83,14 @@ def criar_motor(
 ) -> Engine:
     """Cria o motor de conexões; ``pool_pre_ping`` descarta conexões que o banco já fechou.
 
+    Os valores das consultas nunca vão para a mensagem de erro (``hide_parameters``): ela vai
+    para o registro, que não leva placa, telefone nem nome (D-74).
+
     Args:
         sem_pool: uma conexão nova por uso, sem guardar (a função da Vercel, D-56).
         contexto: o SSL da conexão (o Supabase pede).
     """
-    argumentos: dict[str, Any] = {"pool_pre_ping": True}
+    argumentos: dict[str, Any] = {"pool_pre_ping": True, "hide_parameters": True}
     if sem_pool:
         argumentos["poolclass"] = NullPool
     if contexto is not None:

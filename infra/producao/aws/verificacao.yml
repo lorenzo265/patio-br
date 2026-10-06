@@ -1,0 +1,103 @@
+# A verificação de fora e o alerta de gasto (SDD 8.1, D-61 e D-74). Na us-east-1: é lá que a
+# AWS mede a verificação do Route 53 e o gasto da conta. Um por ambiente; o alerta de gasto,
+# que é da conta inteira, só sai com o da produção:
+#   aws cloudformation deploy --region us-east-1 --stack-name patio-producao-verificacao \
+#     --template-file infra/producao/aws/verificacao.yml \
+#     --parameter-overrides Ambiente=producao Dominio=<domínio> Email=<quem recebe> \
+#       GastoDoMes=<dólares combinados (N2)>
+# O Route 53 pede o /saude a cada 30 segundos, de três regiões; duas falhas seguidas tiram a
+# máquina do ar para ele, e o alarme manda um e-mail (e outro quando ela volta). O /saude
+# falha também quando o worker para de bater (D-74).
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "patio-br: o /saude verificado de fora e o alerta de gasto, por e-mail (D-74)"
+
+Parameters:
+  Ambiente:
+    Type: String
+    AllowedValues: [producao, homologacao]
+  Dominio:
+    Type: String
+    Description: o domínio da máquina (o DOMINIO do .env), sem https://
+  Email:
+    Type: String
+    Description: quem recebe os alarmes (confirma a inscrição pelo e-mail da AWS)
+  GastoDoMes:
+    Type: Number
+    Default: 100
+    Description: o gasto do mês, em dólares, acima do qual sai o alerta (N2)
+
+Conditions:
+  EAProducao: {"Fn::Equals": [{Ref: Ambiente}, producao]}
+
+Resources:
+  Avisos:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: {"Fn::Sub": "patio-${Ambiente}-verificacao"}
+      KmsMasterKeyId: alias/aws/sns
+      Subscription:
+        - Protocol: email
+          Endpoint: {Ref: Email}
+
+  Saude:
+    Type: AWS::Route53::HealthCheck
+    Properties:
+      HealthCheckConfig:
+        Type: HTTPS
+        FullyQualifiedDomainName: {Ref: Dominio}
+        Port: 443
+        ResourcePath: /saude
+        RequestInterval: 30
+        FailureThreshold: 2
+        Regions: [sa-east-1, us-east-1, us-west-2]
+      HealthCheckTags:
+        - Key: Name
+          Value: {"Fn::Sub": "patio-${Ambiente}"}
+
+  AlarmeDaSaude:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: {"Fn::Sub": "patio-${Ambiente}-fora-do-ar"}
+      AlarmDescription: "O /saude não responde 200: a máquina, a API, o banco ou o worker parou."
+      Namespace: AWS/Route53
+      MetricName: HealthCheckStatus
+      Dimensions:
+        - Name: HealthCheckId
+          Value: {Ref: Saude}
+      Statistic: Minimum
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: LessThanThreshold
+      TreatMissingData: breaching
+      AlarmActions: [{Ref: Avisos}]
+      OKActions: [{Ref: Avisos}]
+
+  Gasto:
+    Type: AWS::Budgets::Budget
+    Condition: EAProducao
+    Properties:
+      Budget:
+        BudgetName: patio-gasto-do-mes
+        BudgetType: COST
+        TimeUnit: MONTHLY
+        BudgetLimit:
+          Amount: {Ref: GastoDoMes}
+          Unit: USD
+      NotificationsWithSubscribers:
+        - Notification:
+            NotificationType: ACTUAL
+            ComparisonOperator: GREATER_THAN
+            Threshold: 100
+            ThresholdType: PERCENTAGE
+          Subscribers:
+            - SubscriptionType: EMAIL
+              Address: {Ref: Email}
+        - Notification:
+            NotificationType: FORECASTED
+            ComparisonOperator: GREATER_THAN
+            Threshold: 100
+            ThresholdType: PERCENTAGE
+          Subscribers:
+            - SubscriptionType: EMAIL
+              Address: {Ref: Email}

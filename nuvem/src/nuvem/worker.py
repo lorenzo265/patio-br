@@ -3,10 +3,10 @@
 Executa as tarefas da fila (o casamento das passagens; o envio das mensagens e o aviso do
 WhatsApp, D-63; o resumo das fotos, D-69), confere o "não veio" e os alertas, prepara as
 mensagens, sela a prova e grava a âncora do dia (D-69), apaga as fotos vencidas (D-70),
-transforma as conferências autorizadas em rótulos (D-71) e, nos ambientes que têm, avança o dia
-de demonstração (D-49) e apaga as empresas dos links de demonstração vencidos (D-54), até
-receber o sinal de parar (SIGTERM do Docker, ou Ctrl+C). Lê a configuração do ambiente, como a
-API.
+transforma as conferências autorizadas em rótulos (D-71), marca a batida e cuida das cópias do
+banco (D-74) e, nos ambientes que têm, avança o dia de demonstração (D-49) e apaga as empresas
+dos links de demonstração vencidos (D-54), até receber o sinal de parar (SIGTERM do Docker, ou
+Ctrl+C). Lê a configuração do ambiente, como a API.
 """
 
 import logging
@@ -16,11 +16,12 @@ from datetime import datetime
 
 from sqlalchemy.orm import Session, sessionmaker
 
-from nuvem import tarefas_de_fundo
+from nuvem import registro, tarefas_de_fundo
 from nuvem.armazenamento import armazenamento_da_configuracao
 from nuvem.banco import motor_da_configuracao
 from nuvem.cifra import Cifra
 from nuvem.config import ConfiguracaoInvalidaError, ler_configuracao
+from nuvem.copias.servico import copias_da_configuracao
 from nuvem.demonstracao import dia as dia_de_demonstracao
 from nuvem.demonstracao import link as links_de_demonstracao
 from nuvem.mensagens import sms, whatsapp
@@ -33,13 +34,11 @@ _registro = logging.getLogger("nuvem.worker")
 
 def main() -> None:
     """Sobe o worker e roda até o sinal de parar."""
-    logging.basicConfig(
-        level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s"
-    )
     try:
         configuracao = ler_configuracao()
     except ConfiguracaoInvalidaError as erro:
         raise SystemExit(f"erro: {erro}") from None
+    registro.configurar(configuracao.ambiente)
     motor = motor_da_configuracao(configuracao)
     parar = threading.Event()
     avancar_a_demonstracao = None
@@ -55,6 +54,9 @@ def main() -> None:
         whatsapp=whatsapp.canal_da_configuracao(configuracao),
         sms=sms.canal_da_configuracao(configuracao),
     )
+    copias = copias_da_configuracao(configuracao)
+    if copias is None and configuracao.ambiente in ("homologacao", "producao"):
+        _registro.error("cópias do banco desligadas: falta o PATIO_COPIAS_S3_BALDE")
     for sinal in (signal.SIGTERM, signal.SIGINT):
         signal.signal(sinal, lambda *_: parar.set())
     _registro.info(
@@ -72,6 +74,7 @@ def main() -> None:
             ancoras=guarda_da_configuracao(configuracao),
             dias_das_fotos=configuracao.guarda_fotos_dias,
             base_de_treino=guarda_do_treino_da_configuracao(configuracao),
+            copias=copias,
         )
     finally:
         motor.dispose()

@@ -19,6 +19,9 @@
   o worker sela o que chegou; a cada 10 minutos, grava a âncora dos dias que terminaram.
 - **Guarda** (D-70): a cada hora, apaga as fotos vencidas pelo prazo de guarda.
 - **Treino** (D-71): a cada hora, as conferências autorizadas viram rótulos a revisar.
+- **Batida e cópias** (D-74): a cada 30 segundos, o worker marca a hora (o ``/saude`` confere);
+  a cada 10 minutos, faz o que estiver pendente das cópias do banco (a cópia do dia, a guarda e a
+  restauração de teste do mês).
 
 O worker roda em outro processo (``python -m nuvem.worker``).
 """
@@ -45,10 +48,12 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import JSONB, insert
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
+from nuvem import batida
 from nuvem.agendamento import servico as agendamentos
 from nuvem.alertas import servico as alertas
 from nuvem.armazenamento import Armazenamento
 from nuvem.banco import Base, texto_de_lista
+from nuvem.copias import servico as copias_do_banco
 from nuvem.guarda import servico as guarda
 from nuvem.mensagens import servico as mensagens
 from nuvem.mensagens.canais import Canais
@@ -91,6 +96,8 @@ INTERVALO_DAS_ANCORAS = timedelta(minutes=10)
 """E procura dia terminado sem âncora a cada 10 minutos."""
 INTERVALO_DA_GUARDA = timedelta(hours=1)
 """A cada hora, as fotos vencidas pelo prazo de guarda saem (D-70)."""
+INTERVALO_DAS_COPIAS = timedelta(minutes=10)
+"""A cada 10 minutos, o worker vê se a cópia do dia ou a restauração do mês estão pendentes."""
 JANELAS_OLHADAS = timedelta(days=7)
 """O "não veio" olha as janelas que terminaram nos últimos 7 dias (cobre o worker parado)."""
 TRAVA_DO_NAO_VEIO = 7301
@@ -346,6 +353,7 @@ def rodar(
     ancoras: GuardaDasAncoras | None = None,
     dias_das_fotos: int | None = None,
     base_de_treino: GuardaDoTreino | None = None,
+    copias: copias_do_banco.Copias | None = None,
 ) -> None:
     """Executa as tarefas, confere o "não veio" e prepara as mensagens até ``parar`` ser ligado.
 
@@ -354,7 +362,8 @@ def rodar(
     saem por eles (D-63); sem, ficam no canal de demonstração. Com ``armazenamento``, as fotos
     são resumidas; com ``ancoras``, a âncora de cada dia é gravada (D-69); com os dois,
     ``armazenamento`` e ``dias_das_fotos``, a foto vencida sai (D-70); com ``armazenamento`` e
-    ``base_de_treino``, as conferências autorizadas viram rótulos (D-71).
+    ``base_de_treino``, as conferências autorizadas viram rótulos (D-71). A cada 30 segundos, marca
+    a batida; com ``copias``, cuida da cópia do banco e da restauração de teste (D-74).
 
     Um erro inesperado (ex.: o banco fora do ar) fica registrado, e o laço segue.
     """
@@ -365,10 +374,16 @@ def rodar(
     ultimas_ancoras: datetime | None = None
     ultima_guarda: datetime | None = None
     ultimos_rotulos: datetime | None = None
+    ultima_batida: datetime | None = None
+    ultimas_copias: datetime | None = None
     while not parar.is_set():
         try:
             with abrir_sessao() as sessao:
                 momento = relogio()
+                if ultima_batida is None or momento - ultima_batida >= batida.INTERVALO:
+                    batida.marcar(sessao, agora=momento)
+                    sessao.commit()
+                    ultima_batida = momento
                 if demonstracao is not None:
                     demonstracao(sessao, momento)
                     sessao.commit()
@@ -426,6 +441,11 @@ def rodar(
                         _registro.info("treino: %d rótulos novos", novos)
                     sessao.commit()
                     ultimos_rotulos = momento
+                if copias is not None and (
+                    ultimas_copias is None or momento - ultimas_copias >= INTERVALO_DAS_COPIAS
+                ):
+                    copias_do_banco.cuidar(sessao, copias, agora=momento)
+                    ultimas_copias = momento
         except Exception:
             _registro.exception("erro no laço do worker; ele segue")
             dormir(PAUSA_DEPOIS_DE_ERRO)

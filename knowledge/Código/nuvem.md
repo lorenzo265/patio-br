@@ -18,6 +18,7 @@ Aplicação da nuvem: API, painel e módulos do produto ([[3.3 Módulos da nuvem
 - [[nuvem.agendamento]]: Agendamento ([[3.3 Módulos da nuvem no MVP|SDD 3.3]] e [[3.4 Conectores de agendamento|3.4]]): os agendamentos de cada site e os conectores que os trazem.
 - [[nuvem.alertas]]: Os alertas ([[8.1 Falhas|SDD 8.1]], [[D-62]] e [[D-68]]): abrem uma vez, fecham sozinhos e avisam quem autorizou.
 - [[nuvem.cadastro]]: Módulo cadastro ([[3.3 Módulos da nuvem no MVP|SDD 3.3]]): empresas, sites, portarias, faixas, câmeras, docas e usuários.
+- [[nuvem.copias]]: As cópias do banco e a restauração de teste ([[7.2 Nuvem (AWS, sa-east-1)|SDD 7.2]], [[D-74]]).
 - [[nuvem.demonstracao]]: A demonstração comercial ([[D-45]] e [[D-49]]): empresas inventadas, o mês de histórico e o dia ao vivo.
 - [[nuvem.extrato]]: Indicadores e extrato do mês em R$ ([[5.4 Contas do extrato|SDD 5.4]] e [[D-48]]).
 - [[nuvem.frota]]: Frota de borda ([[3.3 Módulos da nuvem no MVP|SDD 3.3]] e [[7.4 A caixa de borda|7.4]]): as caixas de cada site, a ativação e a chave de cada uma.
@@ -100,6 +101,21 @@ Conexão com o PostgreSQL (SQLAlchemy 2, driver pg8000) e a base dos modelos da 
 - **`motor_da_configuracao`**: O motor do banco como a configuração pede (pool e SSL).
 - **`obter_sessao`**: Dependência do FastAPI: uma sessão por requisição, fechada ao final dela.
 
+### `nuvem.batida`
+
+`nuvem/src/nuvem/batida.py`
+
+A batida do worker ([[D-74]]): a cada volta, ele marca a hora; o ``/saude`` confere a marca.
+
+Se a marca passa de 2 minutos, o worker parou ou travou: na homologação e na produção, o
+``/saude`` responde 503, e a verificação de fora (o Route 53) toca o alarme.
+
+- **`INTERVALO`** = `timedelta(seconds=30)`: De quanto em quanto tempo o worker marca a hora.
+- **`LIMITE`** = `timedelta(minutes=2)`: A marca mais velha que ainda conta como viva.
+- **`Batida`** (classe): A última hora marcada por um processo que roda sempre (hoje, só o worker).
+- **`marcar`**: Marca a hora do processo (troca a marca anterior).
+- **`viva`**: Se o processo marcou a hora nos últimos 2 minutos.
+
 ### `nuvem.cifra`
 
 `nuvem/src/nuvem/cifra.py`
@@ -168,6 +184,29 @@ aqui as suas rotas.
 - **`PASTA_ESTATICA`** = `Path(web.__file__).parent / 'estatico'`: Arquivos de terceiros servidos como estão (o HTMX e o three.js), em ``/estatico``.
 - **`criar_app`**: Monta a aplicação.
 - **`saude`**: Responde se a API está no ar e alcança o banco (503 quando não alcança).
+
+### `nuvem.registro`
+
+`nuvem/src/nuvem/registro.py`
+
+O registro da nuvem ([[8.1 Falhas|SDD 8.1]], [[D-61]] e [[D-74]]): sem placa nem telefone, e fácil de achar o erro.
+
+Na homologação e na produção, cada registro é **uma linha JSON** (o erro, com o rastro, vai na
+mesma linha): o Docker a manda ao CloudWatch, que conta os erros pelo ``nivel``. Nos outros
+ambientes, texto, para ler no terminal.
+
+O código registra só os ids. O formato é a segunda barreira: troca o que parecer placa ou
+telefone por ``[placa]`` e ``[telefone]``, na mensagem e no rastro do erro. Nome não tem como
+reconhecer: por isso a regra é registrar só os ids.
+
+- **`PLACA`**: A placa antiga (``ABC1234``, ``ABC-1234``) e a Mercosul (``ABC1D23``).
+- **`TELEFONE`**: O celular e o fixo do Brasil, com ou sem o 55, o DDD entre parênteses e os separadores.
+- **`MARCA`** = `'_da_nuvem'`: O atributo que marca o registro que a nuvem pôs na raiz (para não pôr dois).
+- **`DO_UVICORN`** = `('uvicorn', 'uvicorn.access')`: Os registros do uvicorn, que não passam pela raiz (o ``uvicorn.error`` vai pelo ``uvicorn``).
+- **`mascarar`**: O texto com cada placa e cada telefone trocados por ``[placa]`` e ``[telefone]``.
+- **`FormatoJson`** (classe): Uma linha JSON por registro: quando, nível, origem, mensagem e, se houver, o erro.
+- **`Mascarado`** (classe): Um formato de texto qualquer (o nosso ou o do uvicorn), sem placa nem telefone.
+- **`configurar`**: Põe o registro da nuvem na raiz (uma vez só) e troca o formato dos do uvicorn.
 
 ### `nuvem.relogio`
 
@@ -249,6 +288,9 @@ Fila de tarefas no PostgreSQL e o laço do worker ([[6.1 Stack|SDD 6.1]], [[D-16
   o worker sela o que chegou; a cada 10 minutos, grava a âncora dos dias que terminaram.
 - **Guarda** ([[D-70]]): a cada hora, apaga as fotos vencidas pelo prazo de guarda.
 - **Treino** ([[D-71]]): a cada hora, as conferências autorizadas viram rótulos a revisar.
+- **Batida e cópias** ([[D-74]]): a cada 30 segundos, o worker marca a hora (o ``/saude`` confere);
+  a cada 10 minutos, faz o que estiver pendente das cópias do banco (a cópia do dia, a guarda e a
+  restauração de teste do mês).
 
 O worker roda em outro processo (``python -m nuvem.worker``).
 
@@ -258,6 +300,7 @@ O worker roda em outro processo (``python -m nuvem.worker``).
 - **`INTERVALO_DE_SELAR`** = `timedelta(minutes=1)`: O worker sela a prova do que chegou a cada minuto ([[D-69]]).
 - **`INTERVALO_DAS_ANCORAS`** = `timedelta(minutes=10)`: E procura dia terminado sem âncora a cada 10 minutos.
 - **`INTERVALO_DA_GUARDA`** = `timedelta(hours=1)`: A cada hora, as fotos vencidas pelo prazo de guarda saem ([[D-70]]).
+- **`INTERVALO_DAS_COPIAS`** = `timedelta(minutes=10)`: A cada 10 minutos, o worker vê se a cópia do dia ou a restauração do mês estão pendentes.
 - **`JANELAS_OLHADAS`** = `timedelta(days=7)`: O "não veio" olha as janelas que terminaram nos últimos 7 dias (cobre o worker parado).
 - **`TRAVA_DO_NAO_VEIO`** = `7301`: Número da trava do PostgreSQL que deixa um worker de cada vez conferir o "não veio".
 - **`PAUSA`** = `1.0`: Segundos de espera quando a fila está vazia.
@@ -301,10 +344,10 @@ O worker da nuvem ([[6.1 Stack|SDD 6.1]] e [[D-38]]): ``python -m nuvem.worker``
 Executa as tarefas da fila (o casamento das passagens; o envio das mensagens e o aviso do
 WhatsApp, [[D-63]]; o resumo das fotos, [[D-69]]), confere o "não veio" e os alertas, prepara as
 mensagens, sela a prova e grava a âncora do dia ([[D-69]]), apaga as fotos vencidas ([[D-70]]),
-transforma as conferências autorizadas em rótulos ([[D-71]]) e, nos ambientes que têm, avança o dia
-de demonstração ([[D-49]]) e apaga as empresas dos links de demonstração vencidos ([[D-54]]), até
-receber o sinal de parar (SIGTERM do Docker, ou Ctrl+C). Lê a configuração do ambiente, como a
-API.
+transforma as conferências autorizadas em rótulos ([[D-71]]), marca a batida e cuida das cópias do
+banco ([[D-74]]) e, nos ambientes que têm, avança o dia de demonstração ([[D-49]]) e apaga as empresas
+dos links de demonstração vencidos ([[D-54]]), até receber o sinal de parar (SIGTERM do Docker, ou
+Ctrl+C). Lê a configuração do ambiente, como a API.
 
 - **`main`**: Sobe o worker e roda até o sinal de parar.
 
@@ -315,15 +358,18 @@ API.
 - `nuvem/tests/test_nuvem_armazenamento_s3.py`: As fotos num armazenamento S3 ([[D-56]]): o Supabase Storage na demonstração e a AWS no mês 4.
 - `nuvem/tests/test_nuvem_banco.py`: O banco de teste: migrado do zero no início e limpo a cada teste.
 - `nuvem/tests/test_nuvem_banco_conexao.py`: Como a nuvem se liga ao banco ([[D-56]]): sem pool na função da Vercel e com SSL no Supabase.
+- `nuvem/tests/test_nuvem_batida.py`: A batida do worker e o ``/saude`` ([[D-74]]): o worker marca a hora; parado, o ``/saude`` falha na homologação e na produção.
 - `nuvem/tests/test_nuvem_cifra.py`: Cifra dos segredos guardados no banco (ex.: senha da câmera).
 - `nuvem/tests/test_nuvem_config.py`: Configuração da nuvem: lida do ambiente (variáveis PATIO_*) ou do .env da pasta atual.
 - `nuvem/tests/test_nuvem_pacote.py`: O pacote nuvem usa o mesmo contrato de passagem que o resto do sistema ([[3.2 O contrato entre borda e nuvem - a Passagem|SDD 3.2]]).
 - `nuvem/tests/test_nuvem_producao.py`: A produção e a homologação ([[7.2 Nuvem (AWS, sa-east-1)|SDD 7.2]] e [[7.3 Do código à produção|7.3]], [[D-57]] e [[D-73]]): o que o compose das máquinas, o Caddy, o ``.env`` de exemplo e o workflow do deploy prometem. Subir de verdade espera a conta da AWS ([[N21]]); a CI sobe o compose como na homologação (o trabalho ``producao`` do ``ci.yml``).
+- `nuvem/tests/test_nuvem_registro.py`: O registro da nuvem ([[8.1 Falhas|SDD 8.1]], [[D-61]] e [[D-74]]): sem placa nem telefone, e uma linha por registro na homologação e na produção. Placas e telefones daqui são inventados.
 - `nuvem/tests/test_nuvem_saude.py`: GET /saude: a API está no ar e alcança o banco.
 - `nuvem/tests/test_nuvem_semente.py`: Dados de demonstração (`uv run tarefas semente`).
 - `nuvem/tests/test_nuvem_senhas.py`: Resumo de senhas e PINs com argon2 ([[8.2 Segurança|SDD 8.2]]): guarda-se o resumo, nunca o texto.
 - `nuvem/tests/test_nuvem_tarefas_de_fundo.py`: Fila de tarefas e worker ([[6.1 Stack|SDD 6.1]] e [[D-38]]): o casamento e o "não veio" fora do pedido da caixa.
 - `nuvem/tests/test_nuvem_vercel.py`: A entrada da Vercel ([[D-51]] e [[D-56]]): o `app`, o `vercel.json` e o `pyproject.toml` combinam.
+- `nuvem/tests/test_nuvem_worker.py`: A entrada do worker (``python -m nuvem.worker``): o registro e as cópias do banco ([[D-74]]).
 
 ---
 

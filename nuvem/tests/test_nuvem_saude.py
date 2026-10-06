@@ -15,7 +15,10 @@ CHAVE = "e2u1sbXAG2Ri9_0ZHEe1QYdjCBzi-q2Wk1ZkkXBtEyw="
 
 @pytest.mark.integracao
 def test_saude_responde_ok_com_o_banco_no_ar(url_banco_teste: str) -> None:
-    app = criar_app(Configuracao(url_banco=url_banco_teste, chave_cifra=CHAVE, _env_file=None))
+    # No ambiente local, sem conferir o worker (ele é conferido em test_nuvem_batida.py).
+    app = criar_app(
+        Configuracao(url_banco=url_banco_teste, chave_cifra=CHAVE, ambiente="local", _env_file=None)
+    )
 
     with TestClient(app) as cliente:
         resposta = cliente.get("/saude")

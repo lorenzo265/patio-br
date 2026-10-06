@@ -165,6 +165,32 @@ def test_so_a_homologacao_e_a_producao_exigem_as_duas_etapas(
     assert Configuracao(_env_file=None).exige_duas_etapas is exige
 
 
+@pytest.mark.parametrize(
+    ("ambiente", "confere"),
+    [("local", False), ("demonstracao", False), ("homologacao", True), ("producao", True)],
+)
+def test_so_a_homologacao_e_a_producao_conferem_o_worker_no_saude(
+    monkeypatch: pytest.MonkeyPatch, ambiente: str, confere: bool
+) -> None:
+    monkeypatch.setenv("PATIO_URL_BANCO", URL)
+    monkeypatch.setenv("PATIO_AMBIENTE", ambiente)
+
+    assert Configuracao(_env_file=None).confere_o_worker is confere
+
+
+def test_o_balde_das_copias_fica_no_s3_das_fotos(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("PATIO_URL_BANCO", URL)
+    monkeypatch.setenv("PATIO_COPIAS_S3_BALDE", "copias")
+
+    with pytest.raises(ValidationError, match="copias_s3_balde"):
+        Configuracao(_env_file=None)
+
+    monkeypatch.setenv("PATIO_FOTOS_S3_ENDERECO", "https://s3.sa-east-1.amazonaws.com")
+    monkeypatch.setenv("PATIO_FOTOS_S3_CHAVE", "chave-inventada")
+    monkeypatch.setenv("PATIO_FOTOS_S3_SEGREDO", "segredo-inventado")
+    assert Configuracao(_env_file=None).copias_s3_balde == "copias"
+
+
 WHATSAPP_COMPLETO = {
     "PATIO_WHATSAPP_TOKEN": "token-inventado",
     "PATIO_WHATSAPP_NUMERO_ID": "1234567890",

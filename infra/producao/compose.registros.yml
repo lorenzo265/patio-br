@@ -1,0 +1,25 @@
+# O registro da nuvem no CloudWatch (SDD 8.1, D-61 e D-74). Entra por cima do compose.yml, pelo
+# .env da máquina:
+#   COMPOSE_FILE=compose.yml:compose.registros.yml
+#   REGISTRO_GRUPO=patio-producao   (ou patio-homologacao)
+# O Docker manda cada linha ao grupo do registro (criado pelo aws/alarmes.yml), com a chave do
+# usuário do IAM que só escreve nele, nas variáveis do próprio Docker (o guia da produção diz
+# como). Sem bloquear a nuvem: se o CloudWatch demorar, as linhas esperam num espaço da memória.
+x-registro: &registro
+  driver: awslogs
+  options:
+    awslogs-region: sa-east-1
+    awslogs-group: ${REGISTRO_GRUPO:?o grupo do registro no CloudWatch, no .env}
+    tag: "{{.Name}}"
+    mode: non-blocking
+    max-buffer-size: 4m
+
+services:
+  migracoes:
+    logging: *registro
+  api:
+    logging: *registro
+  worker:
+    logging: *registro
+  caddy:
+    logging: *registro

@@ -122,6 +122,10 @@ class Configuracao(BaseSettings):
     Sem ele, a âncora vai para o armazenamento das fotos, sem trava (a demonstração).
     """
 
+    copias_s3_balde: str | None = None
+    """O balde das cópias do banco (D-74), no mesmo S3 das fotos. Sem ele, o worker não faz cópia
+    (e, na homologação e na produção, isso é um erro registrado)."""
+
     whatsapp_token: SecretStr | None = None
     """O token do usuário de sistema da Meta, que manda as mensagens (D-63)."""
     whatsapp_numero_id: str | None = None
@@ -164,6 +168,11 @@ class Configuracao(BaseSettings):
         return self.ambiente in ("homologacao", "producao")
 
     @property
+    def confere_o_worker(self) -> bool:
+        """Se o ``/saude`` falha quando o worker para de bater (D-74): onde há um worker sempre."""
+        return self.ambiente in ("homologacao", "producao")
+
+    @property
     def tem_demonstracao(self) -> bool:
         """Se o dia de demonstração existe neste ambiente (D-49)."""
         return self.ambiente in ("local", "demonstracao")
@@ -190,6 +199,8 @@ class Configuracao(BaseSettings):
             raise ValueError("fotos_s3: com o endereço, a chave e o segredo são obrigatórios")
         if self.ancoras_s3_balde and not self.fotos_s3_endereco:
             raise ValueError("ancoras_s3_balde: o balde das âncoras fica no S3 das fotos")
+        if self.copias_s3_balde and not self.fotos_s3_endereco:
+            raise ValueError("copias_s3_balde: o balde das cópias fica no S3 das fotos")
         return self
 
     @model_validator(mode="after")
