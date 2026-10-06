@@ -21,6 +21,7 @@ Os comandos do dia a dia, lidos de `ferramentas/src/tarefas/comandos.py`. Funcio
 | `uv run tarefas semente` | grava os dados de demonstração no banco de desenvolvimento | Devolve a etapa que grava os dados de demonstração no banco de ``PATIO_URL_BANCO``. |
 | `uv run tarefas demonstracao` | cria a empresa de demonstração (um mês de histórico) no banco de desenvolvimento | Devolve a etapa que cria a empresa de demonstração no banco de desenvolvimento ([[D-49]]). |
 | `uv run tarefas treino` | monta a pasta da base de treino (os rótulos revisados) em dados/treino | Monta a pasta da base de treino em ``dados/treino`` ([[D-71]]). |
+| `uv run tarefas sinteticas` | gera mil placas sintéticas para o treino em dados/sinteticas | Gera um lote de placas sintéticas em ``dados/sinteticas`` ([[D-72]]). |
 | `uv run tarefas conhecimento` | gera as notas do vault do Obsidian (knowledge/) a partir de docs/ e do código | Devolve a etapa que gera o vault do Obsidian (``knowledge/``) de docs/ e do código. |
 | `uv run tarefas modelos` | baixa os modelos do leitor v0 (conferindo o SHA-256) | Devolve a etapa que baixa os modelos do leitor v0 para ``modelos/v0`` (fora do Git). |
 | `uv run tarefas demo` | demonstração: sobe tudo, semeia e manda passagens pelo simulador | Devolve a demonstração: sobe tudo, migra, semeia e roda o simulador. |
