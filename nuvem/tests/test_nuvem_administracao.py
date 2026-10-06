@@ -84,3 +84,36 @@ def test_senha_curta_demais_e_recusada(sessao: Session, senhas: Senhas) -> None:
 
     assert codigo == 1
     assert "curta" not in saida
+
+
+def test_zerar_as_duas_etapas_pelo_servidor_nao_pede_senha(
+    sessao: Session, senhas: Senhas, cenario: Demonstracao
+) -> None:
+    administrador = cenario.administrador
+    administrador.duas_etapas_cifrado = "qualquer"
+    administrador.duas_etapas_desde = datetime(2026, 10, 6, tzinfo=UTC)
+    sessao.flush()
+
+    codigo, saida = _rodar(
+        sessao, senhas, ["--zerar-duas-etapas", "--email", administrador.email.upper()]
+    )
+
+    assert codigo == 0
+    assert "zerada" in saida
+    assert (administrador.duas_etapas_cifrado, administrador.duas_etapas_desde) == (None, None)
+
+
+def test_zerar_as_duas_etapas_de_email_que_nao_existe_e_recusado(
+    sessao: Session, senhas: Senhas
+) -> None:
+    codigo, saida = _rodar(
+        sessao, senhas, ["--zerar-duas-etapas", "--email", "ninguem@patio-br.example"]
+    )
+
+    assert codigo == 1
+    assert "nenhuma conta" in saida
+
+
+def test_criar_sem_o_nome_e_recusado(sessao: Session, senhas: Senhas) -> None:
+    with pytest.raises(SystemExit):
+        _rodar(sessao, senhas, ["--email", "x@patio-br.example"], SENHA, SENHA)

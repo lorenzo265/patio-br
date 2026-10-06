@@ -10,7 +10,15 @@ A administração (nós) fica fora das empresas, numa tabela própria (SDD D-19)
 from datetime import datetime, time
 from typing import Literal
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, PrimaryKeyConstraint, String, true
+from sqlalchemy import (
+    BigInteger,
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    PrimaryKeyConstraint,
+    String,
+    true,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from nuvem.banco import Base, do_pai_na_mesma_empresa, pode_ser_pai, texto_de_lista
@@ -19,6 +27,8 @@ Sentido = Literal["entrada", "saida"]
 Posicao = Literal["frente", "tras", "contexto"]
 Papel = Literal["porteiro", "patio", "gestor"]
 """Papéis dos usuários do cliente. A administração (nós) não é usuário de cliente (D-19)."""
+Falta = Literal["codigo", "ligar"]
+"""O que falta à sessão pela metade (D-60): o código do app, ou ligar a verificação."""
 
 FUSO_PADRAO = "America/Sao_Paulo"
 
@@ -113,7 +123,18 @@ class Doca(Base):
     nome: Mapped[str]
 
 
-class Usuario(Base):
+class ComDuasEtapas:
+    """A verificação em duas etapas de uma conta (SDD 8.2, D-60)."""
+
+    duas_etapas_cifrado: Mapped[str | None]
+    """O segredo do app autenticador, cifrado (a nuvem precisa dele para conferir o código)."""
+    duas_etapas_desde: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    """Quando a verificação foi ligada; vazio com o segredo = ligação ainda não confirmada."""
+    duas_etapas_passo: Mapped[int | None] = mapped_column(BigInteger)
+    """O intervalo do último código aceito: ele e os anteriores não valem mais."""
+
+
+class Usuario(ComDuasEtapas, Base):
     """Uma pessoa do cliente que usa o painel."""
 
     __tablename__ = "usuario"
@@ -130,6 +151,9 @@ class Usuario(Base):
     """Resumo argon2 do PIN de 6 números, só do porteiro (troca de porteiro no tablet)."""
     ativo: Mapped[bool] = mapped_column(default=True, server_default=true())
     """Desativado não entra, e as sessões que ele já tinha deixam de valer."""
+    duas_etapas_zerada_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    """A última vez que a administração zerou a verificação dele (perdeu o celular)."""
+    duas_etapas_zerada_por: Mapped[int | None] = mapped_column(ForeignKey("administrador.id"))
 
 
 class UsuarioSite(Base):
@@ -147,7 +171,7 @@ class UsuarioSite(Base):
     empresa_id: Mapped[int]
 
 
-class Administrador(Base):
+class Administrador(ComDuasEtapas, Base):
     """Uma pessoa da administração da plataforma (nós), fora de qualquer empresa (D-19)."""
 
     __tablename__ = "administrador"
@@ -184,6 +208,33 @@ class SessaoLogin(Base):
     administrador_id: Mapped[int | None] = mapped_column(ForeignKey("administrador.id"))
     criada_em: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     expira_em: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    falta: Mapped[Falta | None] = mapped_column(texto_de_lista(Falta, "falta"))
+    """Vazio na sessão de sempre. Na sessão pela metade (D-60), o que falta para entrar: ela só
+    serve para a tela do código ou de ligar a verificação."""
+
+
+class CodigoRecuperacao(Base):
+    """Um código de recuperação da verificação em duas etapas (D-60): vale uma vez.
+
+    Guarda só o resumo argon2, como a senha (regra 6 do ``CLAUDE.md``).
+    """
+
+    __tablename__ = "codigo_recuperacao"
+    __table_args__ = (
+        do_pai_na_mesma_empresa("usuario"),
+        CheckConstraint(
+            "(usuario_id IS NOT NULL AND empresa_id IS NOT NULL AND administrador_id IS NULL)"
+            " OR (usuario_id IS NULL AND empresa_id IS NULL AND administrador_id IS NOT NULL)",
+            name="de_uma_pessoa_so",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    usuario_id: Mapped[int | None] = mapped_column(index=True)
+    empresa_id: Mapped[int | None]
+    administrador_id: Mapped[int | None] = mapped_column(ForeignKey("administrador.id"), index=True)
+    resumo: Mapped[str]
+    usado_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class TentativaLogin(Base):

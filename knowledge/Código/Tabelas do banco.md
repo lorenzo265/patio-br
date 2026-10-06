@@ -19,6 +19,7 @@ As tabelas do PostgreSQL, lidas dos modelos do SQLAlchemy (`__tablename__`), com
 | `caixa_borda` | `CaixaBorda` | [[nuvem.frota]] | id, empresa_id, site_id, chave_resumo, ativada_em, revogada_em | Uma caixa de borda (mini PC na portaria) ativada num site. |
 | `camera` | `Camera` | [[nuvem.cadastro]] | id, empresa_id, faixa_id, nome, posicao, endereco, login, senha_cifrada | Uma câmera IP da faixa. A senha fica cifrada (ver ``nuvem.cifra``). |
 | `codigo_ativacao` | `CodigoAtivacao` | [[nuvem.frota]] | id, empresa_id, site_id, codigo_resumo, criado_por, criado_em, expira_em, usado_em | Um código de uso único que a administração gera para ativar uma caixa num site. |
+| `codigo_recuperacao` | `CodigoRecuperacao` | [[nuvem.cadastro]] | id, usuario_id, empresa_id, administrador_id, resumo, usado_em | Um código de recuperação da verificação em duas etapas ([[D-60]]): vale uma vez. |
 | `conferencia_placa` | `ConferenciaPlaca` | [[nuvem.portaria]] | id, empresa_id, passagem_id, foto, placa_lida, placa, usuario_id, momento | A placa certa de um recorte, segundo quem conferiu ([[D-42]]). Só se acrescenta ([[5.5 Garantias\|SDD 5.5]]). |
 | `dia_de_demonstracao` | `DiaDeDemonstracao` | [[nuvem.demonstracao]] | id, empresa_id, site_id, caixa_id, lider_id, comecou_em, termina_em, chegadas, enviadas, saidas, ultima_acao_em, situacao | Um "começar o dia" de um site de demonstração. |
 | `doca` | `Doca` | [[nuvem.cadastro]] | id, empresa_id, site_id, nome | Uma doca de carga e descarga do site. |
@@ -34,11 +35,11 @@ As tabelas do PostgreSQL, lidas dos modelos do SQLAlchemy (`__tablename__`), com
 | `parametros_site` | `ParametrosSite` | [[nuvem.extrato]] | id, empresa_id, site_id, valor_da_estadia, franquia_minutos, postos_antes, postos_depois, custo_mensal_do_posto, custo_hora_doca, atualizado_em | Os números do site para o extrato; sem linha aqui, valem os da lei e nada da portaria. |
 | `passagem` | `PassagemRecebida` | [[nuvem.portaria]] | id, empresa_id, site_id, caixa_id, faixa_id, sentido, inicio, fim, recebida_em, como_veio | Uma passagem que uma caixa de borda mandou. |
 | `portaria` | `Portaria` | [[nuvem.cadastro]] | id, empresa_id, site_id, nome | Uma portaria do site; tem uma ou mais faixas. |
-| `sessao_login` | `SessaoLogin` | [[nuvem.cadastro]] | id, codigo_resumo, usuario_id, empresa_id, administrador_id, criada_em, expira_em | Uma sessão aberta no painel ([[D-20]]): de um usuário do cliente ou da administração. |
+| `sessao_login` | `SessaoLogin` | [[nuvem.cadastro]] | id, codigo_resumo, usuario_id, empresa_id, administrador_id, criada_em, expira_em, falta | Uma sessão aberta no painel ([[D-20]]): de um usuário do cliente ou da administração. |
 | `site` | `Site` | [[nuvem.cadastro]] | id, empresa_id, nome, fuso, abre, fecha | Um local do cliente com portaria e pátio (ex.: um centro de distribuição). |
 | `tarefa_de_fundo` | `TarefaDeFundo` | [[nuvem]] | id, tipo, chave, dados, situacao, tentativas, criada_em, executar_em, terminada_em, ultimo_erro | Uma tarefa para o worker. É da plataforma, não de um cliente: os dados dizem o que fazer. |
 | `tentativa_login` | `TentativaLogin` | [[nuvem.cadastro]] | id, alvo_resumo, momento | Um erro de senha ou de PIN, para o limite de tentativas ([[8.2 Segurança\|SDD 8.2]]). |
-| `usuario` | `Usuario` | [[nuvem.cadastro]] | id, empresa_id, nome, email, papel, senha_resumo, pin_resumo, ativo | Uma pessoa do cliente que usa o painel. |
+| `usuario` | `Usuario` | [[nuvem.cadastro]] | id, empresa_id, nome, email, papel, senha_resumo, pin_resumo, ativo, duas_etapas_zerada_em, duas_etapas_zerada_por | Uma pessoa do cliente que usa o painel. |
 | `usuario_site` | `UsuarioSite` | [[nuvem.cadastro]] | usuario_id, site_id, empresa_id | Os sites que um usuário vê; sempre da mesma empresa do usuário. |
 | `visita` | `Visita` | [[nuvem.portaria]] | id, empresa_id, site_id, agendamento_id, estado, composicao, chegou_em, saiu_em, passagem_entrada_id, passagem_saida_id, criada_em, doca_id, chamada_em, na_doca_em, liberada_em | A estadia de um caminhão no site, da chegada à saída (ou o "não veio"). |
 

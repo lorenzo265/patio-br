@@ -116,6 +116,11 @@ class Configuracao(BaseSettings):
         return self.ambiente != "local"
 
     @property
+    def exige_duas_etapas(self) -> bool:
+        """Se o gestor e a administração passam pela verificação em duas etapas (D-60)."""
+        return self.ambiente in ("homologacao", "producao")
+
+    @property
     def tem_demonstracao(self) -> bool:
         """Se o dia de demonstração existe neste ambiente (D-49)."""
         return self.ambiente in ("local", "demonstracao")

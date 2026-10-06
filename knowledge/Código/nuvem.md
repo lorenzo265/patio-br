@@ -31,14 +31,17 @@ Aplicação da nuvem: API, painel e módulos do produto ([[3.3 Módulos da nuvem
 
 `nuvem/src/nuvem/administracao.py`
 
-O comando que cria alguém da administração ([[8.2 Segurança|SDD 8.2]]): ``python -m nuvem.administracao``.
+O comando da administração no servidor ([[8.2 Segurança|SDD 8.2]]): ``python -m nuvem.administracao``.
 
-``uv run python -m nuvem.administracao --nome "Fulano" --email fulano@exemplo.com`` pede a senha
-duas vezes, sem mostrar, e cria a conta no banco de ``PATIO_URL_BANCO``. Serve em qualquer
-ambiente: é assim que a administração nasce fora do ambiente local, onde a semente não roda. A
-verificação em duas etapas vem no mês 4, com a do gestor.
+- ``uv run python -m nuvem.administracao --nome "Fulano" --email fulano@exemplo.com`` pede a
+  senha duas vezes, sem mostrar, e cria a conta no banco de ``PATIO_URL_BANCO``. É assim que a
+  administração nasce fora do ambiente local, onde a semente não roda.
+- ``uv run python -m nuvem.administracao --zerar-duas-etapas --email fulano@exemplo.com`` zera a
+  verificação em duas etapas de quem perdeu o celular e fecha as sessões dele ([[D-60]]). Na
+  próxima entrada, ele liga a verificação de novo. Serve para a administração, que não tem
+  quem a zere pelo painel (o usuário do cliente, a administração zera pelo painel).
 
-- **`principal`**: Cria a conta; devolve 0 se criou, 1 se não (a mensagem diz por quê, sem a senha).
+- **`principal`**: Cria a conta, ou zera a verificação em duas etapas; devolve 0 se deu certo, 1 se não.
 
 ### `nuvem.armazenamento`
 

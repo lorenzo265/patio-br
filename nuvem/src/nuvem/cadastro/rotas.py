@@ -1,18 +1,19 @@
 """Rotas do cadastro: o cliente consulta os sites e as câmeras que vê; a administração, as
-empresas.
+empresas, e zera a verificação em duas etapas de quem perdeu o celular (D-60).
 
 Sem login, 401; com o papel errado, 403; o que é de outra empresa, 404. Câmera sai sem login
 nem senha.
 """
 
+from datetime import datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response, status
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy.orm import Session
 
 from nuvem.banco import obter_sessao
-from nuvem.cadastro import servico
+from nuvem.cadastro import login, servico
 from nuvem.cadastro.acesso import (
     Acesso,
     AcessoAdmin,
@@ -20,7 +21,9 @@ from nuvem.cadastro.acesso import (
     obter_acesso,
     obter_acesso_admin,
 )
-from nuvem.cadastro.modelos import Posicao
+from nuvem.cadastro.modelos import Administrador, Posicao, Usuario
+from nuvem.erros import NaoEncontradoError
+from nuvem.relogio import agora
 
 roteador = APIRouter(prefix="/api/cadastro", tags=["cadastro"])
 roteador_admin = APIRouter(prefix="/api/admin", tags=["administração"])
@@ -109,3 +112,22 @@ def listar_sites_para_administracao(
     """Todos os sites, de todas as empresas (só a administração)."""
     sites = servico.listar_sites_para_administracao(sessao)
     return [SiteParaAdministracao.model_validate(site) for site in sites]
+
+
+@roteador_admin.post(
+    "/usuarios/{usuario_id}/duas-etapas/zerar", status_code=status.HTTP_204_NO_CONTENT
+)
+def zerar_duas_etapas(
+    sessao: SessaoDaRequisicao,
+    administracao: AcessoDaAdministracao,
+    momento: Annotated[datetime, Depends(agora)],
+    usuario_id: int,
+) -> Response:
+    """Zera a verificação em duas etapas de um usuário e fecha as sessões dele (D-60)."""
+    usuario = sessao.get(Usuario, usuario_id)
+    if usuario is None:
+        raise NaoEncontradoError(f"usuário {usuario_id}")
+    quem = sessao.get(Administrador, administracao.administrador_id)
+    login.zerar_duas_etapas(sessao, usuario, agora=momento, por=quem)
+    sessao.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

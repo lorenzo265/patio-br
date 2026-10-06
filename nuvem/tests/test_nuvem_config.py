@@ -150,3 +150,16 @@ def test_o_segredo_do_cron_vem_do_cron_secret_da_vercel(monkeypatch: pytest.Monk
     assert configuracao.segredo_do_cron is not None
     assert configuracao.segredo_do_cron.get_secret_value() == "segredo-do-cron"
     assert "segredo-do-cron" not in repr(configuracao)
+
+
+@pytest.mark.parametrize(
+    ("ambiente", "exige"),
+    [("local", False), ("demonstracao", False), ("homologacao", True), ("producao", True)],
+)
+def test_so_a_homologacao_e_a_producao_exigem_as_duas_etapas(
+    monkeypatch: pytest.MonkeyPatch, ambiente: str, exige: bool
+) -> None:
+    monkeypatch.setenv("PATIO_URL_BANCO", URL)
+    monkeypatch.setenv("PATIO_AMBIENTE", ambiente)
+
+    assert Configuracao(_env_file=None).exige_duas_etapas is exige

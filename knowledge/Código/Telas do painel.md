@@ -23,6 +23,9 @@ Os arquivos Jinja de `nuvem/src/nuvem/web/telas/`, a função que mostra cada um
 | `demonstracao.html` | `nuvem.web.demonstracao.andamento` | `base.html` |  |
 | `demonstracao_link.html` | `nuvem.web.demonstracao.pagina_do_link` | `base.html` |  |
 | `entrar.html` | `nuvem.web.rotas.entrar`, `nuvem.web.rotas.tela_de_entrar` | `base.html` |  |
+| `entrar_codigo.html` | `nuvem.web.duas_etapas.confirmar_codigo`, `nuvem.web.duas_etapas.tela_do_codigo` | `base.html` |  |
+| `entrar_ligar.html` | `nuvem.web.duas_etapas._tela_de_ligar` | `base.html` |  |
+| `entrar_recuperacao.html` | `nuvem.web.duas_etapas.ligar` | `base.html` |  |
 | `estoque.html` | `nuvem.web.em_breve.estoque` | `base.html` |  |
 | `extrato.html` | `nuvem.web.extrato.extrato_do_mes` | `base.html` |  |
 | `inicio.html` | `nuvem.web.rotas.inicio` | `base.html` |  |

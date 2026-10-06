@@ -6,7 +6,7 @@ outro site faça o navegador postar formulários aqui com o cookie. O login, que
 cookie, recusa o envio que o navegador marca como vindo de outro site (``Sec-Fetch-Site``).
 """
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Annotated, Any
 
@@ -18,7 +18,8 @@ from sqlalchemy.orm import Session
 from nuvem.banco import obter_sessao
 from nuvem.cadastro import login, servico
 from nuvem.cadastro.acesso import COOKIE_DA_SESSAO, Acesso, QuemPede, exigir_papel
-from nuvem.cadastro.modelos import Administrador, Empresa, Usuario
+from nuvem.cadastro.duas_etapas import VALIDADE_DA_SESSAO_PELA_METADE
+from nuvem.cadastro.modelos import Administrador, Empresa, Falta, Usuario
 from nuvem.relogio import agora
 from nuvem.senhas import Senhas, obter_senhas
 from nuvem.web import csrf
@@ -32,6 +33,8 @@ Agora = Annotated[datetime, Depends(agora)]
 AcessoDaPortaria = Annotated[Acesso, Depends(exigir_papel("porteiro", "gestor"))]
 
 ESPERE = f"Muitas tentativas. Espere {login.JANELA_DAS_TENTATIVAS.seconds // 60} minutos."
+TELA_DO_QUE_FALTA: dict[Falta, str] = {"codigo": "/entrar/codigo", "ligar": "/entrar/ligar"}
+"""Para onde vai a sessão pela metade (D-60)."""
 
 
 def tela(
@@ -81,7 +84,13 @@ def entrar(
         return tela(request, "entrar.html", contexto, status.HTTP_403_FORBIDDEN)
     try:
         codigo = login.entrar(
-            sessao, senhas, email=email, senha=senha, agora=momento, endereco=endereco_de(request)
+            sessao,
+            senhas,
+            email=email,
+            senha=senha,
+            agora=momento,
+            endereco=endereco_de(request),
+            exigir_duas_etapas=request.app.state.exige_duas_etapas,
         )
     except login.MuitasTentativasError:
         contexto = {"email": email, "erro": f"{ESPERE} Depois, tente de novo."}
@@ -91,6 +100,12 @@ def entrar(
         contexto = {"email": email, "erro": "E-mail ou senha incorretos."}
         return tela(request, "entrar.html", contexto, status.HTTP_401_UNAUTHORIZED)
     sessao.commit()
+    metade = login.sessao_pela_metade(sessao, codigo, momento)
+    if metade is not None:
+        # Falta a verificação em duas etapas (D-60): a sessão só serve para a tela dela.
+        return ir_com_a_sessao(
+            request, codigo, TELA_DO_QUE_FALTA[metade.falta], VALIDADE_DA_SESSAO_PELA_METADE
+        )
     return _ir_ao_inicio_com_a_sessao(request, codigo)
 
 
@@ -185,15 +200,27 @@ def _ir_ao_inicio_com_a_sessao(request: Request, codigo: str) -> Response:
     return ir_com_a_sessao(request, codigo, "/")
 
 
-def ir_com_a_sessao(request: Request, codigo: str, destino: str) -> Response:
+def ir_com_a_sessao(
+    request: Request, codigo: str, destino: str, validade: timedelta = login.VALIDADE_DA_SESSAO
+) -> Response:
     """Leva a ``destino`` com o cookie da sessão aberta (o código só vai no cookie)."""
     resposta = RedirectResponse(destino, status_code=status.HTTP_303_SEE_OTHER)
+    por_o_cookie(request, resposta, codigo, validade)
+    return resposta
+
+
+def por_o_cookie(
+    request: Request,
+    resposta: Response,
+    codigo: str,
+    validade: timedelta = login.VALIDADE_DA_SESSAO,
+) -> None:
+    """Põe na resposta o cookie da sessão aberta (``HttpOnly``, ``SameSite=Lax``)."""
     resposta.set_cookie(
         COOKIE_DA_SESSAO,
         codigo,
-        max_age=int(login.VALIDADE_DA_SESSAO.total_seconds()),
+        max_age=int(validade.total_seconds()),
         httponly=True,
         samesite="lax",
         secure=request.app.state.cookie_seguro,
     )
-    return resposta

@@ -32,6 +32,7 @@ Os endereços da API e das telas, lidos dos decoradores (`@roteador.get(...)`) c
 | `/api/admin/empresas` | GET | `listar_empresas` | [[nuvem.cadastro]] | Todas as empresas (só a administração). |
 | `/api/admin/sites` | GET | `listar_sites_para_administracao` | [[nuvem.cadastro]] | Todos os sites, de todas as empresas (só a administração). |
 | `/api/admin/sites/{site_id}/codigos-de-ativacao` | POST | `gerar_codigo` | [[nuvem.frota]] | Gera um código de ativação para o site (vale 24 horas, uma vez). |
+| `/api/admin/usuarios/{usuario_id}/duas-etapas/zerar` | POST | `zerar_duas_etapas` | [[nuvem.cadastro]] | Zera a verificação em duas etapas de um usuário e fecha as sessões dele ([[D-60]]). |
 | `/api/agendamentos` | GET | `listar` | [[nuvem.agendamento]] | Os agendamentos de um site cuja janela toca o período ``[de, ate)`` (até 31 dias). |
 | `/api/agendamentos/planilha` | POST | `subir_planilha` | [[nuvem.agendamento]] | Importa a planilha (CSV ou XLSX) num site do gestor; devolve o relatório por linha. |
 | `/api/agendamentos/{agendamento_id}` | GET | `obter` | [[nuvem.agendamento]] | Um agendamento de um site que o usuário vê (404 para qualquer outro). |
@@ -51,6 +52,10 @@ Os endereços da API e das telas, lidos dos decoradores (`@roteador.get(...)`) c
 | `/demonstracao/papel` | POST | `trocar_de_papel` | [[nuvem.web]] | A faixa da demonstração: passa a sessão para a pessoa do papel, na mesma empresa. |
 | `/entrar` | GET | `tela_de_entrar` | [[nuvem.web]] | O formulário de e-mail e senha. |
 | `/entrar` | POST | `entrar` | [[nuvem.web]] | Confere e-mail e senha; se baterem, abre a sessão e leva ao início. |
+| `/entrar/codigo` | GET | `tela_do_codigo` | [[nuvem.web]] | Pede o código do app (ou um código de recuperação). |
+| `/entrar/codigo` | POST | `confirmar_codigo` | [[nuvem.web]] | Confere o código; se bater, abre a sessão de sempre e leva ao início. |
+| `/entrar/ligar` | GET | `tela_de_ligar` | [[nuvem.web]] | O QR para o app e o segredo em texto, para quem liga a verificação pela primeira vez. |
+| `/entrar/ligar` | POST | `ligar` | [[nuvem.web]] | Liga a verificação com o primeiro código do app e mostra os códigos de recuperação. |
 | `/estoque` | GET | `estoque` | [[nuvem.web]] | O armazém em 3D, com a busca, e dados de exemplo. |
 | `/extrato` | GET | `extrato_do_mes` | [[nuvem.web]] | O extrato em R$ de um mês (o atual, se nenhum for pedido). |
 | `/extrato.csv` | GET | `planilha` | [[nuvem.web]] | O extrato de um mês em planilha. |
