@@ -7,7 +7,7 @@ tags: [estado]
 
 # Estado atual
 
-> [!info] Retrato de 05/10/2026 (SDD 0.39)
+> [!info] Retrato de 05/10/2026 (SDD 0.40)
 > Escrito à mão: o que entrou depois está nos PRs do GitHub e nos planos. Os checklists de "mês
 > pronto" dos planos não foram marcados a cada tarefa; esta nota é a lista do que entrou.
 
@@ -21,9 +21,11 @@ tags: [estado]
   empresa, com a faixa que troca de papel ([[T48]], [[D-54]]).
 - **A segurança antes da internet** está pronta ([[T47]], parte 1): código anti-CSRF
   ([[D-55]]), limite de login por endereço e o comando da administração.
+- **O código da Vercel e do Supabase** está pronto ([[T47]], parte 2, [[D-56]]): o tique, as
+  fotos pela API S3, o cron diário e a entrada da Vercel; o deploy segue o
+  [[Guia da demonstração na internet]].
 - **Falta para a demonstração no ar (mês 3):** o visual próprio ([[T40]], depois da identidade
-  visual, [[ABERTO-01]]) e a demonstração na internet ([[T47]], parte 2: Vercel e Supabase,
-  [[D-51]]).
+  visual, [[ABERTO-01]]) e o deploy, que espera as contas da Vercel e do Supabase ([[N17]]).
 - **O leitor próprio espera as placas:** o treino ([[T22]] a [[T26]]) depende das placas reais
   do [[ABERTO-18]]; o leitor v0, com pesos de terceiros, serve só para avaliação interna
   ([[D-26]]).
@@ -95,7 +97,7 @@ recebimento e o estoque como módulos de depois do piloto ([[D-43]], [[D-44]],
 | [[T44]] painel e extrato em R$ | feita | [#44](https://github.com/lorenzo265/patio-br/pull/44) |
 | [[T45]] dia de demonstração | feita | [#46](https://github.com/lorenzo265/patio-br/pull/46) |
 | [[T46]] recebimento e estoque "em breve" | feita | [#45](https://github.com/lorenzo265/patio-br/pull/45) |
-| [[T47]] demonstração na internet | parte 1 (segurança) feita; a parte 2 (Vercel e Supabase) **espera as contas** ([[N17]]) | [#50](https://github.com/lorenzo265/patio-br/pull/50) |
+| [[T47]] demonstração na internet | o código feito (parte 1, segurança; parte 2, Vercel e Supabase); o deploy **espera as contas** ([[N17]]) | [#50](https://github.com/lorenzo265/patio-br/pull/50) e [#51](https://github.com/lorenzo265/patio-br/pull/51) |
 | [[T48]] link por empresa | feita | [#49](https://github.com/lorenzo265/patio-br/pull/49) |
 
 Além das tarefas: o plano ([#39](https://github.com/lorenzo265/patio-br/pull/39)), o relógio dos
@@ -123,7 +125,7 @@ dele.
 
 1. A sessão da identidade visual ([[Prompt da identidade visual]]): decide o nome, as cores e as
    fontes ([[ABERTO-01]]) e faz a [[T40]].
-2. O Lorenzo abre as contas da Vercel e do Supabase ([[N17]]); então a [[T47]] põe a
-   demonstração no ar.
+2. O Lorenzo abre as contas da Vercel e do Supabase ([[N17]]); então o deploy, pelo
+   [[Guia da demonstração na internet]].
 3. Depois da demonstração: as placas reais ([[ABERTO-18]]), o treino do leitor e o mês 4
    (WhatsApp de verdade, produção na AWS, caixa definitiva). Veja [[10. Cronograma (out-2026 – mar-2027)]].

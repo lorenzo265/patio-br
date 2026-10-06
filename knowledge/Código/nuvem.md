@@ -53,8 +53,9 @@ endereço. A caixa só aprende uma regra: "peça o endereço e envie".
 
 Implementações:
 
-- ``ArmazenamentoLocal``: uma pasta no disco (agora, no ambiente local e na demonstração);
-- ``ArmazenamentoS3``: entra no mês 4, com a mesma interface (``Armazenamento``).
+- ``ArmazenamentoLocal``: uma pasta no disco (o ambiente local);
+- ``ArmazenamentoS3``: um balde S3, pelo boto3 ([[D-56]]): o Supabase Storage na demonstração e a
+  AWS no mês 4. O endereço de envio é o endereço assinado do próprio S3.
 
 Cada caixa tem a sua pasta: o ``ref`` que a caixa escolhe nunca alcança a foto de outra.
 
@@ -68,6 +69,8 @@ Cada caixa tem a sua pasta: o ``ref`` que a caixa escolhe nunca alcança a foto 
 - **`FotoDiferenteError`** (classe): Já existe outra foto neste ``ref``: a foto guardada não se troca ([[5.5 Garantias|SDD 5.5]]).
 - **`validar_ref`**: Confere se o ``ref`` da foto segue a regra (e não sairia da pasta da caixa).
 - **`Armazenamento`** (classe): O que a nuvem faz com as fotos, seja qual for o armazenamento.
+- **`armazenamento_da_configuracao`**: O S3, se a configuração tem o endereço dele; senão, a pasta do disco.
+- **`ArmazenamentoS3`** (classe): Fotos num balde S3 ([[D-56]]), cada caixa na sua pasta (``caixa-<id>/``), como no disco.
 - **`ArmazenamentoLocal`** (classe): Fotos numa pasta do disco; o endereço de envio aponta para a própria API.
 - **`obter_armazenamento`**: Dependência do FastAPI: o armazenamento de fotos da aplicação.
 
@@ -85,6 +88,8 @@ Conexão com o PostgreSQL (SQLAlchemy 2, driver pg8000) e a base dos modelos da 
 - **`SQLSTATE_SO_ACRESCENTA`** = `'23001'`: O gatilho ``so_acrescenta`` recusou alterar ou apagar uma linha de prova ([[5.5 Garantias|SDD 5.5]]).
 - **`sqlstate`**: Devolve o código SQLSTATE do PostgreSQL que causou o erro (ex.: ``"23503"``).
 - **`criar_motor`**: Cria o motor de conexões; ``pool_pre_ping`` descarta conexões que o banco já fechou.
+- **`contexto_ssl`**: O SSL da conexão com o banco, se a configuração pede (conferindo o certificado).
+- **`motor_da_configuracao`**: O motor do banco como a configuração pede (pool e SSL).
 - **`obter_sessao`**: Dependência do FastAPI: uma sessão por requisição, fechada ao final dela.
 
 ### `nuvem.cifra`
@@ -114,6 +119,19 @@ Valor obrigatório ausente impede a nuvem de iniciar: melhor parar na hora do qu
 - **`Configuracao`** (classe): Os valores que mudam entre ambientes (local, homologação, produção).
 - **`ConfiguracaoInvalidaError`** (classe): Falta um valor obrigatório no ambiente, ou um valor não é válido.
 - **`ler_configuracao`**: Lê a configuração do ambiente e do ``.env`` da pasta atual.
+
+### `nuvem.cron`
+
+`nuvem/src/nuvem/cron.py`
+
+O cron diário ([[D-56]]): ``GET /api/cron/diaria``, chamado pela Vercel uma vez por dia.
+
+Apaga as empresas dos links de demonstração vencidos ou revogados ([[D-54]]) e confere o "não
+veio" ([[5.2 Estados da visita|SDD 5.2]]), o que o worker faria. Só com o segredo do cron (o ``CRON_SECRET`` da Vercel,
+que ela manda em ``Authorization: Bearer ...``); sem o segredo configurado, a rota não existe.
+Rodar duas vezes não faz mal: o que já foi feito não se faz de novo.
+
+- **`diaria`**: Apaga as empresas de demonstração vencidas e confere o "não veio".
 
 ### `nuvem.erros`
 
@@ -232,6 +250,25 @@ O worker roda em outro processo (``python -m nuvem.worker``).
 - **`conferir_nao_veio`**: Abre a visita "não veio" de cada agendamento vencido sem chegada (sem ``commit``).
 - **`rodar`**: Executa as tarefas, confere o "não veio" e prepara as mensagens até ``parar`` ser ligado.
 
+### `nuvem.tique`
+
+`nuvem/src/nuvem/tique.py`
+
+O tique ([[D-51]] e [[D-56]]): o trabalho do worker, um pouco de cada vez, quando uma tela se atualiza.
+
+A Vercel não tem processo que fica rodando. Com ``PATIO_TIQUE``, as telas que se atualizam
+sozinhas (``TELAS``) rodam antes uma volta do que o worker faria: o dia de demonstração, as
+tarefas da fila (o casamento) e as mensagens. Um tique de cada vez (trava do PostgreSQL): o
+pedido que chega com outro tique rodando segue sem esperar. Um erro no tique fica registrado, e
+a tela abre do mesmo jeito.
+
+O "não veio" e a faxina das empresas de demonstração ficam para o cron diário (``nuvem.cron``).
+
+- **`TELAS`**: As telas que se atualizam sozinhas (HTMX ou o refresh da página).
+- **`TAREFAS_POR_TIQUE`** = `20`: O tique não segura a tela: no máximo estas tarefas da fila de cada vez.
+- **`avancar`**: Uma volta do trabalho do worker (com ``commit``).
+- **`na_tela`**: Dependência da aplicação: o tique antes das telas que se atualizam, se ligado.
+
 ### `nuvem.worker`
 
 `nuvem/src/nuvem/worker.py`
@@ -249,7 +286,9 @@ Ctrl+C). Lê a configuração do ambiente, como a API.
 
 - `nuvem/tests/test_nuvem_administracao.py`: O comando que cria a administração ([[8.2 Segurança|SDD 8.2]]): ``python -m nuvem.administracao``.
 - `nuvem/tests/test_nuvem_armazenamento.py`: Armazenamento local das fotos ([[3.2 O contrato entre borda e nuvem - a Passagem|SDD 3.2]], [[D-22]]): endereço temporário, foto que não se edita.
+- `nuvem/tests/test_nuvem_armazenamento_s3.py`: As fotos num armazenamento S3 ([[D-56]]): o Supabase Storage na demonstração e a AWS no mês 4.
 - `nuvem/tests/test_nuvem_banco.py`: O banco de teste: migrado do zero no início e limpo a cada teste.
+- `nuvem/tests/test_nuvem_banco_conexao.py`: Como a nuvem se liga ao banco ([[D-56]]): sem pool na função da Vercel e com SSL no Supabase.
 - `nuvem/tests/test_nuvem_cifra.py`: Cifra dos segredos guardados no banco (ex.: senha da câmera).
 - `nuvem/tests/test_nuvem_config.py`: Configuração da nuvem: lida do ambiente (variáveis PATIO_*) ou do .env da pasta atual.
 - `nuvem/tests/test_nuvem_pacote.py`: O pacote nuvem usa o mesmo contrato de passagem que o resto do sistema ([[3.2 O contrato entre borda e nuvem - a Passagem|SDD 3.2]]).
@@ -257,6 +296,7 @@ Ctrl+C). Lê a configuração do ambiente, como a API.
 - `nuvem/tests/test_nuvem_semente.py`: Dados de demonstração (`uv run tarefas semente`).
 - `nuvem/tests/test_nuvem_senhas.py`: Resumo de senhas e PINs com argon2 ([[8.2 Segurança|SDD 8.2]]): guarda-se o resumo, nunca o texto.
 - `nuvem/tests/test_nuvem_tarefas_de_fundo.py`: Fila de tarefas e worker ([[6.1 Stack|SDD 6.1]] e [[D-38]]): o casamento e o "não veio" fora do pedido da caixa.
+- `nuvem/tests/test_nuvem_vercel.py`: A entrada da Vercel ([[D-51]] e [[D-56]]): o `app`, o `vercel.json` e o `pyproject.toml` combinam.
 
 ---
 

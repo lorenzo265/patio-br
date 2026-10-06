@@ -15,7 +15,7 @@ from typing import TextIO
 
 from sqlalchemy.orm import Session
 
-from nuvem.banco import criar_motor
+from nuvem.banco import motor_da_configuracao
 from nuvem.cadastro import servico as cadastro
 from nuvem.config import ConfiguracaoInvalidaError, ler_configuracao
 from nuvem.erros import DadoInvalidoError
@@ -52,7 +52,7 @@ def principal(
         except ConfiguracaoInvalidaError as erro:
             print(f"erro: {erro}", file=saida)
             return 1
-        motor = criar_motor(configuracao.url_banco.get_secret_value())
+        motor = motor_da_configuracao(configuracao)
         try:
             with closing(Session(motor)) as sessao:
                 return _criar(sessao, senhas or Senhas(), opcoes.nome, opcoes.email, senha, saida)

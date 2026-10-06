@@ -63,6 +63,7 @@ NOMES_DOS_DOCUMENTOS: dict[str, str] = {
     "borda/AVISOS-DE-TERCEIROS.md": "Avisos de terceiros da caixa de borda",
     "nuvem/src/nuvem/web/estatico/LEIA-ME.md": "Arquivos de terceiros do painel",
     "docs/guias/demo-mes-1.md": "Guia da demonstração do mês 1",
+    "docs/guias/demonstracao-na-internet.md": "Guia da demonstração na internet",
     "docs/validacao/fatos-tecnicos-stack.md": "Validação - fatos técnicos da stack",
     "docs/validacao/fontes-de-placas.md": "Validação - fontes de placas",
     "docs/validacao/recebimento-e-estoque.md": "Validação - recebimento e estoque",

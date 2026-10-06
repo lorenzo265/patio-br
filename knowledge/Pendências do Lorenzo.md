@@ -25,7 +25,8 @@ por ele ([[0. Como usar este documento|SDD, seção 0]]).
     (US$ 20 por mês, por pessoa)**;
   - o Supabase Free pausa o projeto depois de uma semana sem uso; o **Pro (a partir de US$ 25
     por mês)** não pausa;
-  - o acesso passa pelo cofre de segredos do ambiente, nunca pelo repositório.
+  - o acesso passa pelo cofre de segredos do ambiente, nunca pelo repositório;
+  - o passo a passo, com as variáveis de ambiente: [[Guia da demonstração na internet]].
 - [ ] **Listar as empresas para apresentar** e marcar as conversas ([[N18]]).
 - [ ] **Juntar os PRs abertos:** o [#47](https://github.com/lorenzo265/patio-br/pull/47) (decisões
   e prompt) e, depois dele, o deste vault.

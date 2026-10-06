@@ -10,7 +10,7 @@ from datetime import UTC, datetime
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from nuvem.banco import criar_motor
+from nuvem.banco import motor_da_configuracao
 from nuvem.cadastro.modelos import Administrador, Empresa
 from nuvem.cifra import Cifra
 from nuvem.config import ConfiguracaoInvalidaError, ler_configuracao
@@ -68,7 +68,7 @@ def principal() -> None:
             "erro: a empresa de demonstração local só roda no ambiente local "
             f"(PATIO_AMBIENTE={configuracao.ambiente})"
         )
-    motor = criar_motor(configuracao.url_banco.get_secret_value())
+    motor = motor_da_configuracao(configuracao)
     with Session(motor) as sessao:
         try:
             criada = criar_a_local(

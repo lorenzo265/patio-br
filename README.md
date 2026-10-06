@@ -95,6 +95,9 @@ O dia de demonstração (D-49): `uv run tarefas demonstracao` cria a "Distribuid
 "Dia de demonstração": a manhã aparece pronta e, nos 5 minutos seguintes, os caminhões chegam e o
 líder automático trabalha.
 
+A demonstração na internet (Vercel e Supabase) tem o passo a passo em
+[`docs/guias/demonstracao-na-internet.md`](docs/guias/demonstracao-na-internet.md).
+
 Fora do ambiente local, a administração nasce pelo comando (ele pede a senha duas vezes e cria a
 conta no banco de `PATIO_URL_BANCO`):
 

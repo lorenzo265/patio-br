@@ -10,7 +10,7 @@ tags: [sdd]
 # SDD — patio-br (nome provisório)
 
 **Documento de desenho do software (SDD) do MVP do piloto**
-Versão 0.39 · 2026-10-05 · Situação: aprovado como base; itens em aberto na seção [[12. Itens em aberto|12]]
+Versão 0.40 · 2026-10-05 · Situação: aprovado como base; itens em aberto na seção [[12. Itens em aberto|12]]
 
 ## Seções
 

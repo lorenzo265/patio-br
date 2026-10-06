@@ -257,6 +257,7 @@ cookie, recusa o envio que o navegador marca como vindo de outro site (``Sec-Fet
 - `nuvem/tests/test_nuvem_web_csrf.py`: O código anti-CSRF ([[8.2 Segurança|SDD 8.2]], [[D-55]]): todo pedido que muda alguma coisa, de quem tem a sessão aberta, leva o código tirado da sessão.
 - `nuvem/tests/test_nuvem_web_demonstracao.py`: A tela do dia de demonstração ([[T45]], [[D-49]]): começar o dia e acompanhar.
 - `nuvem/tests/test_nuvem_web_demonstracao_link.py`: As telas do link de demonstração ([[T48]], [[D-52]] e [[D-54]]): a administração, a página do link e a faixa que troca de papel.
+- `nuvem/tests/test_nuvem_web_demonstracao_na_internet.py`: A demonstração na Vercel, por dentro ([[T47]] parte 2, [[D-51]] e [[D-56]]): o tique, o cron diário, a API da caixa fechada e as fotos no S3.
 - `nuvem/tests/test_nuvem_web_em_breve.py`: As telas "em breve" do recebimento e do estoque em 3D ([[T46]], [[D-43]] e [[D-45]]), e os arquivos de terceiros que o painel serve.
 - `nuvem/tests/test_nuvem_web_extrato.py`: O painel do gestor e o extrato na tela ([[T44]], [[6.2 Telas do MVP|SDD 6.2]] e [[D-48]]).
 - `nuvem/tests/test_nuvem_web_login.py`: Telas de entrar, sair e trocar de porteiro: cookie seguro e respostas certas.

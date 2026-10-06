@@ -17,13 +17,16 @@ Onde cada ambiente roda e quanto custa ([[7.1 Ambientes]]).
 | Demonstração | a API como função da Vercel; o banco e as fotos no Supabase, em São Paulo ([[D-51]]) | espera as contas ([[N17]], [[T47]]) |
 | Homologação e produção | AWS São Paulo: Lightsail, RDS e S3 ([[D-11]], [[7.2 Nuvem (AWS, sa-east-1)]]) | mês 4 |
 
-- **Na Vercel não há processo que fica rodando:** o worker vira um **tique**; as telas, ao se
-  atualizar, fazem a nuvem avançar o que estiver pendente, um tique de cada vez, com a trava do
-  PostgreSQL ([[D-51]]). As fotos vão para o Supabase Storage, porque o disco da Vercel não fica.
-- **Cuidados da [[T47]]:** o pooler do Supabase em modo transação não aceita prepared
-  statements (conferir o pg8000 nele, ou usar o modo sessão); as empresas de demonstração
-  vencidas são apagadas uma vez por dia (o cron da Vercel); segredos só nas variáveis de ambiente
-  da Vercel.
+- **Na Vercel não há processo que fica rodando:** o worker vira um **tique**; as telas que se
+  atualizam sozinhas (portaria, pátio, mensagens e o dia de demonstração) rodam antes o que
+  estiver pendente, um tique de cada vez, com a trava do PostgreSQL ([[D-51]], [[D-56]]).
+- **O código está pronto** ([[T47]], parte 2, [[D-56]]):
+  - as fotos vão para o Supabase Storage pela API S3 (o boto3, o mesmo que serve à AWS no mês 4);
+  - o cron diário (`/api/cron/diaria`) apaga as empresas vencidas e confere o "não veio";
+  - a API da caixa não existe no ambiente `demonstracao`;
+  - o banco vai pelo pooler em modo sessão, sem pool na função e com SSL.
+- **O passo a passo do deploy**, com todas as variáveis de ambiente e o que conferir no primeiro:
+  [[Guia da demonstração na internet]]. Segredos só nas variáveis de ambiente da Vercel.
 - **Planos (conferidos em 10/2026, decisão do Lorenzo ao abrir as contas):** a Vercel Hobby é só
   para uso pessoal, não comercial, e o Pro custa US$ 20 por mês por pessoa; o Supabase Free pausa
   o projeto depois de uma semana sem uso, e o Pro custa a partir de US$ 25 por mês.
@@ -35,6 +38,6 @@ Onde cada ambiente roda e quanto custa ([[7.1 Ambientes]]).
 
 - SDD: [[7.1 Ambientes]], [[7.2 Nuvem (AWS, sa-east-1)]], [[7.3 Do código à produção]],
   [[7.6 Custos de operação (piloto, 1 site; preços de 2026-09-29)]].
-- Decisões: [[D-11]], [[D-13]], [[D-51]].
+- Decisões: [[D-11]], [[D-13]], [[D-51]], [[D-56]].
 - Tarefas: [[T04]], [[T47]]; contas: [[N2]], [[N17]].
 - Fatos de preço e licença: [[Validação - fatos técnicos da stack]].

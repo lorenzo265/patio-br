@@ -14,8 +14,8 @@ from datetime import datetime
 from sqlalchemy.orm import Session, sessionmaker
 
 from nuvem import tarefas_de_fundo
-from nuvem.armazenamento import ArmazenamentoLocal
-from nuvem.banco import criar_motor
+from nuvem.armazenamento import armazenamento_da_configuracao
+from nuvem.banco import motor_da_configuracao
 from nuvem.cifra import Cifra
 from nuvem.config import ConfiguracaoInvalidaError, ler_configuracao
 from nuvem.demonstracao import dia as dia_de_demonstracao
@@ -33,13 +33,11 @@ def main() -> None:
         configuracao = ler_configuracao()
     except ConfiguracaoInvalidaError as erro:
         raise SystemExit(f"erro: {erro}") from None
-    motor = criar_motor(configuracao.url_banco.get_secret_value())
+    motor = motor_da_configuracao(configuracao)
     parar = threading.Event()
     avancar_a_demonstracao = None
     if configuracao.tem_demonstracao:
-        armazenamento = ArmazenamentoLocal(
-            configuracao.pasta_fotos, Cifra(configuracao.chave_cifra)
-        )
+        armazenamento = armazenamento_da_configuracao(configuracao, Cifra(configuracao.chave_cifra))
         faxina = links_de_demonstracao.Faxina(armazenamento)
 
         def avancar_a_demonstracao(sessao: Session, agora: datetime) -> int:

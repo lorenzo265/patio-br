@@ -227,9 +227,17 @@ que substitui o worker, um comando para migrar o banco do Supabase,
 
 *Dividida na execução em duas partes:* a **parte 1**, a segurança antes da internet (o código
 anti-CSRF, D-55, o limite de login por endereço e o comando da administração), entra primeiro;
-a **parte 2** prepara o código da Vercel e do Supabase (o tique, as fotos e o cron), e o deploy
-espera as contas (N17). Migrar o banco do Supabase é o `uv run tarefas migrar` de sempre, com o
-`PATIO_URL_BANCO` dele: não precisou de comando novo.
+a **parte 2** deixa pronto o código da Vercel e do Supabase (D-56), e o deploy espera as contas
+(N17):
+- a entrada `vercel_app.py`, o `[tool.vercel]` do `pyproject.toml` e o `vercel.json` (São Paulo,
+  60 segundos, o cron);
+- o tique, as fotos pela API S3 (boto3), o cron `/api/cron/diaria` e a API da caixa fechada na
+  demonstração;
+- o banco pelo pooler, sem pool na função e com SSL;
+- o guia `docs/guias/demonstracao-na-internet.md`.
+
+Migrar o banco do Supabase é o `uv run tarefas migrar` de sempre, com o `PATIO_URL_BANCO` dele:
+não precisou de comando novo.
 
 **Commit:** `infra: demonstração na internet`
 
