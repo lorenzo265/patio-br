@@ -19,6 +19,8 @@ tags: [item-em-aberto]
 ## Onde aparece
 
 - [[8.3 LGPD]]
+- [[11. Registro de decisões]]
+- [[D-70]]
 - [[N3]]
 - [[N14]]
 - [[N22]]
