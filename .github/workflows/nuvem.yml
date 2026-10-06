@@ -1,0 +1,83 @@
+# A nuvem: publicar a imagem e fazer o deploy (SDD 7.3, D-73; guia em docs/guias/producao.md).
+# - cada commit na main vai sozinho para a homologação;
+# - a etiqueta nuvem-v<versão> (ex.: nuvem-v0.1.0) vai para a produção, pelo ambiente "producao"
+#   do GitHub, que pede a aprovação do Lorenzo.
+# O deploy entra na máquina pela Tailscale SSH (D-13): o GitHub Actions entra na rede da Tailscale
+# com a etiqueta tag:ci, sem chave SSH guardada e sem a porta 22 aberta na internet.
+name: nuvem
+
+on:
+  push:
+    branches: [main]
+    tags: ["nuvem-v*"]
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: nuvem-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publicar:
+    name: publicar a imagem da nuvem
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      versao: ${{ steps.montar.outputs.versao }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Montar e publicar
+        id: montar
+        env:
+          REFERENCIA: ${{ github.ref }}
+          ETIQUETA: ${{ github.ref_name }}
+          COMMIT: ${{ github.sha }}
+          DONO: ${{ github.repository_owner }}
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ATOR: ${{ github.actor }}
+        run: |
+          if [[ "$REFERENCIA" == refs/tags/nuvem-v* ]]; then
+            versao="${ETIQUETA#nuvem-v}"
+          else
+            versao="${COMMIT:0:12}"
+          fi
+          # A versão vai para o .env da máquina: só letras, números, ponto, sublinhado e hífen.
+          if [[ ! "$versao" =~ ^[0-9A-Za-z._-]+$ ]]; then
+            echo "versão inválida: $versao" >&2
+            exit 1
+          fi
+          imagem="ghcr.io/$(echo "$DONO" | tr '[:upper:]' '[:lower:]')/patio-nuvem"
+          echo "$TOKEN" | docker login ghcr.io -u "$ATOR" --password-stdin
+          docker build -f nuvem/Dockerfile -t "$imagem:$versao" .
+          docker push "$imagem:$versao"
+          echo "versao=$versao" >> "$GITHUB_OUTPUT"
+
+  implantar:
+    name: subir na máquina
+    needs: publicar
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: ${{ startsWith(github.ref, 'refs/tags/nuvem-v') && 'producao' || 'homologacao' }}
+    env:
+      MAQUINA: ${{ startsWith(github.ref, 'refs/tags/nuvem-v') && vars.MAQUINA_PRODUCAO || vars.MAQUINA_HOMOLOGACAO }}
+      VERSAO: ${{ needs.publicar.outputs.versao }}
+    steps:
+      - name: Entrar na rede da Tailscale
+        uses: tailscale/github-action@d1b6cd204f8dceda5b3eaad7f1f767be390056cd # v4.2.0
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+      - name: Trocar a versão, baixar e subir
+        # As migrações rodam antes da API (compose.yml); a caixa guarda as passagens na fila
+        # durante os segundos da troca.
+        run: |
+          if [[ ! "$VERSAO" =~ ^[0-9A-Za-z._-]+$ ]]; then
+            echo "versão inválida: $VERSAO" >&2
+            exit 1
+          fi
+          ssh -o StrictHostKeyChecking=accept-new "patio@$MAQUINA" \
+            "cd /opt/patio && sed -i 's/^VERSAO=.*/VERSAO=$VERSAO/' .env \
+             && docker compose pull && docker compose up -d --wait"

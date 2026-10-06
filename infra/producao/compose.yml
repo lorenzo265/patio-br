@@ -1,0 +1,83 @@
+# A nuvem numa máquina da produção ou da homologação (SDD 7.2 e 7.3, D-57 e D-73).
+# Mora em /opt/patio, ao lado do Caddyfile e do .env (só do dono; o exemplo é o env.exemplo).
+# Quem sobe é o deploy (.github/workflows/nuvem.yml), pela Tailscale SSH:
+#   docker compose pull && docker compose up -d --wait
+# As migrações rodam uma vez e terminam antes de a API e o worker subirem. Só o Caddy abre
+# portas (80 e 443, com o HTTPS automático). Na homologação, o .env tem
+# COMPOSE_PROFILES=homologacao, e o PostgreSQL sobe num contêiner; na produção, o banco é o RDS.
+name: patio
+
+x-nuvem: &nuvem
+  image: ghcr.io/lorenzo265/patio-nuvem:${VERSAO:?a versão da imagem, no .env}
+  env_file: [.env]
+  restart: unless-stopped
+  read_only: true
+  tmpfs: [/tmp]
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+  depends_on: &banco
+    postgres:
+      condition: service_healthy
+      required: false
+
+services:
+  migracoes:
+    <<: *nuvem
+    command: ["alembic", "-c", "nuvem/alembic.ini", "upgrade", "head"]
+    restart: "no"
+
+  api:
+    <<: *nuvem
+    depends_on:
+      <<: *banco
+      migracoes:
+        condition: service_completed_successfully
+    healthcheck:
+      # /saude só responde 200 quando a API alcança o banco.
+      test: ["CMD", "python", "-c", "import http.client as h; c = h.HTTPConnection('127.0.0.1', 8000, timeout=3); c.request('GET', '/saude'); exit(c.getresponse().status != 200)"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+  worker:
+    <<: *nuvem
+    command: ["python", "-m", "nuvem.worker"]
+    depends_on:
+      <<: *banco
+      migracoes:
+        condition: service_completed_successfully
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports: ["80:80", "443:443", "443:443/udp"]
+    environment:
+      DOMINIO: ${DOMINIO:?o domínio da máquina, no .env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-dados:/data
+      - caddy-configuracao:/config
+    depends_on:
+      api:
+        condition: service_healthy
+
+  # Só na homologação (D-57): o banco num contêiner, sem porta para fora.
+  postgres:
+    image: postgres:16-alpine
+    profiles: [homologacao]
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: patio
+      POSTGRES_USER: patio
+      POSTGRES_PASSWORD: ${POSTGRES_SENHA:-}
+    volumes: [postgres-dados:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U patio -d patio"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  caddy-dados:
+  caddy-configuracao:
+  postgres-dados:
