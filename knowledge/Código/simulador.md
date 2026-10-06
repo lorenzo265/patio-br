@@ -46,7 +46,9 @@ Exemplos (com o ambiente local no ar, ``uv run tarefas up``)::
 - **Vídeo** (``--video``): o mesmo, sobre um arquivo de vídeo (ex.: uma gravação da portaria).
 
 As passagens passam pela mesma fila da caixa (``dados/simulador/fila.sqlite``): o que a nuvem
-não recebeu fica guardado para a próxima vez.
+não recebeu fica guardado para a próxima vez. Como a caixa, o simulador guarda a última
+configuração baixada (``dados/simulador/configuracao.json``): sem rede, ele a usa e as passagens
+esperam na fila (o teste da internet que cai e volta, no roteiro do piloto).
 
 - **`SITE_DA_DEMONSTRACAO`** = `'CD Exemplo'`: Os mesmos da semente da nuvem (``nuvem/src/nuvem/semente.py``); um teste confere.
 - **`ESPERA_MAXIMA_PADRAO`** = `60.0`: Quanto o simulador espera a nuvem, somando as tentativas, antes de desistir por ora.

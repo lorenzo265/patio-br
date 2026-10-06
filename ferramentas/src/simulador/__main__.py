@@ -25,7 +25,9 @@ Exemplos (com o ambiente local no ar, ``uv run tarefas up``)::
 - **Vídeo** (``--video``): o mesmo, sobre um arquivo de vídeo (ex.: uma gravação da portaria).
 
 As passagens passam pela mesma fila da caixa (``dados/simulador/fila.sqlite``): o que a nuvem
-não recebeu fica guardado para a próxima vez.
+não recebeu fica guardado para a próxima vez. Como a caixa, o simulador guarda a última
+configuração baixada (``dados/simulador/configuracao.json``): sem rede, ele a usa e as passagens
+esperam na fila (o teste da internet que cai e volta, no roteiro do piloto).
 """
 
 import argparse
@@ -55,7 +57,9 @@ from borda.ativacao import (
     ativar,
     baixar_configuracao,
     guardar_caixa,
+    guardar_configuracao,
     ler_caixa,
+    ler_configuracao,
 )
 from borda.captura import (
     FonteAmostrada,
@@ -72,6 +76,7 @@ from contratos.passagem import Passagem
 
 ARQUIVO_DA_CAIXA = Path("dados") / "simulador" / "caixa.json"
 ARQUIVO_DA_FILA = Path("dados") / "simulador" / "fila.sqlite"
+ARQUIVO_DA_CONFIGURACAO = Path("dados") / "simulador" / "configuracao.json"
 PASTA_DOS_MODELOS = Path("modelos") / "v0"
 
 EMAIL_DA_ADMINISTRACAO = "admin@patio-br.example"
@@ -133,7 +138,7 @@ def principal(
                 codigo=2,
             )
         caixa = _caixa(argumentos, cliente, raiz)
-        configuracao = _configuracao(cliente, caixa)
+        configuracao = _configuracao(cliente, caixa, raiz, saida)
         if argumentos.agendamentos:
             _subir_agendamentos(argumentos.agendamentos, cliente, caixa.nuvem, agora, saida)
         faixa = _escolher_faixa(configuracao, argumentos.faixa)
@@ -312,11 +317,26 @@ def _ativar(cliente: httpx.Client, nuvem: str, codigo: str, raiz: Path) -> Caixa
     return caixa
 
 
-def _configuracao(cliente: httpx.Client, caixa: CaixaAtivada) -> ConfiguracaoDoAgente:
+def _configuracao(
+    cliente: httpx.Client, caixa: CaixaAtivada, raiz: Path, saida: TextIO
+) -> ConfiguracaoDoAgente:
+    arquivo = raiz / ARQUIVO_DA_CONFIGURACAO
     try:
-        return baixar_configuracao(cliente, caixa)
+        configuracao = baixar_configuracao(cliente, caixa)
     except ChaveRecusadaError:
         raise SimuladorError("a chave guardada foi revogada: ative de novo com --codigo") from None
+    except httpx.TransportError:
+        # Como a caixa: sem rede, vale a última configuração, e as passagens esperam na fila.
+        guardada = ler_configuracao(arquivo)
+        if guardada is None:
+            raise SimuladorError(
+                f"sem rede para a nuvem em {caixa.nuvem}, e sem configuração guardada: rode uma"
+                " vez com a rede"
+            ) from None
+        print("sem rede: usando a configuração guardada", file=saida)
+        return guardada
+    guardar_configuracao(configuracao, arquivo)
+    return configuracao
 
 
 # --- Agendamentos (T35) --------------------------------------------------------------------
