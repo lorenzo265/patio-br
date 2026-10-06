@@ -40,6 +40,9 @@ nuvem casa cada passagem com o agendamento.
 - **O treino** começa com placas sintéticas e bases abertas ([[D-44]]), num ambiente à parte
   ([[D-40]]), e espera as placas reais ([[ABERTO-18]]). O detector (D-FINE-N ou YOLOX-Tiny) se
   decide no teste técnico ([[ABERTO-03]]).
+- **As placas sintéticas** ([[D-72]], [[T39]]): Mercosul e antigas, com as cores e as proporções
+  de cada categoria, numa fonte de traços nossa, com as variações do recorte da câmera; a mesma
+  semente gera as mesmas placas; `uv run tarefas sinteticas` grava em `dados/sinteticas`.
 - **A base de treino** ([[D-71]], [[T60]]): a conferência do porteiro vira rótulo a revisar,
   com o recorte copiado; 1 em cada 10 vai para a régua, sorteado pelo resumo, e não muda mais; a
   rotulagem da administração aceita, corrige ou descarta; `tarefas treino` monta a pasta para o

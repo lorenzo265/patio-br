@@ -88,6 +88,8 @@ uv run tarefas semente       # grava os dados de demonstração (duas empresas i
 uv run tarefas demonstracao  # a empresa de demonstração, com um mês de histórico (D-49)
 uv run tarefas modelos       # baixa os pesos do leitor v0 para modelos/ (SHA-256 conferido)
 uv run tarefas demo          # a demonstração do mês 1 (docs/guias/demo-mes-1.md)
+uv run tarefas sinteticas    # placas sintéticas para o treino, em dados/sinteticas (D-72)
+uv run tarefas treino        # a pasta da base de treino, em dados/treino (D-71)
 uv run tarefas conhecimento  # gera o vault do Obsidian (knowledge/) de docs/ e do código
 uv run tarefas check         # estilo, formato, tipos e testes (o mesmo que a CI roda)
 uv run tarefas test -k placa # só os testes; o resto vai para o pytest
