@@ -34,8 +34,10 @@ Depois do check-in: a fila, a chamada para a doca, a carga ou descarga e os avis
   SMS (Zenvia, [[D-59]]), com um link que abre o WhatsApp com a mensagem pronta; a mensagem do
   motorista é a autorização. Um QR na portaria faz o mesmo (o gestor imprime a placa em
   `/mensagens/qr`), e "SAIR" cancela em todas as empresas.
-- **Os alertas** (a estadia, a caixa e a câmera fora do ar, o motorista não avisado) vão para o
-  painel e, os graves, por WhatsApp ao gestor ([[D-62]], [[T57]]).
+- **Os alertas** (a estadia, a chegada sem agendamento, a caixa e a câmera fora do ar, o
+  relógio, o motorista não avisado) abrem uma vez e fecham sozinhos ([[D-68]]): o sino em todas as
+  telas e, os graves, por WhatsApp a quem autorizou com o código de uso único da tela `/alertas`
+  ([[D-62]], [[T57]]).
 
 ## Onde ler
 

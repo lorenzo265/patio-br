@@ -1,7 +1,7 @@
 # SDD — patio-br (nome provisório)
 
 **Documento de desenho do software (SDD) do MVP do piloto**
-Versão 0.48 · 2026-10-06 · Situação: aprovado como base; itens em aberto na seção 12
+Versão 0.49 · 2026-10-06 · Situação: aprovado como base; itens em aberto na seção 12
 
 ---
 
@@ -482,6 +482,9 @@ acadêmico (`docs/validacao/fontes-de-placas.md`). Por isso:
 | `ConferenciaPlaca` | passagem, foto (o recorte da placa), placa lida, placa conferida, quem, quando — **só se acrescenta**: conferir de novo é outro registro, e o último vale (D-42) |
 | `Mensagem` | agendamento, evento que a gerou (vazio na confirmação), modelo (confirmação, na fila, chamada, pode sair), para (o celular), texto pronto, as variáveis do modelo de mensagem do WhatsApp, canal (demonstração, WhatsApp ou SMS), situação (guardada, enviada, entregue, lida ou falhou), o id no canal, os horários de cada situação, o erro, a categoria de cobrança da Meta — uma por evento e canal, e uma confirmação por celular do agendamento e canal (D-47 e D-64) |
 | `AutorizacaoWhatsApp` | empresa, celular, quando autorizou, o texto que o motorista mandou (a prova), revogada em — uma ativa por empresa e celular (D-58 e D-63) |
+| `Alerta` | tipo, empresa e site (vazios nos da plataforma), sobre o quê (a chave: visita, caixa, câmera, agendamento ou tarefa), o texto, aberto em, fechado em — um aberto por tipo e chave (D-68) |
+| `AvisoDeAlerta` | o alerta, para quem (usuário ou administração), o celular, a situação (guardado, enviado ou falhou), o id no WhatsApp, o erro, quando (D-68) |
+| `AlertasNoWhatsApp` | quem (usuário ou administração), o resumo do código de uso único, pedido em, vence em, o celular e quando autorizou, o texto (a prova), revogada em — uma ativa por pessoa (D-68) |
 | `MensagemRecebida` | de (o celular), texto, id no WhatsApp, recebida em, a empresa (quando o texto diz), o que se fez (autorizou, saiu ou ignorada) — da plataforma, como a fila de tarefas (D-63) |
 | `ParametrosSite` | custo mensal de um ponto de portaria, postos antes/depois, valor da estadia (R$/t·h), franquia (h), custo hora-doca (opcional); a tolerância de janela e as horas para o alerta continuam fixas no código até o `[ABERTO-09]` |
 | `LinhaDeBase` | site, origem (exemplo, na demonstração; modo sombra, no piloto), período, as mesmas medidas do extrato (D-48) |
@@ -644,7 +647,8 @@ passagem; a mensagem ao motorista, a tarefa "enviar mensagem"; o aviso do WhatsA
 as tarefas "aviso do WhatsApp" e "aviso do SMS" (D-63 e D-64). O worker pega a próxima com `SELECT ... FOR UPDATE SKIP LOCKED`: dois workers nunca
 pegam a mesma. Tarefa com erro volta para a fila esperando cada vez mais (10 s, 20 s, 40 s ...
 até 10 min), até 8 tentativas; depois, fica como falhou, com o erro, para o suporte. A cada 5
-minutos, o worker confere o "não veio" (seção 5.2), um worker de cada vez.
+minutos, o worker confere o "não veio" (seção 5.2), um worker de cada vez; a cada minuto, os
+alertas (seção 8.1, D-68).
 
 **Sem worker, na demonstração na Vercel** (D-51 e D-56): com `PATIO_TIQUE`, cada tela que se
 atualiza sozinha (portaria, pátio, mensagens e o dia de demonstração) roda antes um
@@ -677,11 +681,12 @@ modificação (D-50), do mesmo jeito: os arquivos em `estatico/`, com a licença
 | Pátio e docas | líder | fila por tempo de espera; docas livres/ocupadas; chamar / iniciar / finalizar; alerta perto de 5h; "motorista não avisado" (D-64) |
 | Gestor | gestor | painel: o dia e o mês até agora (espera média, visitas acima de 5h, % de check-in automático, uso de docas), comparados com a linha de base, com gráficos simples; extrato do mês em R$ (na tela, para imprimir ou salvar em PDF, e em planilha) |
 | Agendamentos | gestor | lista do dia ou da semana, no fuso do site, com o cancelamento; importar planilha com modelo e relatório de erros por linha; gerar e revogar links da transportadora (o endereço aparece uma vez só, ao gerar) |
+| Alertas | quem é do cliente | o sino em todas as telas, com os alertas abertos dos sites; a tela `/alertas` com os abertos e os das últimas 24 horas; o link para receber os graves pelo WhatsApp (só o gestor, D-68) |
 | Link da transportadora | transportadora | formulário curto para celular: placas, motorista, celular, janela, toneladas, NF-e opcional |
 | Link de demonstração | quem visita | a página do link (para quem é e o botão "Entrar na demonstração"); dentro, uma faixa no topo troca o papel: gestor, porteiro, líder de pátio ou motorista (D-54) |
 | Celular do motorista | demonstração | as mensagens que o motorista receberia, numa tela em forma de celular; o canal de demonstração não envia nada (D-45) |
 | Recebimento e estoque | demonstração | telas "em breve", com dados de exemplo, para mostrar a visão (D-43 e D-45) |
-| Administração | nós | empresas, sites, câmeras, usuários, parâmetros, rotulagem, links de demonstração; **frota de borda**: cada caixa com o site, as versões, o último contato, as câmeras, a fila, a máquina e o relógio, e o histórico dos últimos 7 dias, hora a hora (D-65); **versões da caixa**: cadastrar, escolher para todas, um site ou uma caixa, e as atualizações de cada caixa (D-67) |
+| Administração | nós | empresas, sites, câmeras, usuários, parâmetros, rotulagem, links de demonstração; **frota de borda**: cada caixa com o site, as versões, o último contato, as câmeras, a fila, a máquina e o relógio, e o histórico dos últimos 7 dias, hora a hora (D-65); **versões da caixa**: cadastrar, escolher para todas, um site ou uma caixa, e as atualizações de cada caixa (D-67); **alertas da frota e da fila**, com o sino (D-68) |
 
 ### 6.3 Repositório
 
@@ -892,7 +897,8 @@ Serve para desenvolver sem câmera, para os testes de ponta a ponta e para simul
     WhatsApp, modelo recusado) deixa a mensagem como falhou, com o código;
   - **modelos de utilidade**, um por tipo de mensagem, em português (`pt_BR`), com as variáveis
     (site, janela, posição, doca); o texto de cada modelo fica no código, e nenhum começa nem
-    termina com uma variável (a Meta recusa);
+    termina com uma variável (a Meta recusa). Os alertas têm o modelo deles, `patio_alerta`, com
+    o site e o texto do alerta (D-68);
   - **o webhook** (`/api/whatsapp`) confere a assinatura (`X-Hub-Signature-256`, com o segredo do
     app) e só guarda o aviso numa tarefa ("aviso do WhatsApp"): o worker atualiza a situação das
     mensagens e trata as recebidas. O mesmo aviso duas vezes não muda nada;
@@ -946,6 +952,42 @@ Serve para desenvolver sem câmera, para os testes de ponta a ponta e para simul
 | WhatsApp não chega | SMS; se falhar, o painel mostra "motorista não avisado" |
 | Relógio da caixa errado | NTP; diferença acima de 2 s gera alerta |
 | Erro no código | sempre registrado e alertado; nunca ignorado (pela própria AWS, D-61) |
+
+**Os alertas** (D-62 e D-68):
+
+- **Cada alerta** guarda o tipo, a empresa e o site (vazios nos da plataforma), sobre o quê (a
+  visita, a caixa, a câmera, o agendamento ou a tarefa), o texto que aparece na tela, quando
+  abriu e quando fechou. **Abre uma vez e fecha sozinho** quando a situação passa: há no máximo
+  um alerta aberto do mesmo tipo sobre a mesma coisa, e ele não se repete a cada minuto.
+- **Os tipos** (os tempos ficam no código até o `[ABERTO-09]` e o cliente do piloto):
+
+  | Tipo | Abre | Fecha | Por WhatsApp | Administração |
+  |---|---|---|---|---|
+  | estadia perto das 5 horas | a visita está no site há 4 horas | a visita sai, ou passa das 5 horas | não | não |
+  | estadia passou das 5 horas | a visita está no site há 5 horas | a visita sai | sim | não |
+  | chegada sem agendamento | a exceção "sem candidato" está aberta | a exceção é resolvida | não | não |
+  | caixa sem contato | a última saúde chegou há 3 minutos (D-65) | a saúde volta | sim | sim |
+  | câmera parada | fora do ar nas duas últimas saúdes da caixa (cerca de 1 minuto sem quadro) | os quadros voltam | sim | sim |
+  | relógio da caixa errado | a diferença do relógio passa de 2 segundos | a diferença volta | não | não |
+  | motorista não avisado | o último aviso do agendamento falhou em tudo (D-64), com a visita no site | um aviso chega, ou a visita sai | não | não |
+  | tarefa que falhou de vez | uma tarefa da fila ficou como falhou | a tarefa sai dessa situação | — | só ela |
+
+  A câmera parada e o relógio só contam com a caixa em contato: sem contato, vale o alerta da
+  caixa. A câmera conta pelas duas últimas saúdes, e não por uma só: logo depois de a caixa
+  ligar (ou de trocar de versão), a primeira saúde ainda não tem quadro.
+- **Quem confere:** o worker, a cada minuto, um de cada vez (trava do PostgreSQL), como o "não
+  veio". Na demonstração da Vercel, o tique confere também, no máximo uma vez por minuto.
+- **No painel, sempre:** um sino em todas as telas de quem é do cliente, com o número de alertas
+  abertos dos sites dele, e a tela `/alertas` com os abertos e os fechados das últimas 24 horas.
+  A administração tem o sino dela, com a caixa, a câmera e as tarefas de todas as empresas.
+- **Por WhatsApp, só os graves**, a quem autorizou: o gestor dos sites do alerta, e a
+  administração nos dela. A autorização é como a do motorista (D-58), mas com um **código de uso
+  único**: a tela `/alertas` mostra um link (e o QR) que abre o WhatsApp com "ALERTAS
+  <código>"; o código vale 10 minutos, o banco guarda só o resumo, e quem manda a mensagem
+  liga aquele celular àquela pessoa (sem o código, ninguém se liga a outra pessoa). "SAIR"
+  cancela, como para o motorista. A mensagem é o modelo `patio_alerta` ("Alerta do pátio em
+  {{1}}: {{2}}."), mandado por uma tarefa da fila, com as mesmas tentativas das outras; sem o
+  WhatsApp configurado, o aviso fica guardado e a tela mostra.
 
 ### 8.2 Segurança
 
@@ -1181,6 +1223,7 @@ do cuidado de cargas (D-43).
 | D-65 | **A saúde da caixa por dentro** (T54): o formato `Saude` no pacote `contratos/`, como a passagem, mandado a cada minuto e fora da fila; o último contato é a hora da nuvem em que a última saúde chegou; o histórico de 7 dias fica numa tabela à parte e se apaga ao receber; a caixa está sem contato depois de 3 minutos sem saúde, e a que nunca mandou saúde não conta; a portaria mostra "site sem conexão desde HH:MM"; a máquina é medida com o psutil (BSD-3) | a saúde velha não ajuda ninguém, e guardá-la na fila atrasaria as passagens; com o último contato pela hora da nuvem, um relógio errado na caixa não esconde a queda; o site da demonstração tem caixa sem programa rodando, e não pode aparecer como fora do ar; 7 dias bastam para ver o que aconteceu, e o histórico pequeno não pesa no banco | a saúde na fila da caixa; o último contato pela hora da caixa ou por qualquer chamada dela; ler a máquina direto do `/proc`, que só serve no Linux |
 | D-66 | **A caixa em contêineres por dentro** (T55): a imagem do agente é nossa, sem root, e os pesos vêm por volume só de leitura; o go2rtc é montado por nós a partir do código (v1.9.14), sem FFmpeg; o agente cadastra as câmeras no go2rtc pela API e lê o vídeo de lá; a configuração fica guardada no disco, e a caixa começa com ela quando a nuvem não responde; o disco é cifrado na preparação e destravado pelo TPM, com a senha de recuperação guardada por nós; o relógio vem do NTP.br; o OpenVINO entra com o leitor próprio, e o v0 roda no ONNX Runtime | a imagem oficial do go2rtc traz um FFmpeg do Alpine montado com partes GPL (x264 e x265), e a D-27 não deixa; o proxy de módulos do Go confere o resumo de cada módulo, e não é preciso copiar um resumo à mão; a caixa precisa trabalhar sem a nuvem desde o começo, e as senhas das câmeras no disco pedem o disco cifrado; sem o TPM, a caixa pediria a senha ao ligar e não voltaria sozinha depois de uma queda de energia | a imagem oficial do go2rtc; o binário do go2rtc baixado do GitHub com o resumo copiado à mão; a configuração só na memória (a caixa parada sem a nuvem); o disco cifrado com senha digitada ao ligar |
 | D-67 | **A atualização da caixa por dentro** (T56): a administração cadastra cada versão pelo resumo da imagem e a escolhe para todas as caixas, um site ou uma caixa (vence a escolha mais específica); a versão só vai para um site ou para todas depois de dar certo numa caixa; o atualizador é um programa à parte, só com a biblioteca padrão do Python, que roda no Ubuntu da caixa a cada 5 minutos e troca o agente pelo compose; a saúde do agente novo é a gravada por ele no volume, com as câmeras no ar e aceita pela nuvem, em até 5 minutos; senão, volta para a anterior; a versão que falhou não é tentada de novo na mesma caixa; o registro é o do GitHub, com uma credencial que só baixa | fora dos contêineres, uma imagem ruim do agente não leva junto o atualizador, que é quem volta atrás; pelo compose, a caixa continua sendo descrita por um arquivo só; a saúde que a nuvem aceitou prova a caixa inteira (o agente, as câmeras e a internet); o registro do GitHub já está na conta do projeto e não pede um token novo a cada 12 horas, como o da AWS | o atualizador num contêiner com o socket do Docker; trocar o agente pela API do Docker, fora do compose; o registro da AWS (ECR) |
+| D-68 | **Os alertas por dentro** (T57): cada alerta abre uma vez e fecha sozinho quando a situação passa (um aberto por tipo e coisa); o worker confere a cada minuto, e o tique da demonstração também; a câmera parada e o relógio só contam com a caixa em contato; a autorização do WhatsApp para os alertas é por um código de uso único, de 10 minutos, que a tela do gestor e a da administração mostram; a mensagem é um modelo novo, `patio_alerta`, mandado pela fila de tarefas | o alerta que se repete a cada minuto é ignorado; com o código, ninguém liga o próprio celular aos alertas de outra pessoa (o número do usuário não está no cadastro); a Meta só deixa a empresa começar a conversa com um modelo aprovado; sem a caixa em contato, a câmera e o relógio dela não dizem nada de novo | um alerta novo a cada conferência; a autorização pelo id do usuário na mensagem ("ALERTAS U<id>"), que qualquer um poderia mandar; o celular no cadastro do usuário |
 
 ---
 
@@ -1295,3 +1338,4 @@ do cuidado de cargas (D-43).
 | 0.46 | 2026-10-06 | a saúde da caixa por dentro (T54): o formato `Saude` no contrato, o último contato, a diferença do relógio, o histórico de 7 dias, a frota de borda na administração e o "site sem conexão" na portaria (D-65); a entidade `SaudeCaixa`; o psutil na stack (seções 3.2, 5.1, 6.1, 6.2, 7.4, 8.1 e 11) |
 | 0.47 | 2026-10-06 | a caixa em contêineres (T55): o agente e o go2rtc no compose, o go2rtc montado sem FFmpeg, a configuração guardada no disco, o disco cifrado com o TPM e a preparação do Ubuntu (D-66; seções 6.1, 7.4, 8.2, 11 e 13) |
 | 0.48 | 2026-10-06 | a atualização da caixa por dentro (T56): as versões pelo resumo da imagem, a escolha por alcance, a ordem (uma caixa antes das outras), o atualizador à parte com a volta automática e as atualizações na frota (D-67); as entidades `VersaoCaixa`, `EscolhaDeVersao` e `AtualizacaoCaixa` (seções 5.1, 6.2, 7.4, 11 e 13) |
+| 0.49 | 2026-10-06 | os alertas por dentro (T57): abre uma vez e fecha sozinho, os tipos e os tempos, o worker a cada minuto, o sino em todas as telas, o WhatsApp dos graves com o código de uso único e a administração (D-68); as entidades `Alerta`, `AvisoDeAlerta` e `AlertasNoWhatsApp` (seções 5.1, 6.1, 6.2, 7.5, 8.1 e 11) |
