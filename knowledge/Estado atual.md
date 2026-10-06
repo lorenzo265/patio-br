@@ -34,7 +34,8 @@ tags: [estado]
   do [[ABERTO-18]]; o leitor v0, com pesos de terceiros, serve só para avaliação interna
   ([[D-26]]).
 - **A caixa de borda** lê vídeo gravado e câmera RTSP, monta a passagem e envia com fila e
-  reenvio; a medição no mini PC N150 ([[T20]]) espera o hardware.
+  reenvio, e manda a saúde a cada minuto, que aparece na frota de borda da administração
+  ([[T54]], [[D-65]]); a medição no mini PC N150 ([[T20]]) espera o hardware.
 
 ## Mês 1: fundação ([[Plano do mês 1]])
 
@@ -121,7 +122,8 @@ recomendações ([[D-57]] a [[D-62]]). As tarefas que não precisam de conta com
 | [[T51]] verificação em duas etapas | feita ([#53](https://github.com/lorenzo265/patio-br/pull/53)) |
 | [[T52]] WhatsApp | feita, com a Meta imitada ([#54](https://github.com/lorenzo265/patio-br/pull/54), [[D-63]]); a conferência com o número de teste espera a conta ([[N19]]) |
 | [[T53]] SMS e o motorista não avisado | feita, com a Zenvia imitada ([#55](https://github.com/lorenzo265/patio-br/pull/55), [[D-64]]); a conferência de verdade espera a conta ([[N20]]) |
-| [[T54]] saúde e frota, [[T55]] contêineres e [[T56]] atualização da caixa | podem começar; o N150 de verdade é a [[N23]] |
+| [[T54]] saúde da caixa e frota de borda | feita ([#56](https://github.com/lorenzo265/patio-br/pull/56), [[D-65]]); a medição no N150 de verdade é a [[N23]] |
+| [[T55]] contêineres e [[T56]] atualização da caixa | podem começar; o N150 de verdade é a [[N23]] |
 | [[T57]] alertas | pode começar ([[D-62]]) |
 | [[T58]] prova encadeada, [[T59]] prazos de guarda, [[T60]] base de treino e [[T39]] placas sintéticas | podem começar; os prazos de verdade esperam o [[ABERTO-04]] |
 | [[T61]] API e webhooks | só se o cliente do piloto pedir |

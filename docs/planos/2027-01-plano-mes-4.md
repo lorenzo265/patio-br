@@ -327,6 +327,13 @@ migração, testes.
   - **a portaria:** mostra "site sem conexão desde HH:MM" quando a caixa some (SDD 8.1).
 - **Bibliotecas:** só com licença permissiva, conferida antes (ex.: psutil, BSD-3).
 
+*Detalhado na execução (D-65):* o último contato é a hora da nuvem em que a última saúde
+chegou (um relógio errado na caixa não esconde a queda); a caixa fica sem contato depois de 3
+minutos, e a que nunca mandou saúde não conta (o site da demonstração tem caixa sem programa
+rodando); o histórico de 7 dias se apaga ao receber, sem tarefa nova; a frota mostra o
+histórico hora a hora. A roda do psutil 7.2.2 só traz o código dele (BSD-3), sem biblioteca de
+terceiros dentro.
+
 **Commit:** `feat(frota): saúde da caixa e a tela da frota`
 
 #### T55. A caixa em contêineres, pronta para o site

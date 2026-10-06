@@ -92,6 +92,7 @@ bibliotecas nativas com outra licença. Conferido abrindo as rodas para Linux x8
 | `rapidocr` 3.9.2 | Apache-2.0 | exige `opencv_python` (a não-headless) |
 | `numpy` 2.5 e `scipy` 1.18 | BSD | `libgfortran` (GPL-3.0 com a exceção de runtime do GCC, que permite programa fechado) e **`libquadmath` (LGPL-2.1)** |
 | `pillow` 12.3 | MIT-CMU | nada GPL nem LGPL (libjpeg, libpng, libtiff, libwebp, FreeType pela licença FTL, HarfBuzz, lcms2, OpenJPEG, zstd, brotli, libavif) |
+| `psutil` 7.2.2 (verificado em 2026-10-06, para a saúde da caixa, SDD [[D-65]]) | BSD-3-Clause | só o código dele: o Python e um `_psutil_linux.abi3.so`, sem biblioteca de terceiros; a licença vem em `psutil-7.2.2.dist-info/LICENSE` |
 
 Isso vira o [[ABERTO-13]] do SDD: a regra "GPL e LGPL nunca" esbarra no FFmpeg (PyAV, OpenCV)
 e até na NumPy, que o ONNX Runtime exige. Decidido em 04/10 (SDD [[D-27]]): LGPL nativa sem
