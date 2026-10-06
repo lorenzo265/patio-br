@@ -1,5 +1,5 @@
-"""Rotas da frota: a caixa ativa e baixa a configuração; a administração gera códigos e
-revoga caixas.
+"""Rotas da frota: a caixa ativa, baixa a configuração e manda a saúde; a administração gera
+códigos e revoga caixas.
 
 Os identificadores que a caixa recebe são os ids da nuvem em texto (SDD D-21): são os mesmos
 que ela põe nas passagens.
@@ -12,11 +12,12 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session
 
+from contratos.saude import Saude
 from nuvem.banco import obter_sessao
 from nuvem.cadastro.acesso import AcessoAdmin, obter_acesso_admin
 from nuvem.cadastro.modelos import Posicao, Sentido
 from nuvem.cifra import Cifra, obter_cifra
-from nuvem.frota import servico
+from nuvem.frota import saude, servico
 from nuvem.frota.acesso import obter_caixa
 from nuvem.frota.modelos import CaixaBorda
 from nuvem.frota.servico import AcessoDaCaixa
@@ -31,6 +32,7 @@ CaixaDaRequisicao = Annotated[AcessoDaCaixa, Depends(obter_caixa)]
 AcessoDaAdministracao = Annotated[AcessoAdmin, Depends(obter_acesso_admin)]
 
 CODIGO_RECUSADO = "código de ativação inválido, já usado ou vencido"
+SAUDE_DE_OUTRA_CAIXA = "a saúde é de outro site ou de outra caixa"
 
 
 class PedidoDeAtivacao(BaseModel):
@@ -92,6 +94,10 @@ class CaixaPublica(BaseModel):
     site_id: int
     ativada_em: datetime
     revogada: bool
+    ultimo_contato: datetime | None
+    """Quando chegou a última saúde (D-65)."""
+    versao_programa: str | None
+    versao_leitor: str | None
 
     @classmethod
     def de(cls, caixa: CaixaBorda) -> "CaixaPublica":
@@ -102,6 +108,9 @@ class CaixaPublica(BaseModel):
             site_id=caixa.site_id,
             ativada_em=caixa.ativada_em,
             revogada=caixa.revogada_em is not None,
+            ultimo_contato=caixa.ultimo_contato,
+            versao_programa=caixa.versao_programa,
+            versao_leitor=caixa.versao_leitor,
         )
 
 
@@ -152,6 +161,18 @@ def configuracao(
             for faixa in dados.faixas
         ],
     )
+
+
+@roteador_borda.post("/saude", status_code=status.HTTP_204_NO_CONTENT)
+def receber_saude(
+    sessao: SessaoDaRequisicao, momento: Agora, caixa: CaixaDaRequisicao, pedido: Saude
+) -> None:
+    """A saúde da caixa, a cada minuto (D-65): 403 se é de outra caixa ou de outro site."""
+    try:
+        saude.receber_saude(sessao, caixa, pedido, agora=momento)
+    except saude.SaudeDeOutraCaixaError:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail=SAUDE_DE_OUTRA_CAIXA) from None
+    sessao.commit()
 
 
 # --- A administração -----------------------------------------------------------------------

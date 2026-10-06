@@ -13,7 +13,9 @@ Os arquivos Jinja de `nuvem/src/nuvem/web/telas/`, a função que mostra cada um
 
 | Tela | Mostrada por | Estende | Inclui |
 |---|---|---|---|
+| `administracao_caixa.html` | `nuvem.web.frota.tela_da_caixa` | `base.html` |  |
 | `administracao_demonstracao.html` | `nuvem.web.demonstracao._tela_dos_links` | `base.html` |  |
+| `administracao_frota.html` | `nuvem.web.frota.tela_da_frota` | `base.html` |  |
 | `agendamentos.html` | `nuvem.web.agendamentos._tela` | `base.html` |  |
 | `agendar.html` | `nuvem.web.agendar._formulario` | `base.html` |  |
 | `agendar_aviso.html` | `nuvem.web.agendar._aviso` | `base.html` |  |
@@ -38,6 +40,7 @@ Os arquivos Jinja de `nuvem/src/nuvem/web/telas/`, a função que mostra cada um
 | `patio_chamar.html` | `nuvem.web.patio._chamar` | `base.html` |  |
 | `patio_quadro.html` | `nuvem.web.patio.quadro` |  |  |
 | `portaria.html` | `nuvem.web.portaria.tela_da_portaria` | `base.html` |  |
+| `portaria_conexao.html` | `nuvem.web.portaria.conexao` |  |  |
 | `portaria_conferir.html` | `nuvem.web.portaria._conferir` | `base.html` |  |
 | `portaria_excecao.html` | `nuvem.web.resolucao._excecao` | `base.html` |  |
 | `portaria_excecoes.html` | `nuvem.web.portaria.lista_de_excecoes` |  |  |

@@ -3,6 +3,7 @@
 import io
 import json
 import threading
+import time
 from pathlib import Path
 from typing import Any
 
@@ -57,8 +58,14 @@ CONFIGURACAO: dict[str, Any] = {
 class NuvemFalsa:
     def __init__(self) -> None:
         self.respostas_da_configuracao: list[int] = []
+        self.saudes: list[dict[str, Any]] = []
+        self.demora_da_saude = 0.0
 
     def __call__(self, pedido: httpx.Request) -> httpx.Response:
+        if pedido.url.path == "/api/borda/saude":
+            time.sleep(self.demora_da_saude)
+            self.saudes.append(json.loads(pedido.content))
+            return httpx.Response(204)
         if pedido.url.path == "/api/borda/ativar":
             if json.loads(pedido.content)["codigo"] != CODIGO:
                 return httpx.Response(401, json={"detail": "código inválido"})
@@ -214,6 +221,30 @@ def test_rodar_le_as_cameras_de_placa_e_guarda_a_passagem(
     assert item is not None
     assert [placa.placa for placa in item.passagem.placas] == ["ABC1D23"]
     assert item.passagem.caixa_id == "7"
+
+
+def test_rodar_manda_a_saude_das_cameras_de_placa(
+    cliente: httpx.Client, nuvem: NuvemFalsa, tmp_path: Path
+) -> None:
+    _ativar(cliente, tmp_path)
+    parar = threading.Event()
+    # A nuvem demora a responder: a caixa espera a saúde em curso antes de desligar.
+    nuvem.demora_da_saude = 2.0  # mais que a rodada inteira (a câmera falsa cai em 1 s)
+
+    codigo, saida = _caixa(
+        ["rodar", "--pasta", str(tmp_path), "--por-segundo", "1000"],
+        cliente,
+        parar=parar,
+        abrir=CamerasFalsas(parar).abrir,
+        carregar_modelos=lambda: (DetectorDeTudo(), LeitorFixo()),
+    )
+
+    assert codigo == 0, saida
+    # A primeira saúde vai logo ao começar; a câmera de contexto não é aberta, e não entra.
+    primeira = nuvem.saudes[0]
+    assert (primeira["caixa_id"], primeira["site_id"]) == ("7", "3")
+    assert [camera["camera_id"] for camera in primeira["cameras"]] == ["21"]
+    assert primeira["versao_leitor"] == "v0"
 
 
 def test_nuvem_fora_do_ar_no_inicio_tenta_de_novo_esperando_mais(

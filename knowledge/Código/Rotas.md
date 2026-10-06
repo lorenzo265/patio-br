@@ -17,6 +17,8 @@ Os endereços da API e das telas, lidos dos decoradores (`@roteador.get(...)`) c
 | `/administracao/demonstracao` | GET | `lista_de_links` | [[nuvem.web]] | Os links de demonstração e o formulário de gerar um novo. |
 | `/administracao/demonstracao` | POST | `gerar_link` | [[nuvem.web]] | Gera um link para uma empresa visitada e mostra o endereço, uma vez só. |
 | `/administracao/demonstracao/{link_id}/revogar` | POST | `revogar_link` | [[nuvem.web]] | Revoga o link: ele deixa de valer, e as pessoas da empresa dele saem na hora. |
+| `/administracao/frota` | GET | `tela_da_frota` | [[nuvem.web]] | Todas as caixas, das mais novas para as mais antigas. |
+| `/administracao/frota/{caixa_id}` | GET | `tela_da_caixa` | [[nuvem.web]] | Uma caixa: a última saúde e os últimos 7 dias, hora a hora (404 se não existir). |
 | `/agendamentos` | GET | `tela_de_agendamentos` | [[nuvem.web]] | A lista do dia (ou da semana) de um site do gestor, com a planilha e os links. |
 | `/agendamentos/links` | POST | `gerar_link` | [[nuvem.web]] | Gera um link para uma transportadora e mostra o endereço, uma vez só. |
 | `/agendamentos/links/{link_id}/revogar` | POST | `revogar_link` | [[nuvem.web]] | Revoga um link: ele deixa de valer na hora. |
@@ -41,6 +43,7 @@ Os endereços da API e das telas, lidos dos decoradores (`@roteador.get(...)`) c
 | `/api/borda/fotos/endereco` | POST | `endereco_de_foto` | [[nuvem.portaria]] | Devolve o endereço temporário para a caixa enviar uma foto. |
 | `/api/borda/fotos/envio/{codigo}` | PUT | `receber_foto` | [[nuvem.portaria]] | Recebe a foto no armazenamento local (o endereço já autoriza; não leva a chave). |
 | `/api/borda/passagens` | POST | `receber_passagem` | [[nuvem.portaria]] | Recebe uma passagem da caixa: 201 se nova, 200 se repetida. |
+| `/api/borda/saude` | POST | `receber_saude` | [[nuvem.frota]] | A saúde da caixa, a cada minuto ([[D-65]]): 403 se é de outra caixa ou de outro site. |
 | `/api/cadastro/sites` | GET | `listar_sites` | [[nuvem.cadastro]] | Os sites que o usuário vê. |
 | `/api/cadastro/sites/{site_id}` | GET | `obter_site` | [[nuvem.cadastro]] | Um site que o usuário vê (404 para qualquer outro). |
 | `/api/cadastro/sites/{site_id}/cameras` | GET | `listar_cameras` | [[nuvem.cadastro]] | As câmeras de um site que o gestor vê (404 para qualquer outro site). |
@@ -77,6 +80,7 @@ Os endereços da API e das telas, lidos dos decoradores (`@roteador.get(...)`) c
 | `/portaria` | GET | `tela_da_portaria` | [[nuvem.web]] | A tela da portaria de um site do usuário (o primeiro, se nenhum for pedido). |
 | `/portaria/chegada-manual` | GET | `tela_da_chegada_manual` | [[nuvem.web]] | As placas; com elas, os agendamentos sugeridos pelos pontos. |
 | `/portaria/chegada-manual` | POST | `registrar_chegada_manual` | [[nuvem.web]] | Registra a chegada com o agendamento escolhido (ou nenhum). |
+| `/portaria/conexao` | GET | `conexao` | [[nuvem.web]] | O aviso "site sem conexão desde HH:MM", quando a caixa sumiu (vazio, se não sumiu). |
 | `/portaria/conferir/{passagem_id}` | GET | `tela_de_conferir` | [[nuvem.web]] | Os recortes de placa de uma passagem, para o porteiro confirmar ou corrigir ([[D-42]]). |
 | `/portaria/conferir/{passagem_id}` | POST | `conferir` | [[nuvem.web]] | Grava a placa certa de um recorte e volta para a página da conferência. |
 | `/portaria/excecoes` | GET | `lista_de_excecoes` | [[nuvem.web]] | As exceções abertas do site, da chegada mais antiga para a mais nova (só ver). |

@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block titulo %}Caixa {{ caixa.id }} · Frota de borda · patio-br{% endblock %}
+{% block cabeca %}
+<style>body { max-width: 60rem; } .sem-contato { color: #a00000; font-weight: bold; }</style>
+{% endblock %}
+{% block conteudo %}
+<h1>Caixa {{ caixa.id }} · {{ caixa.site }}</h1>
+<p>{{ caixa.empresa }} · ativada em {{ caixa.ativada }}</p>
+<p{% if caixa.sem_contato %} class="sem-contato"{% endif %}>{{ caixa.situacao }}{% if caixa.ultimo_contato and not caixa.sem_contato %} · último contato {{ caixa.ultimo_contato }}{% endif %}</p>
+{% if caixa.versoes %}<p>Versões: {{ caixa.versoes }}</p>{% endif %}
+{% if caixa.maquina %}<p>Máquina: {{ caixa.maquina }} · relógio {{ caixa.relogio }}</p>{% endif %}
+{% if caixa.fila %}<p>Fila: {{ caixa.fila }}</p>{% endif %}
+<h2>Câmeras de placa</h2>
+{% if caixa.cameras %}
+<table>
+  <tr><th>Câmera</th><th>Situação</th><th>Quadros/s</th><th>Último quadro</th></tr>
+  {% for camera in caixa.cameras %}
+  <tr>
+    <td>{{ camera.nome }}</td>
+    <td>{% if camera.no_ar %}no ar{% else %}<span class="sem-contato">parada</span>{% endif %}</td>
+    <td>{{ camera.quadros_por_segundo }}</td>
+    <td>{{ camera.ultimo_quadro }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% else %}
+<p>A caixa ainda não contou das câmeras.</p>
+{% endif %}
+<h2>Últimos 7 dias, hora a hora</h2>
+<p>Saúdes que chegaram na hora (uma por minuto), e o pior de cada medida.</p>
+{% if horas %}
+<table>
+  <tr><th>Hora</th><th>Saúdes</th><th>CPU</th><th>Temperatura</th><th>Disco</th><th>Câmeras no ar</th><th>Maior fila</th><th>Relógio</th></tr>
+  {% for hora in horas %}
+  <tr>
+    <td>{{ hora.hora }}</td>
+    <td{% if hora.faltou %} class="sem-contato"{% endif %}>{{ hora.contatos }}</td>
+    <td>{{ hora.cpu }}</td>
+    <td>{{ hora.temperatura }}</td>
+    <td>{{ hora.disco }}</td>
+    <td>{{ hora.cameras }}</td>
+    <td>{{ hora.fila }}</td>
+    <td>{{ hora.relogio }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% else %}
+<p>Nenhuma saúde nos últimos 7 dias.</p>
+{% endif %}
+<p><a href="/administracao/frota">Frota de borda</a> · <a href="/">Início</a></p>
+{% endblock %}

@@ -7,9 +7,10 @@ Uso::
 
 - ``ativar`` troca o código (gerado pela administração para o site) pela chave da caixa e a
   guarda em ``dados/caixa/caixa.json``, que só o dono lê.
-- ``rodar`` baixa a configuração, abre as câmeras de placa por RTSP, roda o agente e o remetente
-  da fila (``dados/caixa/fila.sqlite``) até receber o sinal de término (ou Ctrl+C). Os modelos
-  do leitor v0 ficam em ``modelos/v0`` (``uv run tarefas modelos``).
+- ``rodar`` baixa a configuração, abre as câmeras de placa por RTSP, roda o agente, o remetente
+  da fila (``dados/caixa/fila.sqlite``) e o pulso da saúde (a cada minuto, D-65) até receber o
+  sinal de término (ou Ctrl+C). Os modelos do leitor v0 ficam em ``modelos/v0``
+  (``uv run tarefas modelos``).
 
 A configuração vale até o programa reiniciar. Sem a nuvem no ar, a caixa espera para começar:
 a configuração não fica no disco, porque traz as senhas das câmeras.
@@ -22,12 +23,19 @@ import signal
 import sys
 import threading
 from collections.abc import Callable, Sequence
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import TextIO
 
 import httpx
 
-from borda.agente import Agente, CameraDoAgente, ConfiguracaoDoAgente, rodar_ao_vivo
+from borda.agente import (
+    VERSAO_DO_LEITOR,
+    Agente,
+    CameraDoAgente,
+    ConfiguracaoDoAgente,
+    rodar_ao_vivo,
+)
 from borda.ativacao import (
     CaixaAtivada,
     ChaveRecusadaError,
@@ -50,6 +58,8 @@ from borda.composicao import Posicao
 from borda.envio import ESPERA_MAXIMA, FilaDeEnvio, Nuvem, Remetente
 from borda.leitor.interface import LeitorDePlacas
 from borda.rastreio import DetectorDeVeiculos, Rastreador
+from borda.saude import FonteMedida, MedidorDasCameras, Pulso, medir_a_maquina, montar_saude
+from contratos.saude import Saude
 
 PASTA_PADRAO = Path("dados") / "caixa"
 PASTA_DOS_MODELOS = Path("modelos") / "v0"
@@ -183,7 +193,9 @@ def _rodar(
         return 1
     fila = FilaDeEnvio(pasta / "fila.sqlite")
     try:
-        _rodar_com(caixa, configuracao, fila, cliente, parar, abrir, detector, leitor, por_segundo)
+        _rodar_com(
+            caixa, configuracao, fila, pasta, cliente, parar, abrir, detector, leitor, por_segundo
+        )
     finally:
         fila.fechar()
     return 0
@@ -223,6 +235,7 @@ def _rodar_com(
     caixa: CaixaAtivada,
     configuracao: ConfiguracaoDoAgente,
     fila: FilaDeEnvio,
+    pasta: Path,
     cliente: httpx.Client,
     parar: threading.Event,
     abrir: Callable[[str], VideoAberto | None],
@@ -238,21 +251,43 @@ def _rodar_com(
 
     agente = Agente(configuracao, fila, criar_rastreador=criar)
     # Só as câmeras de placa: a foto de contexto entra com o borrão de rostos (SDD 8.3).
+    de_placa = [camera for camera in configuracao.cameras if camera.posicao != "contexto"]
+    medidor = MedidorDasCameras(camera.id for camera in de_placa)
     fontes: dict[str, FonteDeQuadros] = {
-        camera.id: FonteAmostrada(
-            FonteDeCamera(
-                com_credenciais(camera.endereco, camera.login, camera.senha),
-                parar=parar,
-                abrir=abrir,
+        camera.id: FonteMedida(
+            FonteAmostrada(
+                FonteDeCamera(
+                    com_credenciais(camera.endereco, camera.login, camera.senha),
+                    parar=parar,
+                    abrir=abrir,
+                ),
+                por_segundo,
             ),
-            por_segundo,
+            camera.id,
+            medidor,
         )
-        for camera in configuracao.cameras
-        if camera.posicao != "contexto"
+        for camera in de_placa
     }
-    remetente = Remetente(fila, Nuvem(caixa.nuvem, caixa.chave, cliente=cliente), parar=parar)
+    nuvem = Nuvem(caixa.nuvem, caixa.chave, cliente=cliente)
+
+    def saude_de_agora() -> Saude:
+        return montar_saude(
+            caixa_id=configuracao.caixa_id,
+            site_id=configuracao.site_id,
+            versao_leitor=VERSAO_DO_LEITOR,
+            medidor=medidor,
+            fila=fila.contagem(),
+            maquina=medir_a_maquina(pasta),
+            agora=datetime.now(UTC),
+        )
+
+    remetente = Remetente(fila, nuvem, parar=parar)
     envio = threading.Thread(target=remetente.rodar, name="envio", daemon=True)
     envio.start()
+    pulso = threading.Thread(
+        target=Pulso(saude_de_agora, nuvem, parar=parar).rodar, name="saude", daemon=True
+    )
+    pulso.start()
     _registro.info(
         "caixa %s no ar: %d câmeras de placa no site %s",
         caixa.caixa_id,
@@ -261,6 +296,7 @@ def _rodar_com(
     )
     rodar_ao_vivo(agente, fontes, parar)
     envio.join(timeout=5)
+    pulso.join(timeout=5)
     _registro.info("caixa %s desligada; o que não foi enviado fica na fila", caixa.caixa_id)
 
 

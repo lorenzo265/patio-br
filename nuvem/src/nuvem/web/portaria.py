@@ -2,7 +2,8 @@
 
 A página traz o HTMX, que busca as listas (``/portaria/passagens`` e ``/portaria/excecoes``) ao
 abrir e a cada 2 segundos. A atualização empurrada pelo servidor (SSE) e a resolução das
-exceções vêm com a tela definitiva, no mês 3.
+exceções vêm com a tela definitiva, no mês 3. A conexão da caixa (``/portaria/conexao``) é
+conferida a cada 30 segundos: "site sem conexão desde HH:MM" (D-65).
 
 A conferência da placa (D-42) tem página própria (``/portaria/conferir/<passagem>``), fora das
 listas que se atualizam: a atualização não apaga o que o porteiro digita.
@@ -24,6 +25,7 @@ from nuvem.banco import obter_sessao
 from nuvem.cadastro import servico as cadastro
 from nuvem.cadastro.acesso import Acesso, exigir_papel
 from nuvem.erros import NaoEncontradoError
+from nuvem.frota import saude as frota
 from nuvem.portaria import conferencia, resolucao, visitas
 from nuvem.portaria import servico as portaria
 from nuvem.portaria.modelos import ConferenciaPlaca, Excecao, PassagemRecebida
@@ -76,6 +78,29 @@ def lista_de_passagens(
         for passagem in passagens
     ]
     return tela(request, "portaria_passagens.html", {"passagens": linhas})
+
+
+@roteador.get("/conexao")
+def conexao(
+    request: Request,
+    sessao: SessaoDaRequisicao,
+    acesso: AcessoDaPortaria,
+    momento: Agora,
+    site: int,
+) -> HTMLResponse:
+    """O aviso "site sem conexão desde HH:MM", quando a caixa sumiu (vazio, se não sumiu)."""
+    fuso = ZoneInfo(cadastro.obter_site(sessao, acesso, site).fuso)
+    desde = frota.sem_conexao_desde(sessao, acesso, site, agora=momento)
+    contexto = {"desde": _desde(desde, momento, fuso) if desde else "", "site_id": site}
+    return tela(request, "portaria_conexao.html", contexto)
+
+
+def _desde(desde: datetime, agora: datetime, fuso: ZoneInfo) -> str:
+    # A hora basta no mesmo dia; antes disso, vai a data junto.
+    local = desde.astimezone(fuso)
+    if local.date() == agora.astimezone(fuso).date():
+        return f"{local:%H:%M}"
+    return f"{local:%d/%m às %H:%M}"
 
 
 @roteador.get("/conferir/{passagem_id}")

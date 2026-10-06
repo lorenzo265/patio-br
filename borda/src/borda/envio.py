@@ -22,6 +22,7 @@ from uuid import UUID
 import httpx
 
 from contratos.passagem import Passagem
+from contratos.saude import Saude
 
 ESPERA_INICIAL = 1.0
 ESPERA_MAXIMA = 300.0
@@ -33,6 +34,9 @@ campo que não confere)."""
 
 RECUSA_DA_FOTO = frozenset({409, 413, 415})
 """Outra foto no mesmo ref, grande demais, não é JPEG."""
+
+RECUSA_DA_SAUDE = frozenset({403, 422})
+"""A saúde de outra caixa, ou fora do formato: a próxima vai do mesmo jeito."""
 
 _registro = logging.getLogger(__name__)
 
@@ -65,6 +69,18 @@ class PassagemNaFila:
 
     passagem: Passagem
     fotos: dict[str, bytes]
+
+
+@dataclass(frozen=True)
+class ContagemDaFila:
+    """O tamanho da fila, para a saúde da caixa (D-65)."""
+
+    passagens: int
+    """As passagens esperando o envio."""
+    fotos: int
+    """As fotos esperando o envio."""
+    recusadas: int
+    """As passagens recusadas de vez, guardadas à parte."""
 
 
 @dataclass(frozen=True)
@@ -116,6 +132,15 @@ class FilaDeEnvio:
         with self._trava:
             linha = self._conexao.execute("select count(*) from passagem").fetchone()
         return int(linha[0])
+
+    def contagem(self) -> ContagemDaFila:
+        """Quantas passagens e fotos esperam o envio, e quantas passagens foram recusadas."""
+        with self._trava:
+            passagens, fotos, recusadas = self._conexao.execute(
+                "select (select count(*) from passagem), (select count(*) from foto),"
+                " (select count(*) from recusada)"
+            ).fetchone()
+        return ContagemDaFila(passagens=passagens, fotos=fotos, recusadas=recusadas)
 
     def proxima(self) -> PassagemNaFila | None:
         """A passagem mais antiga (pelo início), com as fotos que faltam enviar."""
@@ -239,6 +264,20 @@ class Nuvem:
         except httpx.HTTPError as erro:
             return Resposta(Resultado.DE_NOVO, motivo=f"sem resposta da nuvem: {erro}")
         return _classificar(resposta, recusa=RECUSA_DA_PASSAGEM)
+
+    def enviar_saude(self, saude: Saude) -> Resposta:
+        """Manda a saúde da caixa (D-65); quem chama não tenta de novo, só registra."""
+        try:
+            resposta = self._cliente.post(
+                f"{self._endereco}/api/borda/saude",
+                content=saude.model_dump_json(),
+                headers={**self._autorizacao, "Content-Type": "application/json"},
+            )
+        except httpx.HTTPError as erro:
+            return Resposta(Resultado.DE_NOVO, motivo=f"sem resposta da nuvem: {erro}")
+        if resposta.status_code == httpx.codes.NO_CONTENT:
+            return Resposta(Resultado.ACEITA, resposta.status_code)
+        return _classificar(resposta, recusa=RECUSA_DA_SAUDE)
 
 
 def _endereco_de_envio(pedido: httpx.Response) -> str | None:
