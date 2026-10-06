@@ -6,14 +6,17 @@ Uso::
     caixa rodar
 
 - ``ativar`` troca o código (gerado pela administração para o site) pela chave da caixa e a
-  guarda em ``dados/caixa/caixa.json``, que só o dono lê.
+  guarda em ``dados/caixa/caixa.json``, que só o dono lê; a configuração guardada de antes (de
+  outro site, talvez) é apagada.
 - ``rodar`` baixa a configuração, abre as câmeras de placa por RTSP, roda o agente, o remetente
   da fila (``dados/caixa/fila.sqlite``) e o pulso da saúde (a cada minuto, D-65) até receber o
   sinal de término (ou Ctrl+C). Os modelos do leitor v0 ficam em ``modelos/v0``
   (``uv run tarefas modelos``).
 
-A configuração vale até o programa reiniciar. Sem a nuvem no ar, a caixa espera para começar:
-a configuração não fica no disco, porque traz as senhas das câmeras.
+A configuração baixada fica guardada em ``dados/caixa/configuracao.json``, que só o dono lê (o
+disco da caixa é cifrado, D-66): sem a nuvem no ar, a caixa começa com ela. A configuração vale
+até o programa reiniciar. Com ``--go2rtc`` (ou ``PATIO_GO2RTC``), as câmeras são lidas pelo
+go2rtc, como nos contêineres da caixa.
 """
 
 import argparse
@@ -40,10 +43,13 @@ from borda.ativacao import (
     CaixaAtivada,
     ChaveRecusadaError,
     CodigoRecusadoError,
+    apagar_configuracao,
     ativar,
     baixar_configuracao,
     guardar_caixa,
+    guardar_configuracao,
     ler_caixa,
+    ler_configuracao,
 )
 from borda.captura import (
     QUADROS_POR_SEGUNDO,
@@ -56,6 +62,7 @@ from borda.captura import (
 )
 from borda.composicao import Posicao
 from borda.envio import ESPERA_MAXIMA, FilaDeEnvio, Nuvem, Remetente
+from borda.go2rtc import Go2rtc
 from borda.leitor.interface import LeitorDePlacas
 from borda.rastreio import DetectorDeVeiculos, Rastreador
 from borda.saude import FonteMedida, MedidorDasCameras, Pulso, medir_a_maquina, montar_saude
@@ -64,7 +71,11 @@ from contratos.saude import Saude
 PASTA_PADRAO = Path("dados") / "caixa"
 PASTA_DOS_MODELOS = Path("modelos") / "v0"
 
+ARQUIVO_DA_CONFIGURACAO = "configuracao.json"
+
 CarregarModelos = Callable[[], tuple[DetectorDeVeiculos, LeitorDePlacas]]
+AbrirACamera = Callable[[CameraDoAgente], tuple[str, Callable[[str], VideoAberto | None]]]
+"""De uma câmera da configuração: o endereço que a fonte abre e como abrir."""
 
 _registro = logging.getLogger(__name__)
 
@@ -106,6 +117,7 @@ def principal(
             abrir,
             carregar_modelos or _carregar_v0,
             saida,
+            argumentos.go2rtc,
         )
     except httpx.HTTPError as erro:
         print(f"erro: a nuvem não respondeu como esperado: {erro}", file=saida)
@@ -139,6 +151,11 @@ def _interpretador() -> argparse.ArgumentParser:
         default=QUADROS_POR_SEGUNDO,
         help=f"quadros por segundo de cada câmera (padrão: {QUADROS_POR_SEGUNDO:g})",
     )
+    rodada.add_argument(
+        "--go2rtc",
+        default=os.environ.get("PATIO_GO2RTC") or None,
+        help="ler as câmeras pelo go2rtc (ex.: http://go2rtc:1984; padrão: PATIO_GO2RTC)",
+    )
     for comando in (ativacao, rodada):
         comando.add_argument(
             "--pasta",
@@ -155,6 +172,7 @@ def _ativar(cliente: httpx.Client, nuvem: str, codigo: str, pasta: Path, saida: 
         print(f"erro: {erro}", file=saida)
         return 1
     guardar_caixa(caixa, pasta / "caixa.json")
+    apagar_configuracao(pasta / ARQUIVO_DA_CONFIGURACAO)
     print(f"caixa {caixa.caixa_id} ativada no site {caixa.site_id}; agora: caixa rodar", file=saida)
     return 0
 
@@ -167,6 +185,7 @@ def _rodar(
     abrir: Callable[[str], VideoAberto | None],
     carregar_modelos: CarregarModelos,
     saida: TextIO,
+    go2rtc: str | None,
 ) -> int:
     caixa = ler_caixa(pasta / "caixa.json")
     if caixa is None:
@@ -180,7 +199,9 @@ def _rodar(
         parar = threading.Event()
         _desligar_com_sinal(parar)
     try:
-        configuracao = baixar_com_paciencia(cliente, caixa, parar=parar)
+        configuracao = baixar_com_paciencia(
+            cliente, caixa, parar=parar, arquivo=pasta / ARQUIVO_DA_CONFIGURACAO
+        )
     except ChaveRecusadaError as erro:
         print(f"erro: {erro}", file=saida)
         return 1
@@ -194,7 +215,16 @@ def _rodar(
     fila = FilaDeEnvio(pasta / "fila.sqlite")
     try:
         _rodar_com(
-            caixa, configuracao, fila, pasta, cliente, parar, abrir, detector, leitor, por_segundo
+            caixa,
+            configuracao,
+            fila,
+            pasta,
+            cliente,
+            parar,
+            _com_o_go2rtc(cliente, go2rtc, abrir),
+            detector,
+            leitor,
+            por_segundo,
         )
     finally:
         fila.fechar()
@@ -207,9 +237,14 @@ def baixar_com_paciencia(
     *,
     parar: threading.Event,
     dormir: Callable[[float], object] | None = None,
+    arquivo: Path | None = None,
 ) -> ConfiguracaoDoAgente | None:
     """Baixa a configuração; se a nuvem não responde, tenta de novo, esperando 1 s, 2 s, 4 s...
     até 5 min.
+
+    Com ``arquivo`` (D-66), a configuração baixada fica guardada nele; se a nuvem não responde e há
+    configuração guardada, a caixa começa com ela, sem esperar. A chave recusada apaga a
+    configuração guardada: as senhas das câmeras não ficam na caixa revogada.
 
     Returns:
         A configuração, ou ``None`` se a caixa foi desligada antes.
@@ -221,11 +256,25 @@ def baixar_com_paciencia(
     espera = 1.0
     while not parar.is_set():
         try:
-            return baixar_configuracao(cliente, caixa)
+            configuracao = baixar_configuracao(cliente, caixa)
+        except ChaveRecusadaError:
+            if arquivo is not None:
+                apagar_configuracao(arquivo)
+            raise
         except httpx.HTTPError as erro:
+            guardada = ler_configuracao(arquivo) if arquivo is not None else None
+            if guardada is not None:
+                _registro.warning(
+                    "a nuvem não deu a configuração (%s); começando com a guardada", erro
+                )
+                return guardada
             _registro.warning(
                 "a nuvem não deu a configuração (%s); tentando de novo em %.0f s", erro, espera
             )
+        else:
+            if arquivo is not None:
+                guardar_configuracao(configuracao, arquivo)
+            return configuracao
         dormir(espera)
         espera = min(espera * 2, ESPERA_MAXIMA)
     return None
@@ -238,7 +287,7 @@ def _rodar_com(
     pasta: Path,
     cliente: httpx.Client,
     parar: threading.Event,
-    abrir: Callable[[str], VideoAberto | None],
+    abrir_a_camera: "AbrirACamera",
     detector: DetectorDeVeiculos,
     leitor: LeitorDePlacas,
     por_segundo: float,
@@ -253,21 +302,14 @@ def _rodar_com(
     # Só as câmeras de placa: a foto de contexto entra com o borrão de rostos (SDD 8.3).
     de_placa = [camera for camera in configuracao.cameras if camera.posicao != "contexto"]
     medidor = MedidorDasCameras(camera.id for camera in de_placa)
-    fontes: dict[str, FonteDeQuadros] = {
-        camera.id: FonteMedida(
-            FonteAmostrada(
-                FonteDeCamera(
-                    com_credenciais(camera.endereco, camera.login, camera.senha),
-                    parar=parar,
-                    abrir=abrir,
-                ),
-                por_segundo,
-            ),
+    fontes: dict[str, FonteDeQuadros] = {}
+    for camera in de_placa:
+        endereco, abrir = abrir_a_camera(camera)
+        fontes[camera.id] = FonteMedida(
+            FonteAmostrada(FonteDeCamera(endereco, parar=parar, abrir=abrir), por_segundo),
             camera.id,
             medidor,
         )
-        for camera in de_placa
-    }
     nuvem = Nuvem(caixa.nuvem, caixa.chave, cliente=cliente)
 
     def saude_de_agora() -> Saude:
@@ -298,6 +340,21 @@ def _rodar_com(
     envio.join(timeout=5)
     pulso.join(timeout=5)
     _registro.info("caixa %s desligada; o que não foi enviado fica na fila", caixa.caixa_id)
+
+
+def _com_o_go2rtc(
+    cliente: httpx.Client, go2rtc: str | None, abrir: Callable[[str], VideoAberto | None]
+) -> "AbrirACamera":
+    """Como abrir cada câmera: direto, ou pelo go2rtc (cadastrando a câmera antes, D-66)."""
+
+    def abrir_a_camera(camera: CameraDoAgente) -> tuple[str, Callable[[str], VideoAberto | None]]:
+        origem = com_credenciais(camera.endereco, camera.login, camera.senha)
+        if go2rtc is None:
+            return origem, abrir
+        servidor = Go2rtc(cliente, go2rtc)
+        return servidor.endereco(camera.id), servidor.abridor(camera.id, origem, abrir)
+
+    return abrir_a_camera
 
 
 def _carregar_v0() -> tuple[DetectorDeVeiculos, LeitorDePlacas]:

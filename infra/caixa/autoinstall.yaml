@@ -1,0 +1,55 @@
+#cloud-config
+# A instalação automática do Ubuntu Server 24.04 na caixa de borda (SDD 7.4, D-66).
+# Como usar: docs/guias/preparar-a-caixa.md. Antes de gravar no pendrive CIDATA (como
+# `user-data`), troque cada TROQUE-... pelo valor do cofre de senhas da equipe, numa cópia fora do
+# repositório: a senha de verdade nunca entra aqui.
+autoinstall:
+  version: 1
+  locale: en_US.UTF-8
+  keyboard:
+    layout: br
+  timezone: America/Sao_Paulo
+  identity:
+    hostname: patio-caixa
+    username: patio
+    # O resumo da senha (mkpasswd -m sha-512), não a senha.
+    password: TROQUE-PELO-RESUMO-DA-SENHA-DO-USUARIO
+  ssh:
+    install-server: true
+    allow-pw: false
+    authorized-keys:
+      - TROQUE-PELA-CHAVE-PUBLICA-DE-QUEM-INSTALA
+  # O disco inteiro, cifrado (LUKS): quem leva só o disco não lê as senhas das câmeras. Depois da
+  # instalação, o guia liga o disco ao TPM, que o destrava sozinho ao ligar.
+  storage:
+    layout:
+      name: lvm
+      password: TROQUE-PELA-SENHA-DE-RECUPERACAO-DO-DISCO
+  packages:
+    - docker.io
+    - docker-compose-v2
+    - ufw
+    - curl
+    - clevis
+    - clevis-luks
+    - clevis-tpm2
+    - clevis-initramfs
+  late-commands:
+    # O relógio pelos servidores do NTP.br: a hora da passagem é a prova da chegada.
+    - mkdir -p /target/etc/systemd/timesyncd.conf.d
+    - printf '[Time]\nNTP=a.st1.ntp.br b.st1.ntp.br c.st1.ntp.br d.st1.ntp.br\nFallbackNTP=ntp.ubuntu.com\n' > /target/etc/systemd/timesyncd.conf.d/ntp-br.conf
+    # O registro dos contêineres com tamanho limitado: o disco é da fila.
+    - mkdir -p /target/etc/docker
+    - echo '{"log-driver":"local"}' > /target/etc/docker/daemon.json
+    - curtin in-target -- systemctl enable docker
+    # O Tailscale, pelo repositório dele: o único jeito de entrar na caixa (D-13).
+    - curtin in-target -- sh -c 'curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/noble.noarmor.gpg -o /usr/share/keyrings/tailscale-archive-keyring.gpg && curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/noble.tailscale-keyring.list -o /etc/apt/sources.list.d/tailscale.list && apt-get update && apt-get install -y tailscale'
+    # O firewall: a entrada fechada, a saída aberta; só o Tailscale entra.
+    - curtin in-target -- ufw default deny incoming
+    - curtin in-target -- ufw default allow outgoing
+    - curtin in-target -- ufw allow in on tailscale0
+    - sed -i 's/^ENABLED=no/ENABLED=yes/' /target/etc/ufw/ufw.conf
+    # Onde ficam o compose e os pesos do leitor.
+    - mkdir -p /target/opt/patio/caixa /target/opt/patio/modelos
+    - curtin in-target -- chown -R patio:patio /opt/patio
+    - curtin in-target -- usermod -aG docker patio

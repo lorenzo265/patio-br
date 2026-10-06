@@ -2,10 +2,12 @@
 
 A administração gera um código de uso único para o site; a caixa troca o código por uma chave
 própria e, com ela, baixa as faixas e as câmeras do site. A chave é um segredo: fica num arquivo
-que só o dono lê e não aparece ao imprimir a caixa.
+que só o dono lê e não aparece ao imprimir a caixa. A configuração baixada também fica guardada
+assim, porque traz as senhas das câmeras: com ela, a caixa começa sem a nuvem (D-66).
 """
 
 import json
+import logging
 import os
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
@@ -13,6 +15,8 @@ from pathlib import Path
 import httpx
 
 from borda.agente import ConfiguracaoDoAgente
+
+_registro = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -68,11 +72,42 @@ def baixar_configuracao(cliente: httpx.Client, caixa: CaixaAtivada) -> Configura
 
 def guardar_caixa(caixa: CaixaAtivada, arquivo: Path) -> None:
     """Guarda a caixa ativada num arquivo que só o dono lê (a chave é um segredo)."""
+    _guardar_so_para_o_dono(asdict(caixa), arquivo)
+
+
+def guardar_configuracao(configuracao: ConfiguracaoDoAgente, arquivo: Path) -> None:
+    """Guarda a configuração num arquivo que só o dono lê (traz as senhas das câmeras)."""
+    _guardar_so_para_o_dono(configuracao.para_json(), arquivo)
+
+
+def ler_configuracao(arquivo: Path) -> ConfiguracaoDoAgente | None:
+    """A configuração guardada, ou ``None`` se não há (ou se o arquivo está estragado)."""
+    if not arquivo.is_file():
+        return None
+    try:
+        return ConfiguracaoDoAgente.de_json(json.loads(arquivo.read_text(encoding="utf-8")))
+    except (ValueError, KeyError, TypeError):
+        _registro.warning("a configuração guardada está estragada; fica de fora")
+        return None
+
+
+def apagar_configuracao(arquivo: Path) -> None:
+    """Apaga a configuração guardada (a chave recusada, ou a caixa ativada de novo)."""
+    arquivo.unlink(missing_ok=True)
+
+
+def _guardar_so_para_o_dono(dados: object, arquivo: Path) -> None:
+    # Grava ao lado e troca de uma vez: a energia que cai no meio não estraga o arquivo que já
+    # estava lá.
     arquivo.parent.mkdir(parents=True, exist_ok=True)
-    descritor = os.open(arquivo, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    provisorio = arquivo.with_name(f"{arquivo.name}.novo")
+    descritor = os.open(provisorio, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
     with os.fdopen(descritor, "w", encoding="utf-8") as saida:
-        json.dump(asdict(caixa), saida, indent=2)
-    os.chmod(arquivo, 0o600)  # se o arquivo já existia com outra permissão
+        json.dump(dados, saida, indent=2)
+        saida.flush()
+        os.fsync(saida.fileno())
+    os.chmod(provisorio, 0o600)  # se o provisório já existia com outra permissão
+    os.replace(provisorio, arquivo)
 
 
 def ler_caixa(arquivo: Path) -> CaixaAtivada | None:

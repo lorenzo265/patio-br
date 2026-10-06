@@ -8,14 +8,18 @@ from typing import Any
 import httpx
 import pytest
 
+from borda.agente import ConfiguracaoDoAgente
 from borda.ativacao import (
     CaixaAtivada,
     ChaveRecusadaError,
     CodigoRecusadoError,
+    apagar_configuracao,
     ativar,
     baixar_configuracao,
     guardar_caixa,
+    guardar_configuracao,
     ler_caixa,
+    ler_configuracao,
 )
 
 NUVEM = "http://nuvem.example"
@@ -139,3 +143,63 @@ def test_so_o_dono_le_a_chave_guardada(tmp_path: Path) -> None:
 
 def test_sem_caixa_guardada(tmp_path: Path) -> None:
     assert ler_caixa(tmp_path / "caixa.json") is None
+
+
+# --- A configuração guardada (D-66) ---------------------------------------------------------
+
+
+def test_a_configuracao_volta_ao_formato_da_nuvem() -> None:
+    com_faixa_vazia = CONFIGURACAO | {
+        "faixas": [
+            *CONFIGURACAO["faixas"],
+            {"id": "12", "nome": "Saída", "sentido": "saida", "cameras": []},
+        ]
+    }
+
+    assert ConfiguracaoDoAgente.de_json(com_faixa_vazia).para_json() == com_faixa_vazia
+
+
+@pytest.mark.integracao  # grava no disco
+def test_configuracao_guardada_volta_igual(tmp_path: Path) -> None:
+    configuracao = ConfiguracaoDoAgente.de_json(CONFIGURACAO)
+
+    guardar_configuracao(configuracao, tmp_path / "caixa" / "configuracao.json")
+
+    assert ler_configuracao(tmp_path / "caixa" / "configuracao.json") == configuracao
+
+
+@pytest.mark.integracao
+@pytest.mark.skipif(os.name == "nt", reason="as permissões de arquivo do Windows são outras")
+def test_so_o_dono_le_a_configuracao_guardada(tmp_path: Path) -> None:
+    arquivo = tmp_path / "configuracao.json"
+    arquivo.write_text("{}", encoding="utf-8")
+    arquivo.chmod(0o644)
+
+    guardar_configuracao(ConfiguracaoDoAgente.de_json(CONFIGURACAO), arquivo)
+
+    # As senhas das câmeras estão nela.
+    assert arquivo.stat().st_mode & 0o777 == 0o600
+
+
+def test_sem_configuracao_guardada(tmp_path: Path) -> None:
+    assert ler_configuracao(tmp_path / "configuracao.json") is None
+
+
+@pytest.mark.integracao
+@pytest.mark.parametrize("conteudo", ["não é json", "[]", "{}", '{"caixa_id": "7"}'])
+def test_configuracao_guardada_estragada_e_ignorada(tmp_path: Path, conteudo: str) -> None:
+    arquivo = tmp_path / "configuracao.json"
+    arquivo.write_text(conteudo, encoding="utf-8")
+
+    assert ler_configuracao(arquivo) is None
+
+
+@pytest.mark.integracao
+def test_apagar_a_configuracao_guardada(tmp_path: Path) -> None:
+    arquivo = tmp_path / "configuracao.json"
+    guardar_configuracao(ConfiguracaoDoAgente.de_json(CONFIGURACAO), arquivo)
+
+    apagar_configuracao(arquivo)
+    apagar_configuracao(arquivo)  # apagar de novo não é erro
+
+    assert not arquivo.exists()

@@ -1,0 +1,37 @@
+# A caixa de borda no site (SDD 7.4, D-66): o agente e o go2rtc, que sobem com a máquina.
+# Na caixa preparada (docs/guias/preparar-a-caixa.md), este arquivo fica em /opt/patio/caixa/:
+#   docker compose run --rm agente caixa ativar --nuvem <endereço> --codigo <código> --pasta /caixa/dados
+#   docker compose up -d
+# A caixa só faz conexões de saída: nenhuma porta fica aberta na rede do cliente. A tela do
+# go2rtc (para ver a câmera na instalação) só responde na própria máquina; de fora, por um túnel
+# pelo Tailscale.
+name: patio-caixa
+
+services:
+  agente:
+    image: ${IMAGEM_DO_AGENTE:-patio-caixa:local}
+    restart: unless-stopped
+    environment:
+      # O agente cadastra as câmeras no go2rtc e lê o vídeo de lá.
+      PATIO_GO2RTC: http://go2rtc:1984
+    volumes:
+      # A chave, a configuração e a fila: sobrevivem à troca da imagem.
+      - dados:/caixa/dados
+      # Os pesos do leitor, só para leitura (uv run tarefas modelos, copiados para a caixa).
+      - ${PASTA_DOS_MODELOS:-/opt/patio/modelos}:/caixa/modelos:ro
+    depends_on: [go2rtc]
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+
+  go2rtc:
+    image: ${IMAGEM_DO_GO2RTC:-patio-go2rtc:local}
+    restart: unless-stopped
+    ports: ["127.0.0.1:1984:1984"]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+
+volumes:
+  dados:
