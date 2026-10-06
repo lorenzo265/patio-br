@@ -28,6 +28,7 @@ falhou. O canal de demonstração não manda nada, e não é um canal de envio.
 
 - **`EnvioFalhouError`** (classe): O envio falhou por um motivo passageiro: a tarefa tenta de novo, mais tarde.
 - **`EnvioRecusadoError`** (classe): O canal recusou a mensagem de vez: tentar de novo não muda nada.
+- **`Situacao`** (classe): A situação de uma mensagem nossa, como o canal avisou depois do envio.
 - **`Envio`** (classe): A mensagem aceita pelo canal.
 - **`CanalDeEnvio`** (classe): Um canal que manda as mensagens ao motorista.
 - **`CanalDoWhatsApp`** (classe): O WhatsApp: além de mandar o modelo, responde ao motorista e tem o número dos links.
@@ -75,7 +76,9 @@ categoria utilidade, em português (``pt_BR``).
 
 `nuvem/src/nuvem/mensagens/rotas.py`
 
-O webhook do WhatsApp ([[7.5 WhatsApp e SMS|SDD 7.5]], [[D-63]]): ``/api/whatsapp``.
+Os avisos dos canais ([[7.5 WhatsApp e SMS|SDD 7.5]]): o webhook do WhatsApp ([[D-63]]) e o retorno do SMS ([[D-64]]).
+
+``/api/whatsapp``:
 
 - ``GET``: a Meta confere o webhook ao cadastrá-lo, com o código que escolhemos; a resposta é o
   desafio que ela mandou.
@@ -83,12 +86,16 @@ O webhook do WhatsApp ([[7.5 WhatsApp e SMS|SDD 7.5]], [[D-63]]): ``/api/whatsap
   assinatura do segredo do app (``X-Hub-Signature-256``); o aviso vira a tarefa "aviso do
   WhatsApp", e o worker faz o resto. O mesmo aviso duas vezes vira uma tarefa só.
 
-Sem o WhatsApp configurado, as duas respondem 404. O cookie não decide quem pede, então a rota
-fica fora do código anti-CSRF ([[D-55]]).
+``/api/sms/<segredo>``: o retorno da entrega do SMS. A Zenvia não assina os avisos, então o
+segredo vai no endereço, que só ela conhece (e some do registro de acesso).
+
+Sem o canal configurado, as rotas respondem 404. O cookie não decide quem pede, então elas ficam
+fora do código anti-CSRF ([[D-55]]).
 
 - **`corpo_do_pedido`**: O corpo cru, como a Meta assinou (a assinatura é dos bytes, não do JSON lido).
 - **`conferir_o_webhook`**: A conferência da Meta: devolve o desafio se o código for o nosso.
 - **`receber_o_aviso`**: Guarda o aviso assinado numa tarefa e responde logo (a Meta repete o que demora).
+- **`receber_o_retorno_do_sms`**: O retorno da Zenvia ([[D-64]]): só com o segredo do endereço, e vira a tarefa "aviso do SMS".
 
 ### `nuvem.mensagens.servico`
 
@@ -102,9 +109,10 @@ Mensagens ao motorista ([[2.2 A jornada de um caminhão (modo A)|SDD 2.2]], [[D-
   sair. Cada evento avisa uma vez só, no celular que o agendamento tem na hora.
 - **Só o recente:** o worker olha os eventos dos últimos 30 minutos (aviso mais velho chegaria
   tarde) e os agendamentos criados ou mudados no último dia.
-- **O canal** ([[D-63]]): sem o WhatsApp configurado, o de demonstração, que só guarda; com ele, o
-  WhatsApp para o celular que autorizou a empresa, e o SMS para os outros. A mensagem que sai
-  vira a tarefa "enviar mensagem".
+- **O canal** ([[D-63]]): sem o WhatsApp e sem o SMS configurados, o de demonstração, que só guarda;
+  com eles, o WhatsApp para o celular que autorizou a empresa, e o SMS para os outros, com o
+  texto curto do SMS ([[D-64]]). A mensagem que sai vira a tarefa "enviar mensagem".
+- **A reserva** ([[D-64]]): a mensagem do WhatsApp que falha de vez ganha uma cópia pelo SMS.
 - **O aviso da Meta** (``tratar_aviso``): a situação de cada mensagem (enviada, entregue, lida,
   falhou) e as mensagens que o motorista mandou: a autorização ("AVISOS ...") e o "SAIR".
 
@@ -122,8 +130,33 @@ lê passa o ``Acesso``.
 - **`preparar`**: Grava as mensagens que faltam, de todos os sites (sem ``commit``).
 - **`enviar`**: Manda uma mensagem guardada pelo canal dela (a tarefa "enviar mensagem"; sem ``commit``).
 - **`tratar_aviso`**: Trata um aviso do webhook do WhatsApp (a tarefa "aviso do WhatsApp"; sem ``commit``).
+- **`tratar_aviso_do_sms`**: Trata um retorno da Zenvia (a tarefa "aviso do SMS"; sem ``commit``): a entrega do SMS.
 - **`conversa`**: As mensagens de um agendamento que o usuário vê, na ordem em que foram feitas.
 - **`conversas`**: As conversas de um site que o usuário vê, da última mensagem para a primeira.
+- **`nao_avisados`**: Os agendamentos, entre estes, cujo motorista não recebeu o último aviso ([[D-64]]).
+
+### `nuvem.mensagens.sms`
+
+`nuvem/src/nuvem/mensagens/sms.py`
+
+O SMS de reserva pela Zenvia, direto e sem biblioteca dela ([[7.5 WhatsApp e SMS|SDD 7.5]], [[D-59]] e [[D-64]]).
+
+- **Mandar:** ``POST https://api.zenvia.com/v2/channels/sms/messages``, com o token no cabeçalho
+  ``X-API-TOKEN`` e o texto pronto da mensagem.
+- **O texto:** curto e só com os caracteres do GSM-7, sem acento, para caber num pedaço de 160
+  (com um acento do português, o pedaço cai para 70 e o SMS custa o dobro). O da confirmação
+  leva o link que abre o WhatsApp com "AVISOS A<agendamento>" ([[D-58]]).
+- **O retorno:** a Zenvia avisa a entrega com um evento ``MESSAGE_STATUS``.
+
+- **`TAMANHO_DO_PEDACO`** = `160`: Um pedaço de SMS, só com os caracteres do GSM-7.
+- **`ASSINATURA`** = `'patio-br'`: Quem manda, no começo do texto; muda com o nome do produto ([[ABERTO-01]]).
+- **`MENOR_PEDACO_DE_NOME`** = `8`: O nome do site (ou da doca) é cortado para caber, mas não fica menor que isto.
+- **`SITUACOES`**: A situação que a Zenvia avisa, no nome daqui.
+- **`CanalSMS`** (classe): O canal de SMS: manda o texto pronto da mensagem pela Zenvia.
+- **`para_gsm7`**: O texto sem acento e só com os caracteres da tabela básica do GSM-7.
+- **`texto_do_sms`**: O texto do SMS de uma mensagem: curto, sem acento e de no máximo 160 caracteres.
+- **`ler_aviso_do_sms`**: A situação de uma mensagem nossa, de um evento da Zenvia; ``None`` se não é uma.
+- **`canal_da_configuracao`**: O canal de SMS da configuração, ou ``None`` se ele não está configurado.
 
 ### `nuvem.mensagens.whatsapp`
 
@@ -141,7 +174,6 @@ O WhatsApp pela Cloud API da Meta, direto e sem biblioteca dela ([[7.5 WhatsApp 
 - **`VERSAO_PADRAO`** = `'v25.0'`: A versão da API da Meta (de 02/2026); configurável, porque cada versão vale cerca de 2 anos.
 - **`ERROS_PASSAGEIROS`**: Os códigos de erro da Meta que passam: o limite de envio, o serviço fora, o token vencido (até alguém trocar). Os outros (o número sem WhatsApp, o modelo recusado) são definitivos.
 - **`SITUACOES`**: A situação que a Meta avisa, no nome daqui.
-- **`Situacao`** (classe): A situação de uma mensagem nossa, como a Meta avisou.
 - **`Recebida`** (classe): Uma mensagem que alguém mandou ao número do produto.
 - **`CanalWhatsApp`** (classe): O canal do WhatsApp: manda os modelos e as respostas pela Cloud API.
 - **`assinatura_confere`**: Se o ``X-Hub-Signature-256`` é o HMAC-SHA256 do corpo com o segredo do app.
@@ -157,6 +189,8 @@ O WhatsApp pela Cloud API da Meta, direto e sem biblioteca dela ([[7.5 WhatsApp 
 
 - `nuvem/tests/test_nuvem_mensagens.py`: Mensagens do motorista ([[T43]], [[2.2 A jornada de um caminhão (modo A)|SDD 2.2]] e [[D-47]]): nascem dos eventos, no canal de demonstração.
 - `nuvem/tests/test_nuvem_mensagens_envio.py`: O envio das mensagens ao motorista ([[7.5 WhatsApp e SMS|SDD 7.5]], [[D-58]] e [[D-63]]): o canal de cada uma, a fila, as situações que a Meta avisa, a autorização do motorista e o "SAIR". A Meta é imitada.
+- `nuvem/tests/test_nuvem_mensagens_reserva.py`: O SMS de reserva e o motorista não avisado ([[7.5 WhatsApp e SMS|SDD 7.5]], [[D-58]] e [[D-64]]), com o banco: a Meta e a Zenvia imitadas.
+- `nuvem/tests/test_nuvem_mensagens_sms.py`: O canal de SMS ([[7.5 WhatsApp e SMS|SDD 7.5]], [[D-59]] e [[D-64]]), sem banco: a Zenvia imitada e os textos curtos.
 - `nuvem/tests/test_nuvem_mensagens_whatsapp.py`: O canal do WhatsApp ([[7.5 WhatsApp e SMS|SDD 7.5]], [[D-12]] e [[D-63]]), sem banco: a Cloud API da Meta imitada.
 
 ---

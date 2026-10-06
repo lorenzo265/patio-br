@@ -1,4 +1,6 @@
-"""O webhook do WhatsApp (SDD 7.5, D-63): ``/api/whatsapp``.
+"""Os avisos dos canais (SDD 7.5): o webhook do WhatsApp (D-63) e o retorno do SMS (D-64).
+
+``/api/whatsapp``:
 
 - ``GET``: a Meta confere o webhook ao cadastrá-lo, com o código que escolhemos; a resposta é o
   desafio que ela mandou.
@@ -6,8 +8,11 @@
   assinatura do segredo do app (``X-Hub-Signature-256``); o aviso vira a tarefa "aviso do
   WhatsApp", e o worker faz o resto. O mesmo aviso duas vezes vira uma tarefa só.
 
-Sem o WhatsApp configurado, as duas respondem 404. O cookie não decide quem pede, então a rota
-fica fora do código anti-CSRF (D-55).
+``/api/sms/<segredo>``: o retorno da entrega do SMS. A Zenvia não assina os avisos, então o
+segredo vai no endereço, que só ela conhece (e some do registro de acesso).
+
+Sem o canal configurado, as rotas respondem 404. O cookie não decide quem pede, então elas ficam
+fora do código anti-CSRF (D-55).
 """
 
 import hashlib
@@ -71,6 +76,41 @@ def receber_o_aviso(
     tarefas_de_fundo.enfileirar(
         sessao,
         "aviso_do_whatsapp",
+        {"aviso": aviso},
+        chave=hashlib.sha256(corpo).hexdigest(),
+        agora=momento,
+    )
+    sessao.commit()
+    return Response(status_code=status.HTTP_200_OK)
+
+
+roteador_do_sms = APIRouter(prefix="/api/sms", tags=["sms"])
+
+
+@roteador_do_sms.post("/{segredo}")
+def receber_o_retorno_do_sms(
+    request: Request,
+    sessao: Annotated[Session, Depends(obter_sessao)],
+    momento: Annotated[datetime, Depends(agora)],
+    corpo: Annotated[bytes, Depends(corpo_do_pedido)],
+    segredo: str,
+) -> Response:
+    """O retorno da Zenvia (D-64): só com o segredo do endereço, e vira a tarefa "aviso do SMS".
+
+    Sem o SMS configurado, ou com o segredo errado, responde 404: não diz que a rota existe.
+    """
+    esperado: str | None = request.app.state.sms_segredo_do_webhook
+    if esperado is None or not hmac.compare_digest(segredo, esperado):
+        raise HTTPException(status.HTTP_404_NOT_FOUND)
+    try:
+        aviso = json.loads(corpo)
+    except ValueError:
+        return Response(status_code=status.HTTP_400_BAD_REQUEST)
+    if not isinstance(aviso, dict):
+        return Response(status_code=status.HTTP_400_BAD_REQUEST)
+    tarefas_de_fundo.enfileirar(
+        sessao,
+        "aviso_do_sms",
         {"aviso": aviso},
         chave=hashlib.sha256(corpo).hexdigest(),
         agora=momento,

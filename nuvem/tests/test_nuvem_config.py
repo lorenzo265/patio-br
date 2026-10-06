@@ -225,3 +225,52 @@ def test_o_numero_do_whatsapp_e_so_numeros_com_o_55(
 
     with pytest.raises(ValidationError, match="whatsapp_numero"):
         Configuracao(_env_file=None)
+
+
+SMS_COMPLETO = {
+    "PATIO_SMS_TOKEN": "token-inventado",
+    "PATIO_SMS_REMETENTE": "remetente-inventado",
+    "PATIO_SMS_SEGREDO_DO_WEBHOOK": "segredo-inventado-0123456789abcdef",
+}
+
+
+def test_o_sms_completo_fica_configurado(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("PATIO_URL_BANCO", URL)
+    for nome, valor in SMS_COMPLETO.items():
+        monkeypatch.setenv(nome, valor)
+
+    assert Configuracao(_env_file=None).tem_sms
+
+
+@pytest.mark.parametrize("faltando", list(SMS_COMPLETO))
+def test_o_sms_pela_metade_impede_a_nuvem_de_iniciar(
+    monkeypatch: pytest.MonkeyPatch, faltando: str
+) -> None:
+    monkeypatch.setenv("PATIO_URL_BANCO", URL)
+    for nome, valor in SMS_COMPLETO.items():
+        if nome != faltando:
+            monkeypatch.setenv(nome, valor)
+
+    with pytest.raises(ValidationError, match="sms"):
+        Configuracao(_env_file=None)
+
+
+def test_a_demonstracao_nunca_manda_sms(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("PATIO_URL_BANCO", URL)
+    monkeypatch.setenv("PATIO_AMBIENTE", "demonstracao")
+    for nome, valor in SMS_COMPLETO.items():
+        monkeypatch.setenv(nome, valor)
+
+    with pytest.raises(ValidationError, match="demonstração"):
+        Configuracao(_env_file=None)
+
+
+def test_o_segredo_do_retorno_do_sms_e_longo(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Ele vai no endereço e é a única coisa que separa o retorno da Zenvia de um impostor.
+    monkeypatch.setenv("PATIO_URL_BANCO", URL)
+    for nome, valor in SMS_COMPLETO.items():
+        monkeypatch.setenv(nome, valor)
+    monkeypatch.setenv("PATIO_SMS_SEGREDO_DO_WEBHOOK", "curto")
+
+    with pytest.raises(ValidationError, match="sms_segredo_do_webhook"):
+        Configuracao(_env_file=None)

@@ -11,7 +11,8 @@
   do PostgreSQL).
 - **Mensagens ao motorista** (D-47): a cada volta, as que faltam (``mensagens.preparar``); a
   que sai por um canal de verdade vira a tarefa "enviar mensagem", e o aviso do webhook do
-  WhatsApp, a tarefa "aviso do WhatsApp" (D-63). As duas usam os canais do ``Contexto``.
+  WhatsApp e o do SMS, as tarefas "aviso do WhatsApp" e "aviso do SMS" (D-63 e D-64). Elas usam
+  os canais do ``Contexto``.
 - **Dia de demonstração** (D-49): a cada volta, se o ambiente tiver, as chegadas e o líder
   automático.
 
@@ -52,7 +53,7 @@ from nuvem.relogio import agora as agora_de_verdade
 
 _registro = logging.getLogger(__name__)
 
-TipoDeTarefa = Literal["casar_passagem", "enviar_mensagem", "aviso_do_whatsapp"]
+TipoDeTarefa = Literal["casar_passagem", "enviar_mensagem", "aviso_do_whatsapp", "aviso_do_sms"]
 SituacaoDaTarefa = Literal["pendente", "feita", "falhou"]
 
 MAXIMO_DE_TENTATIVAS = 8
@@ -129,10 +130,17 @@ def _aviso_do_whatsapp(
     mensagens.tratar_aviso(sessao, contexto.canais, dados["aviso"], agora=agora)
 
 
+def _aviso_do_sms(
+    sessao: Session, dados: dict[str, Any], _agora: datetime, _contexto: Contexto
+) -> None:
+    mensagens.tratar_aviso_do_sms(sessao, dados["aviso"])
+
+
 EXECUTORES: dict[str, Executor] = {
     "casar_passagem": _casar,
     "enviar_mensagem": _enviar,
     "aviso_do_whatsapp": _aviso_do_whatsapp,
+    "aviso_do_sms": _aviso_do_sms,
 }
 """O que cada tipo de tarefa faz."""
 

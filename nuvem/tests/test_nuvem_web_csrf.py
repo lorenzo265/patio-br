@@ -125,6 +125,7 @@ def test_so_ficam_de_fora_as_rotas_em_que_o_cookie_nao_decide() -> None:
         "/demonstracao/link/",
         "/api/borda/",
         "/api/whatsapp",
+        "/api/sms/",
     )
 
 

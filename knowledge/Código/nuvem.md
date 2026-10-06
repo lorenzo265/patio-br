@@ -119,6 +119,7 @@ Cada valor vem de uma variável ``PATIO_<NOME>`` ou, no desenvolvimento, do ``.e
 atual (o mesmo que o docker compose lê; as variáveis dele, sem o prefixo, são ignoradas aqui).
 Valor obrigatório ausente impede a nuvem de iniciar: melhor parar na hora do que rodar errado.
 
+- **`TAMANHO_DO_SEGREDO`** = `32`: O menor segredo de webhook que vai no endereço (ex.: ``secrets.token_urlsafe(32)``).
 - **`Configuracao`** (classe): Os valores que mudam entre ambientes (local, homologação, produção).
 - **`ConfiguracaoInvalidaError`** (classe): Falta um valor obrigatório no ambiente, ou um valor não é válido.
 - **`ler_configuracao`**: Lê a configuração do ambiente e do ``.env`` da pasta atual.
@@ -233,7 +234,8 @@ Fila de tarefas no PostgreSQL e o laço do worker ([[6.1 Stack|SDD 6.1]], [[D-16
   do PostgreSQL).
 - **Mensagens ao motorista** ([[D-47]]): a cada volta, as que faltam (``mensagens.preparar``); a
   que sai por um canal de verdade vira a tarefa "enviar mensagem", e o aviso do webhook do
-  WhatsApp, a tarefa "aviso do WhatsApp" ([[D-63]]). As duas usam os canais do ``Contexto``.
+  WhatsApp e o do SMS, as tarefas "aviso do WhatsApp" e "aviso do SMS" ([[D-63]] e [[D-64]]). Elas usam
+  os canais do ``Contexto``.
 - **Dia de demonstração** ([[D-49]]): a cada volta, se o ambiente tiver, as chegadas e o líder
   automático.
 

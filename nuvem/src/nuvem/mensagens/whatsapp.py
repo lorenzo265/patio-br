@@ -19,7 +19,7 @@ from urllib.parse import quote
 
 import httpx
 
-from nuvem.mensagens.canais import Envio, EnvioFalhouError, EnvioRecusadoError
+from nuvem.mensagens.canais import Envio, EnvioFalhouError, EnvioRecusadoError, Situacao
 from nuvem.mensagens.modelos import Mensagem, ModeloDeMensagem, SituacaoDaMensagem
 from nuvem.mensagens.modelos_do_whatsapp import IDIOMA, MODELOS
 
@@ -51,18 +51,6 @@ _AVISOS = re.compile(r"AVISOS ([AS])(\d{1,12})")
 _SAIR = frozenset({"SAIR", "PARAR"})
 
 Pedido = tuple[Literal["agendamento", "site"], int] | tuple[Literal["sair"], None]
-
-
-@dataclass(frozen=True)
-class Situacao:
-    """A situação de uma mensagem nossa, como a Meta avisou."""
-
-    id_no_canal: str
-    situacao: SituacaoDaMensagem
-    momento: datetime
-    erro: str | None
-    categoria: str | None
-    """A categoria de cobrança (ex.: ``utility``), quando a Meta diz."""
 
 
 @dataclass(frozen=True)

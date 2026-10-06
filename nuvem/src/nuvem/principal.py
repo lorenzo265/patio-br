@@ -94,6 +94,7 @@ def criar_app(configuracao: Configuracao | None = None, senhas: Senhas | None = 
     app.state.whatsapp_numero = configuracao.whatsapp_numero
     app.state.whatsapp_segredo_do_app = _segredo(configuracao.whatsapp_segredo_do_app)
     app.state.whatsapp_codigo_do_webhook = _segredo(configuracao.whatsapp_codigo_do_webhook)
+    app.state.sms_segredo_do_webhook = _segredo(configuracao.sms_segredo_do_webhook)
     app.state.url_publica = str(configuracao.url_publica) if configuracao.url_publica else None
     app.state.segredo_csrf = csrf.segredo(configuracao.chave_cifra.get_secret_value())
     app.state.cabecalho_do_ip = configuracao.cabecalho_do_ip
@@ -113,6 +114,7 @@ def criar_app(configuracao: Configuracao | None = None, senhas: Senhas | None = 
     app.include_router(frota.roteador_admin)
     app.include_router(cron.roteador)
     app.include_router(webhook_do_whatsapp.roteador)
+    app.include_router(webhook_do_whatsapp.roteador_do_sms)
     app.include_router(agendamento.roteador)
     app.include_router(web.roteador)
     app.include_router(telas_das_duas_etapas.roteador)

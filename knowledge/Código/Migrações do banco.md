@@ -32,6 +32,7 @@ As migrações do Alembic, em ordem, de `nuvem/migracoes/versions/`. Modelo novo
 | `0017` | demonstração: o link de demonstração por empresa ([[D-52]] e [[D-54]]) | 2026-10-05 |
 | `0018` | cadastro: a verificação em duas etapas ([[D-60]]) | 2026-10-06 |
 | `0019` | mensagens: o WhatsApp de verdade ([[D-58]] e [[D-63]]) | 2026-10-06 |
+| `0020` | mensagens: o SMS de reserva ([[D-64]]) | 2026-10-06 |
 
 ---
 
