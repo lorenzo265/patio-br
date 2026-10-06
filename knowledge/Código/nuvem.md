@@ -24,6 +24,7 @@ Aplicação da nuvem: API, painel e módulos do produto ([[3.3 Módulos da nuvem
 - [[nuvem.mensagens]]: Mensagens ao motorista ([[2.2 A jornada de um caminhão (modo A)|SDD 2.2]], [[7.5 WhatsApp e SMS|7.5]] e [[D-47]]): a confirmação e os avisos da fila e da doca.
 - [[nuvem.patio]]: Pátio e docas ([[2.2 A jornada de um caminhão (modo A)|SDD 2.2]], passos 4 e 5): a fila, a chamada para a doca, o início e o fim.
 - [[nuvem.portaria]]: Portaria ([[3.3 Módulos da nuvem no MVP|SDD 3.3]]): recebe as passagens da borda; no mês 2, casa com o agendamento.
+- [[nuvem.prova]]: A prova da visita ([[5.5 Garantias|SDD 5.5]], [[D-69]]): a cadeia de resumos, a âncora do dia e a conferência.
 - [[nuvem.web]]: Telas do painel ([[6.2 Telas do MVP|SDD 6.2]]): páginas feitas no servidor, com Jinja.
 
 ## Módulos
@@ -74,6 +75,7 @@ Cada caixa tem a sua pasta: o ``ref`` que a caixa escolhe nunca alcança a foto 
 - **`validar_ref`**: Confere se o ``ref`` da foto segue a regra (e não sairia da pasta da caixa).
 - **`Armazenamento`** (classe): O que a nuvem faz com as fotos, seja qual for o armazenamento.
 - **`armazenamento_da_configuracao`**: O S3, se a configuração tem o endereço dele; senão, a pasta do disco.
+- **`cliente_s3`**: O cliente S3 do boto3 para um S3 qualquer (a AWS ou o Supabase), com o balde no caminho.
 - **`ArmazenamentoS3`** (classe): Fotos num balde S3 ([[D-56]]), cada caixa na sua pasta (``caixa-<id>/``), como no disco.
 - **`ArmazenamentoLocal`** (classe): Fotos numa pasta do disco; o endereço de envio aponta para a própria API.
 - **`obter_armazenamento`**: Dependência do FastAPI: o armazenamento de fotos da aplicação.
@@ -131,12 +133,13 @@ Valor obrigatório ausente impede a nuvem de iniciar: melhor parar na hora do qu
 
 O cron diário ([[D-56]]): ``GET /api/cron/diaria``, chamado pela Vercel uma vez por dia.
 
-Apaga as empresas dos links de demonstração vencidos ou revogados ([[D-54]]) e confere o "não
-veio" ([[5.2 Estados da visita|SDD 5.2]]), o que o worker faria. Só com o segredo do cron (o ``CRON_SECRET`` da Vercel,
-que ela manda em ``Authorization: Bearer ...``); sem o segredo configurado, a rota não existe.
-Rodar duas vezes não faz mal: o que já foi feito não se faz de novo.
+Apaga as empresas dos links de demonstração vencidos ou revogados ([[D-54]]), confere o "não
+veio" ([[5.2 Estados da visita|SDD 5.2]]) e grava a âncora da prova dos dias que terminaram ([[D-69]]), o que o worker faria.
+Só com o segredo do cron (o ``CRON_SECRET`` da Vercel, que ela manda em ``Authorization: Bearer
+...``); sem o segredo configurado, a rota não existe. Rodar duas vezes não faz mal: o que já foi
+feito não se faz de novo.
 
-- **`diaria`**: Apaga as empresas de demonstração vencidas e confere o "não veio".
+- **`diaria`**: Apaga as empresas de demonstração vencidas, confere o "não veio" e grava as âncoras.
 
 ### `nuvem.erros`
 
@@ -239,17 +242,21 @@ Fila de tarefas no PostgreSQL e o laço do worker ([[6.1 Stack|SDD 6.1]], [[D-16
   os canais do ``Contexto``.
 - **Dia de demonstração** ([[D-49]]): a cada volta, se o ambiente tiver, as chegadas e o líder
   automático.
+- **Prova** ([[D-69]]): a passagem com fotos vira também a tarefa "resumir as fotos"; a cada minuto,
+  o worker sela o que chegou; a cada 10 minutos, grava a âncora dos dias que terminaram.
 
 O worker roda em outro processo (``python -m nuvem.worker``).
 
 - **`TAMANHO_DO_ERRO`** = `500`: O texto do erro guardado na tarefa é cortado aqui.
 - **`TOLERANCIA_DO_NAO_VEIO`** = `TOLERANCIA_PADRAO`: Quanto depois do fim da janela o agendamento sem chegada vira "não veio" ([[ABERTO-09]]).
 - **`INTERVALO_DOS_ALERTAS`** = `timedelta(minutes=1)`: O worker confere os alertas a cada minuto ([[D-68]]).
+- **`INTERVALO_DE_SELAR`** = `timedelta(minutes=1)`: O worker sela a prova do que chegou a cada minuto ([[D-69]]).
+- **`INTERVALO_DAS_ANCORAS`** = `timedelta(minutes=10)`: E procura dia terminado sem âncora a cada 10 minutos.
 - **`JANELAS_OLHADAS`** = `timedelta(days=7)`: O "não veio" olha as janelas que terminaram nos últimos 7 dias (cobre o worker parado).
 - **`TRAVA_DO_NAO_VEIO`** = `7301`: Número da trava do PostgreSQL que deixa um worker de cada vez conferir o "não veio".
 - **`PAUSA`** = `1.0`: Segundos de espera quando a fila está vazia.
 - **`TarefaDeFundo`** (classe): Uma tarefa para o worker. É da plataforma, não de um cliente: os dados dizem o que fazer.
-- **`Contexto`** (classe): O que as tarefas usam além do banco: os canais das mensagens ([[D-63]]).
+- **`Contexto`** (classe): O que as tarefas usam além do banco: os canais das mensagens ([[D-63]]) e as fotos ([[D-69]]).
 - **`EXECUTORES`**: O que cada tipo de tarefa faz.
 - **`enfileirar`**: Põe uma tarefa na fila, para já; a mesma chave do mesmo tipo de novo não muda nada.
 - **`pegar_proxima`**: A tarefa pendente mais antiga que já pode rodar, travada até o fim da transação.
@@ -286,10 +293,10 @@ O "não veio" e a faxina das empresas de demonstração ficam para o cron diári
 O worker da nuvem ([[6.1 Stack|SDD 6.1]] e [[D-38]]): ``python -m nuvem.worker``.
 
 Executa as tarefas da fila (o casamento das passagens; o envio das mensagens e o aviso do
-WhatsApp, [[D-63]]), confere o "não veio", prepara as mensagens e, nos ambientes que têm, avança o
-dia de demonstração ([[D-49]]) e apaga as empresas dos links de demonstração vencidos ([[D-54]]), até
-receber o sinal de parar (SIGTERM do Docker, ou Ctrl+C). Lê a configuração do ambiente, como a
-API.
+WhatsApp, [[D-63]]; o resumo das fotos, [[D-69]]), confere o "não veio" e os alertas, prepara as
+mensagens, sela a prova e grava a âncora do dia ([[D-69]]) e, nos ambientes que têm, avança o dia de
+demonstração ([[D-49]]) e apaga as empresas dos links de demonstração vencidos ([[D-54]]), até receber o
+sinal de parar (SIGTERM do Docker, ou Ctrl+C). Lê a configuração do ambiente, como a API.
 
 - **`main`**: Sobe o worker e roda até o sinal de parar.
 

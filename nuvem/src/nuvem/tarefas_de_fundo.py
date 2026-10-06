@@ -15,6 +15,8 @@
   os canais do ``Contexto``.
 - **Dia de demonstração** (D-49): a cada volta, se o ambiente tiver, as chegadas e o líder
   automático.
+- **Prova** (D-69): a passagem com fotos vira também a tarefa "resumir as fotos"; a cada minuto,
+  o worker sela o que chegou; a cada 10 minutos, grava a âncora dos dias que terminaram.
 
 O worker roda em outro processo (``python -m nuvem.worker``).
 """
@@ -43,6 +45,7 @@ from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from nuvem.agendamento import servico as agendamentos
 from nuvem.alertas import servico as alertas
+from nuvem.armazenamento import Armazenamento
 from nuvem.banco import Base, texto_de_lista
 from nuvem.mensagens import servico as mensagens
 from nuvem.mensagens.canais import Canais
@@ -50,12 +53,19 @@ from nuvem.portaria import visitas
 from nuvem.portaria.casamento import TOLERANCIA_PADRAO, processar_passagem
 from nuvem.portaria.modelos import Visita
 from nuvem.portaria.visitas import SiteDaVisita
+from nuvem.prova import servico as prova
+from nuvem.prova.ancoras import GuardaDasAncoras
 from nuvem.relogio import agora as agora_de_verdade
 
 _registro = logging.getLogger(__name__)
 
 TipoDeTarefa = Literal[
-    "casar_passagem", "enviar_mensagem", "aviso_do_whatsapp", "aviso_do_sms", "avisar_alerta"
+    "casar_passagem",
+    "enviar_mensagem",
+    "aviso_do_whatsapp",
+    "aviso_do_sms",
+    "avisar_alerta",
+    "resumir_fotos",
 ]
 SituacaoDaTarefa = Literal["pendente", "feita", "falhou"]
 
@@ -70,6 +80,10 @@ TOLERANCIA_DO_NAO_VEIO = TOLERANCIA_PADRAO
 INTERVALO_DO_NAO_VEIO = timedelta(minutes=5)
 INTERVALO_DOS_ALERTAS = timedelta(minutes=1)
 """O worker confere os alertas a cada minuto (D-68)."""
+INTERVALO_DE_SELAR = timedelta(minutes=1)
+"""O worker sela a prova do que chegou a cada minuto (D-69)."""
+INTERVALO_DAS_ANCORAS = timedelta(minutes=10)
+"""E procura dia terminado sem âncora a cada 10 minutos."""
 JANELAS_OLHADAS = timedelta(days=7)
 """O "não veio" olha as janelas que terminaram nos últimos 7 dias (cobre o worker parado)."""
 TRAVA_DO_NAO_VEIO = 7301
@@ -113,9 +127,10 @@ class TarefaDeFundo(Base):
 
 @dataclass(frozen=True)
 class Contexto:
-    """O que as tarefas usam além do banco: os canais das mensagens (D-63)."""
+    """O que as tarefas usam além do banco: os canais das mensagens (D-63) e as fotos (D-69)."""
 
     canais: Canais = field(default_factory=Canais)
+    armazenamento: Armazenamento | None = None
 
 
 Executor = Callable[[Session, dict[str, Any], datetime, Contexto], None]
@@ -147,12 +162,21 @@ def _avisar_alerta(
     alertas.avisar(sessao, contexto.canais, int(dados["aviso_id"]), agora=agora)
 
 
+def _resumir_fotos(
+    sessao: Session, dados: dict[str, Any], agora: datetime, contexto: Contexto
+) -> None:
+    if contexto.armazenamento is None:
+        raise RuntimeError("o worker está sem o armazenamento das fotos")
+    prova.resumir_fotos(sessao, contexto.armazenamento, UUID(dados["passagem_id"]), agora=agora)
+
+
 EXECUTORES: dict[str, Executor] = {
     "casar_passagem": _casar,
     "enviar_mensagem": _enviar,
     "aviso_do_whatsapp": _aviso_do_whatsapp,
     "aviso_do_sms": _aviso_do_sms,
     "avisar_alerta": _avisar_alerta,
+    "resumir_fotos": _resumir_fotos,
 }
 """O que cada tipo de tarefa faz."""
 
@@ -311,18 +335,23 @@ def rodar(
     dormir: Callable[[float], None] = time.sleep,
     demonstracao: Callable[[Session, datetime], int] | None = None,
     canais: Canais | None = None,
+    armazenamento: Armazenamento | None = None,
+    ancoras: GuardaDasAncoras | None = None,
 ) -> None:
     """Executa as tarefas, confere o "não veio" e prepara as mensagens até ``parar`` ser ligado.
 
     Com ``demonstracao`` (só nos ambientes que têm o dia de demonstração, D-49), ela roda antes,
     a cada volta: as passagens que ela manda casam na mesma volta. Com ``canais``, as mensagens
-    saem por eles (D-63); sem, ficam no canal de demonstração.
+    saem por eles (D-63); sem, ficam no canal de demonstração. Com ``armazenamento``, as fotos
+    são resumidas; com ``ancoras``, a âncora de cada dia é gravada (D-69).
 
     Um erro inesperado (ex.: o banco fora do ar) fica registrado, e o laço segue.
     """
-    contexto = Contexto(canais=canais or Canais())
+    contexto = Contexto(canais=canais or Canais(), armazenamento=armazenamento)
     ultimo_nao_veio: datetime | None = None
     ultimos_alertas: datetime | None = None
+    ultimo_selo: datetime | None = None
+    ultimas_ancoras: datetime | None = None
     while not parar.is_set():
         try:
             with abrir_sessao() as sessao:
@@ -349,6 +378,17 @@ def rodar(
                         )
                 mensagens.preparar(sessao, agora=momento, canais=canais)
                 sessao.commit()
+                if ultimo_selo is None or momento - ultimo_selo >= INTERVALO_DE_SELAR:
+                    prova.selar(sessao, agora=momento)
+                    sessao.commit()
+                    ultimo_selo = momento
+                if ancoras is not None and (
+                    ultimas_ancoras is None or momento - ultimas_ancoras >= INTERVALO_DAS_ANCORAS
+                ):
+                    if gravadas := prova.gravar_ancoras(sessao, ancoras, agora=momento):
+                        _registro.info("âncoras da prova: %d dias", gravadas)
+                    sessao.commit()
+                    ultimas_ancoras = momento
         except Exception:
             _registro.exception("erro no laço do worker; ele segue")
             dormir(PAUSA_DEPOIS_DE_ERRO)

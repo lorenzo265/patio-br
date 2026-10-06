@@ -136,7 +136,9 @@ def test_casamento_que_falhou_avisa(
     sessao: Session, entrar: Entrar, cenario: Demonstracao, registrar_passagem: Registrar
 ) -> None:
     passagem = registrar_passagem()
-    tarefa = sessao.scalars(select(TarefaDeFundo)).one()
+    tarefa = sessao.scalars(
+        select(TarefaDeFundo).where(TarefaDeFundo.tipo == "casar_passagem")
+    ).one()
     tarefa.situacao, tarefa.terminada_em = "falhou", AGORA
     sessao.flush()
 

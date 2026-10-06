@@ -24,7 +24,7 @@ from nuvem.demonstracao.modelos import LinkDemonstracao
 from nuvem.erros import DadoInvalidoError, NaoEncontradoError
 from nuvem.extrato import servico as extrato
 from nuvem.mensagens import servico as mensagens
-from nuvem.portaria.modelos import Evento
+from nuvem.portaria.modelos import Evento, PassagemRecebida
 from nuvem.semente import SENHA_DA_DEMONSTRACAO, Demonstracao
 from nuvem.senhas import Senhas, resumo_rapido
 
@@ -341,7 +341,18 @@ def test_a_empresa_vencida_e_apagada_inteira(
     assert {"evento", "passagem", "mensagem", "extrato", "agendamento_mudanca"} <= set(antes)
     assert any((tmp_path / "fotos").iterdir())
     tarefas = sessao.scalar(select(func.count()).select_from(tarefas_de_fundo.TarefaDeFundo))
-    das_passagens = antes["passagem"]
+    # As tarefas das passagens dela (casar e resumir as fotos) vão junto.
+    passagens = sessao.scalars(
+        select(PassagemRecebida.id).where(PassagemRecebida.empresa_id == acesso.empresa_id)
+    )
+    das_passagens = sessao.scalar(
+        select(func.count()).where(
+            tarefas_de_fundo.TarefaDeFundo.dados["passagem_id"].astext.in_(
+                [str(passagem_id) for passagem_id in passagens]
+            )
+        )
+    )
+    assert das_passagens == 2 * antes["passagem"]
 
     apagadas = demonstracao.apagar_vencidas(sessao, armazenamento, agora=AGORA + timedelta(days=7))
 

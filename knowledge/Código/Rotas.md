@@ -61,7 +61,7 @@ Os endereços da API e das telas, lidos dos decoradores (`@roteador.get(...)`) c
 | `/api/cadastro/sites` | GET | `listar_sites` | [[nuvem.cadastro]] | Os sites que o usuário vê. |
 | `/api/cadastro/sites/{site_id}` | GET | `obter_site` | [[nuvem.cadastro]] | Um site que o usuário vê (404 para qualquer outro). |
 | `/api/cadastro/sites/{site_id}/cameras` | GET | `listar_cameras` | [[nuvem.cadastro]] | As câmeras de um site que o gestor vê (404 para qualquer outro site). |
-| `/api/cron/diaria` | GET | `diaria` | [[nuvem]] | Apaga as empresas de demonstração vencidas e confere o "não veio". |
+| `/api/cron/diaria` | GET | `diaria` | [[nuvem]] | Apaga as empresas de demonstração vencidas, confere o "não veio" e grava as âncoras. |
 | `/api/sms/{segredo}` | POST | `receber_o_retorno_do_sms` | [[nuvem.mensagens]] | O retorno da Zenvia ([[D-64]]): só com o segredo do endereço, e vira a tarefa "aviso do SMS". |
 | `/api/whatsapp` | GET | `conferir_o_webhook` | [[nuvem.mensagens]] | A conferência da Meta: devolve o desafio se o código for o nosso. |
 | `/api/whatsapp` | POST | `receber_o_aviso` | [[nuvem.mensagens]] | Guarda o aviso assinado numa tarefa e responde logo (a Meta repete o que demora). |
@@ -106,6 +106,9 @@ Os endereços da API e das telas, lidos dos decoradores (`@roteador.get(...)`) c
 | `/portaria/excecoes/{excecao_id}/sem-agendamento` | POST | `sem_agendamento` | [[nuvem.web]] | Aceita a chegada sem agendamento. |
 | `/portaria/fotos/{passagem_id}/{indice}` | GET | `foto` | [[nuvem.web]] | Uma foto de uma passagem que o usuário vê (404 para qualquer outra). |
 | `/portaria/passagens` | GET | `lista_de_passagens` | [[nuvem.web]] | A lista das últimas passagens (o pedaço da tela que o HTMX troca). |
+| `/prova` | GET | `busca` | [[nuvem.web]] | As últimas visitas, ou as de uma placa. |
+| `/prova/visitas/{visita_id}` | GET | `pagina` | [[nuvem.web]] | A página da prova de uma visita, para imprimir ou salvar em PDF. |
+| `/prova/visitas/{visita_id}.json` | GET | `arquivo` | [[nuvem.web]] | O arquivo da prova: os elos, a regra do resumo e o resultado da conferência. |
 | `/recebimento` | GET | `recebimento` | [[nuvem.web]] | A conferência de uma nota na doca, com dados de exemplo. |
 | `/sair` | POST | `sair` | [[nuvem.web]] | Fecha a sessão no servidor e apaga o cookie. |
 | `/trocar-porteiro` | GET | `tela_de_trocar_porteiro` | [[nuvem.web]] | Os porteiros que podem assumir o tablet, e o campo do PIN. |

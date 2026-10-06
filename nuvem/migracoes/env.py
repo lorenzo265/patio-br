@@ -20,6 +20,7 @@ from nuvem.extrato import modelos as _modelos_do_extrato  # noqa: F401
 from nuvem.frota import modelos as _modelos_da_frota  # noqa: F401
 from nuvem.mensagens import modelos as _modelos_das_mensagens  # noqa: F401
 from nuvem.portaria import modelos as _modelos_da_portaria  # noqa: F401
+from nuvem.prova import modelos as _modelos_da_prova  # noqa: F401
 
 
 def _aplicar(conexao: Connection) -> None:

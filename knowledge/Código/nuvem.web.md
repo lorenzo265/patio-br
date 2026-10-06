@@ -279,6 +279,24 @@ listas que se atualizam: a atualização não apaga o que o porteiro digita.
 - **`lista_de_excecoes`**: As exceções abertas do site, da chegada mais antiga para a mais nova (só ver).
 - **`foto`**: Uma foto de uma passagem que o usuário vê (404 para qualquer outra).
 
+### `nuvem.web.prova`
+
+`nuvem/src/nuvem/web/prova.py`
+
+A prova da visita ([[6.2 Telas do MVP|SDD 6.2]], [[D-69]]), só do gestor.
+
+- ``/prova?placa=``: as últimas visitas dos sites dele, ou as de uma placa.
+- ``/prova/visitas/<visita>``: a página para imprimir ou salvar em PDF. Ao abrir, sela o que
+  falta e confere tudo: a cadeia, cada registro de origem, as fotos e as âncoras.
+- ``/prova/visitas/<visita>.json``: o arquivo da prova, com os elos e a regra do resumo, para
+  qualquer um conferir sem nós.
+
+As horas aparecem no fuso do site; as do arquivo, em UTC.
+
+- **`busca`**: As últimas visitas, ou as de uma placa.
+- **`arquivo`**: O arquivo da prova: os elos, a regra do resumo e o resultado da conferência.
+- **`pagina`**: A página da prova de uma visita, para imprimir ou salvar em PDF.
+
 ### `nuvem.web.resolucao`
 
 `nuvem/src/nuvem/web/resolucao.py`
@@ -343,6 +361,7 @@ cookie, recusa o envio que o navegador marca como vindo de outro site (``Sec-Fet
 - `nuvem/tests/test_nuvem_web_portaria_excecoes.py`: Exceções na tela da portaria ([[T34]]): o porteiro vê, com a foto e os candidatos; resolver é no mês 3.
 - `nuvem/tests/test_nuvem_web_portaria_resolucao.py`: Resolver a exceção e registrar a chegada à mão pela tela da portaria ([[T41]], [[5.2 Estados da visita|SDD 5.2]] e [[D-46]]).
 - `nuvem/tests/test_nuvem_web_portaria_resultado.py`: O resultado do casamento na lista de passagens da portaria ([[T35]], [[6.2 Telas do MVP|SDD 6.2]]).
+- `nuvem/tests/test_nuvem_web_prova.py`: A prova da visita nas telas ([[6.2 Telas do MVP|SDD 6.2]], [[D-69]]): a busca, a página e o arquivo, só do gestor.
 - `nuvem/tests/test_nuvem_web_sms.py`: O retorno do SMS ([[7.5 WhatsApp e SMS|SDD 7.5]], [[D-64]]): ``/api/sms/<segredo>``, e o segredo fora do registro.
 - `nuvem/tests/test_nuvem_web_versoes.py`: As versões da caixa nas telas da administração ([[6.2 Telas do MVP|SDD 6.2]], [[D-67]]).
 - `nuvem/tests/test_nuvem_web_whatsapp.py`: O webhook do WhatsApp e o QR da portaria ([[7.5 WhatsApp e SMS|SDD 7.5]], [[D-58]] e [[D-63]]).

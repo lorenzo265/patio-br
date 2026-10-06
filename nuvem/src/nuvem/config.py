@@ -113,6 +113,12 @@ class Configuracao(BaseSettings):
     fotos_s3_chave: SecretStr | None = None
     fotos_s3_segredo: SecretStr | None = None
 
+    ancoras_s3_balde: str | None = None
+    """O balde das âncoras da prova, com o Object Lock ligado (D-69), no mesmo S3 das fotos.
+
+    Sem ele, a âncora vai para o armazenamento das fotos, sem trava (a demonstração).
+    """
+
     whatsapp_token: SecretStr | None = None
     """O token do usuário de sistema da Meta, que manda as mensagens (D-63)."""
     whatsapp_numero_id: str | None = None
@@ -179,6 +185,8 @@ class Configuracao(BaseSettings):
     def _s3_completo(self) -> Self:
         if self.fotos_s3_endereco and not (self.fotos_s3_chave and self.fotos_s3_segredo):
             raise ValueError("fotos_s3: com o endereço, a chave e o segredo são obrigatórios")
+        if self.ancoras_s3_balde and not self.fotos_s3_endereco:
+            raise ValueError("ancoras_s3_balde: o balde das âncoras fica no S3 das fotos")
         return self
 
     @model_validator(mode="after")

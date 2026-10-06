@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 
 from nuvem.alertas import servico as alertas
 from nuvem.armazenamento import ArmazenamentoS3
-from nuvem.cadastro.acesso import AcessoAdmin
+from nuvem.cadastro.acesso import AcessoAdmin, acesso_do_usuario
 from nuvem.cadastro.modelos import Empresa
 from nuvem.cifra import Cifra
 from nuvem.config import Configuracao
@@ -23,7 +23,10 @@ from nuvem.demonstracao import dia, empresa
 from nuvem.demonstracao import link as links
 from nuvem.demonstracao.empresa import EmpresaDeDemonstracao
 from nuvem.mensagens.modelos import Mensagem
+from nuvem.portaria.modelos import Visita
 from nuvem.principal import criar_app
+from nuvem.prova import servico as prova
+from nuvem.prova.modelos import AncoraDoDia
 from nuvem.relogio import agora
 from nuvem.semente import Demonstracao
 from nuvem.senhas import Senhas
@@ -252,6 +255,24 @@ def test_o_cron_apaga_as_empresas_dos_links_vencidos(
     assert resposta.json()["empresas_apagadas"] == 1
     sessao.expire_all()
     assert sessao.get(Empresa, empresa_id) is None
+
+
+def test_o_cron_grava_a_ancora_da_prova(
+    vercel: FastAPI, sessao: Session, demo: EmpresaDeDemonstracao
+) -> None:
+    gestor = acesso_do_usuario(sessao, demo.gestor.id)
+    visita = sessao.scalars(select(Visita).where(Visita.empresa_id == demo.empresa.id)).first()
+    assert visita is not None
+    assert prova.selar_a_visita(sessao, gestor, visita.id, agora=AGORA - timedelta(days=1))
+    sessao.commit()
+
+    resposta = TestClient(vercel, base_url="https://testserver").get(
+        "/api/cron/diaria", headers={"Authorization": f"Bearer {SEGREDO_DO_CRON}"}
+    )
+
+    assert resposta.json()["ancoras"] == 1
+    (ancora,) = sessao.scalars(select(AncoraDoDia))
+    assert (ancora.dia, ancora.travada) == ((AGORA - timedelta(days=1)).date(), False)
 
 
 # --- A API da caixa e as fotos ----------------------------------------------------------------

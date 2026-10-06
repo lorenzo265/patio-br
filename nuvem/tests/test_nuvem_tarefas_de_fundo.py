@@ -54,7 +54,7 @@ def agendamento(sessao: Session, cenario: Demonstracao) -> Agendamento:
 def test_passagem_recebida_vira_uma_tarefa_casar(
     sessao: Session, registrar_passagem: Registrar
 ) -> None:
-    passagem = registrar_passagem()
+    passagem = registrar_passagem(fotos=[])  # com fotos, vem também o resumo delas (D-69)
 
     [tarefa] = _tarefas(sessao)
 
@@ -80,7 +80,7 @@ def test_a_mesma_chave_nao_enfileira_de_novo(sessao: Session) -> None:
 def test_o_worker_casa_a_passagem(
     sessao: Session, agendamento: Agendamento, registrar_passagem: Registrar
 ) -> None:
-    passagem = registrar_passagem()
+    passagem = registrar_passagem(fotos=[])
 
     executadas = fila.executar_pendentes(sessao, agora=AGORA)
 
@@ -92,7 +92,7 @@ def test_o_worker_casa_a_passagem(
 
 
 def test_tarefa_feita_nao_roda_de_novo(sessao: Session, registrar_passagem: Registrar) -> None:
-    registrar_passagem()
+    registrar_passagem(fotos=[])
     fila.executar_pendentes(sessao, agora=AGORA)
 
     assert fila.executar_pendentes(sessao, agora=AGORA + timedelta(hours=1)) == 0
@@ -307,7 +307,7 @@ def test_nao_veio_conferido_de_novo_nao_duplica(sessao: Session, agendamento: Ag
 def test_o_laco_roda_as_tarefas_e_o_nao_veio_ate_mandarem_parar(
     sessao: Session, agendamento: Agendamento, registrar_passagem: Registrar
 ) -> None:
-    registrar_passagem()
+    registrar_passagem(fotos=[])
     parar = threading.Event()
     horas = iter([AGORA, AGORA + timedelta(days=1)])
     voltas: list[int] = []

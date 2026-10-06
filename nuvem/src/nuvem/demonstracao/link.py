@@ -40,6 +40,7 @@ from nuvem.extrato import modelos as _extrato  # noqa: F401
 from nuvem.frota.modelos import CaixaBorda
 from nuvem.mensagens import modelos as _mensagens  # noqa: F401
 from nuvem.portaria.modelos import PassagemRecebida
+from nuvem.prova import modelos as _prova  # noqa: F401
 from nuvem.senhas import Senhas, resumo_rapido
 
 _registro = logging.getLogger(__name__)

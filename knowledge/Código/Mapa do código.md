@@ -59,4 +59,5 @@ Aplicação da nuvem: API, painel e módulos do produto.
 	- [[nuvem.mensagens]]: Mensagens ao motorista ([[2.2 A jornada de um caminhão (modo A)|SDD 2.2]], [[7.5 WhatsApp e SMS|7.5]] e [[D-47]]): a confirmação e os avisos da fila e da doca.
 	- [[nuvem.patio]]: Pátio e docas ([[2.2 A jornada de um caminhão (modo A)|SDD 2.2]], passos 4 e 5): a fila, a chamada para a doca, o início e o fim.
 	- [[nuvem.portaria]]: Portaria ([[3.3 Módulos da nuvem no MVP|SDD 3.3]]): recebe as passagens da borda; no mês 2, casa com o agendamento.
+	- [[nuvem.prova]]: A prova da visita ([[5.5 Garantias|SDD 5.5]], [[D-69]]): a cadeia de resumos, a âncora do dia e a conferência.
 	- [[nuvem.web]]: Telas do painel ([[6.2 Telas do MVP|SDD 6.2]]): páginas feitas no servidor, com Jinja.

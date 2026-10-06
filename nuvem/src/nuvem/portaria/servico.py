@@ -99,6 +99,15 @@ def receber_passagem(
         chave=str(passagem.id),
         agora=agora,
     )
+    if passagem.fotos:
+        # As fotos chegaram antes da passagem: o resumo delas é feito já (D-69).
+        fila.enfileirar(
+            sessao,
+            "resumir_fotos",
+            {"passagem_id": str(passagem.id)},
+            chave=f"fotos:{passagem.id}",
+            agora=agora,
+        )
     sessao.flush()
     return True
 
