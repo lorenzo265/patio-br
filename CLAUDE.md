@@ -61,8 +61,10 @@ economia em R$. Uma caixa de borda (mini PC) lê as placas; a nuvem decide.
    Todo formulário que muda alguma coisa leva o campo escondido do código anti-CSRF
    (`<input type="hidden" name="_csrf" value="{{ csrf }}">`; o HTMX já manda o cabeçalho), e
    a nuvem recusa o pedido sem ele (D-55); um teste confere cada formulário e cada rota.
-6. **Senha, PIN e código de sessão só como resumo** (`nuvem.senhas`, argon2; SDD 8.2). Nunca o
-   texto, nem em registro de erro.
+6. **Senha, PIN, código de sessão e código de recuperação só como resumo** (`nuvem.senhas`,
+   argon2; SDD 8.2). Nunca o texto, nem em registro de erro. O segredo do app autenticador, que
+   a nuvem precisa ler para conferir o código, fica cifrado (`nuvem.cifra`), como a senha da
+   câmera.
 
 ## Como trabalhar
 
