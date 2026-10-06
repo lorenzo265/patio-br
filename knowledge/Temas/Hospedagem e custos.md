@@ -33,6 +33,10 @@ Onde cada ambiente roda e quanto custa ([[7.1 Ambientes]]).
 - **A produção no mês 4** ([[Plano do mês 4]]): a `main` vai sozinha para a homologação e uma
   tag vai para a produção, com a aprovação do Lorenzo; cópia diária do banco, restauração de
   teste todo mês dentro da AWS e alarmes por e-mail ([[T49]], [[T50]]).
+- **Por dentro da produção** ([[D-73]]): a mesma imagem e o mesmo compose
+  (`infra/producao/`) nas duas máquinas, com as migrações antes da API e só o Caddy com portas
+  abertas; o deploy entra pela Tailscale SSH; o passo a passo para subir, quando houver a conta,
+  está no guia da produção (`docs/guias/producao.md`).
 - **Custos do piloto** (1 site, preços de 2026-09-29): nuvem de US$ 60 a 80 por mês, Tailscale
   US$ 8, WhatsApp cerca de R$ 380 por site e hardware de R$ 15 a 22 mil por site, uma vez
   ([[7.6 Custos de operação (piloto, 1 site; preços de 2026-09-29)]]).

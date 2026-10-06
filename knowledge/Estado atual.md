@@ -118,7 +118,8 @@ recomendações ([[D-57]] a [[D-62]]). As tarefas que não precisam de conta com
 
 | Tarefa | Situação |
 |---|---|
-| [[T49]] produção e homologação na AWS e [[T50]] cópias e alarmes | esperam a conta da AWS ([[N21]]) |
+| [[T49]] produção e homologação na AWS | o código está pronto ([#64](https://github.com/lorenzo265/patio-br/pull/64), [[D-73]]); subir de verdade espera a conta da AWS e o domínio ([[N21]]) |
+| [[T50]] cópias e alarmes | espera a T49 |
 | [[T51]] verificação em duas etapas | feita ([#53](https://github.com/lorenzo265/patio-br/pull/53)) |
 | [[T52]] WhatsApp | feita, com a Meta imitada ([#54](https://github.com/lorenzo265/patio-br/pull/54), [[D-63]]); a conferência com o número de teste espera a conta ([[N19]]) |
 | [[T53]] SMS e o motorista não avisado | feita, com a Zenvia imitada ([#55](https://github.com/lorenzo265/patio-br/pull/55), [[D-64]]); a conferência de verdade espera a conta ([[N20]]) |
