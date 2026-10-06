@@ -696,6 +696,12 @@ testes.
 - **A senha da câmera** fica cifrada (como hoje).
 - **Nada se apaga:** o que sai de uso é desativado.
 
+*Detalhado na execução (D-75):* o link de senha vale 72 horas, e o mesmo caminho serve à senha
+esquecida (um link novo troca o anterior, e as sessões da pessoa se fecham com a senha nova). O
+CNPJ é conferido pelos dígitos, também o alfanumérico, que a Receita dá desde 07/2026. A câmera
+troca o endereço, o login e a senha. Os parâmetros do extrato e a linha de base ficam para o mês
+5, com o modo sombra.
+
 **Commit:** `feat(cadastro): o cadastro do cliente pela administração`
 
 ---
