@@ -6,15 +6,18 @@
 - **A máquina:** o psutil (BSD-3) mede a CPU (a média desde a medida anterior), a memória, o
   disco da pasta da fila e a temperatura do sensor mais quente.
 - **O pulso:** manda uma saúde logo ao começar e outra a cada minuto. A saúde não entra na
-  fila: a que não chega fica registrada e não vai de novo.
+  fila: a que não chega fica registrada e não vai de novo. A última saúde, e se a nuvem a aceitou,
+  fica gravada para o atualizador conferir a versão nova (D-67).
 """
 
+import json
 import logging
+import os
 import threading
 from collections import deque
 from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from importlib.metadata import version
 from pathlib import Path
 from typing import Any
@@ -147,6 +150,11 @@ def temperatura_mais_quente(leituras: Mapping[str, Sequence[Any]]) -> float | No
     return max(validas, default=None)
 
 
+def versao_do_programa() -> str:
+    """A versão que o compose passa (``PATIO_VERSAO``, D-67) ou, fora dele, a do pacote."""
+    return os.environ.get("PATIO_VERSAO") or version("patio-borda")
+
+
 def montar_saude(
     *,
     caixa_id: str,
@@ -163,7 +171,7 @@ def montar_saude(
         caixa_id=caixa_id,
         site_id=site_id,
         momento=agora,
-        versao_programa=version("patio-borda"),
+        versao_programa=versao_do_programa(),
         versao_leitor=versao_leitor,
         cpu=maquina.cpu,
         temperatura=maquina.temperatura,
@@ -184,6 +192,7 @@ class Pulso:
         *,
         parar: threading.Event,
         dormir: Callable[[float], bool] | None = None,
+        arquivo: Path | None = None,
     ) -> None:
         """Prepara o pulso.
 
@@ -193,10 +202,12 @@ class Pulso:
             parar: quando ligado, o pulso para.
             dormir: como esperar entre as saúdes; devolve ``True`` se é para parar (o padrão
                 espera o evento ``parar``; os testes só anotam quanto esperariam).
+            arquivo: onde gravar a última saúde, para o atualizador (D-67).
         """
         self._montar = montar
         self._nuvem = nuvem
         self._dormir = dormir or parar.wait
+        self._arquivo = arquivo
 
     def rodar(self) -> None:
         """Manda uma saúde agora e outra a cada minuto, até pedirem para parar."""
@@ -206,13 +217,32 @@ class Pulso:
 
     def _enviar(self) -> None:
         try:
-            resposta = self._nuvem.enviar_saude(self._montar())
+            saude = self._montar()
+            resposta = self._nuvem.enviar_saude(saude)
         except Exception:
             # Um erro ao medir não pode calar a caixa de vez: a próxima saúde vai em um minuto.
             _registro.exception("erro ao montar a saúde; a próxima vai em um minuto")
             return
-        if resposta.resultado is not Resultado.ACEITA:
+        aceita = resposta.resultado is Resultado.ACEITA
+        if not aceita:
             _registro.warning(
                 "a saúde não chegou (%s); a próxima vai em um minuto",
                 resposta.motivo or resposta.codigo,
             )
+        if self._arquivo is not None:
+            _gravar_a_ultima(self._arquivo, saude, aceita=aceita)
+
+
+def _gravar_a_ultima(arquivo: Path, saude: Saude, *, aceita: bool) -> None:
+    # Grava ao lado e troca de uma vez: o atualizador nunca lê um arquivo pela metade.
+    dados = {
+        "gravada_em": datetime.now(UTC).isoformat(),
+        "aceita": aceita,
+        "saude": saude.model_dump(mode="json"),
+    }
+    provisorio = arquivo.with_name(f"{arquivo.name}.novo")
+    try:
+        provisorio.write_text(json.dumps(dados), encoding="utf-8")
+        os.replace(provisorio, arquivo)
+    except OSError:
+        _registro.warning("a última saúde não foi gravada para o atualizador", exc_info=True)

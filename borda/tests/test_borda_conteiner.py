@@ -160,3 +160,46 @@ def test_a_instalacao_fecha_a_entrada_e_acerta_o_relogio() -> None:
     assert "ufw allow in on tailscale0" in comandos
     assert "ntp.br" in comandos
     assert "pkgs.tailscale.com" in comandos
+
+
+# --- A atualização (D-67) -------------------------------------------------------------------
+
+SERVICO = RAIZ / "infra" / "caixa" / "patio-atualizador.service"
+TIMER = RAIZ / "infra" / "caixa" / "patio-atualizador.timer"
+PUBLICACAO = RAIZ / ".github" / "workflows" / "imagens.yml"
+
+
+def test_o_atualizador_roda_fora_dos_conteineres_a_cada_5_minutos() -> None:
+    servico = SERVICO.read_text(encoding="utf-8")
+    timer = TIMER.read_text(encoding="utf-8")
+
+    assert "Type=oneshot" in servico
+    assert (
+        "ExecStart=/usr/bin/python3 /opt/patio/atualizador.py --pasta /opt/patio/caixa" in servico
+    )
+    assert "OnUnitActiveSec=5min" in timer
+    assert "OnBootSec=" in timer
+    assert "WantedBy=timers.target" in timer
+
+
+def test_o_agente_conta_a_versao_que_o_compose_passa() -> None:
+    agente = _servicos()["agente"]
+
+    assert agente["image"] == "${IMAGEM_DO_AGENTE:-patio-caixa:local}"
+    assert agente["environment"]["PATIO_VERSAO"] == "${VERSAO_DO_AGENTE:-local}"
+
+
+def test_a_imagem_e_publicada_so_pela_etiqueta_da_caixa() -> None:
+    publicacao = _yaml(PUBLICACAO)
+    gatilho = publicacao.get("on", publicacao.get(True))  # o YAML 1.1 lê "on" como verdadeiro
+
+    assert gatilho == {"push": {"tags": ["caixa-v*"]}}
+    assert publicacao["permissions"] == {"contents": "read", "packages": "write"}
+    passos = publicacao["jobs"]["publicar"]["steps"]
+    acoes = [passo["uses"] for passo in passos if "uses" in passo]
+    # Só a ação de checkout, fixada pelo commit, como no resto da CI.
+    assert [acao.split("@")[0] for acao in acoes] == ["actions/checkout"]
+    assert all(re.fullmatch(r"[^@]+@[0-9a-f]{40}", acao) for acao in acoes)
+    comandos = "\n".join(passo.get("run", "") for passo in passos)
+    assert "docker build -f borda/Dockerfile" in comandos
+    assert "docker push" in comandos

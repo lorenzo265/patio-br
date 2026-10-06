@@ -27,21 +27,26 @@ A caixa que está chamando a nuvem: identificada pela chave em ``Authorization: 
 
 `nuvem/src/nuvem/frota/modelos.py`
 
-Tabelas da frota: os códigos de ativação, as caixas de borda e a saúde delas ([[5.1 Entidades|SDD 5.1]] e [[7.4 A caixa de borda|7.4]]).
+Tabelas da frota: os códigos de ativação, as caixas de borda, a saúde e as versões delas (SDD
+5.1 e 7.4).
 
-As três são dados do cliente: têm ``empresa_id`` e apontam para o pai pela dupla (pai,
-empresa), como toda tabela filha ([[5.5 Garantias|SDD 5.5]]).
+As de dados do cliente têm ``empresa_id`` e apontam para o pai pela dupla (pai, empresa), como
+toda tabela filha ([[5.5 Garantias|SDD 5.5]]). As versões são da plataforma ([[D-67]]).
 
 - **`CodigoAtivacao`** (classe): Um código de uso único que a administração gera para ativar uma caixa num site.
 - **`CaixaBorda`** (classe): Uma caixa de borda (mini PC na portaria) ativada num site.
 - **`SaudeCaixa`** (classe): Uma saúde recebida de uma caixa: o histórico curto, de 7 dias ([[D-65]]).
+- **`ResultadoDaAtualizacao`** = `Literal['ok', 'voltou', 'falhou']`: Deu certo, voltou para a versão anterior (a saúde não veio) ou falhou antes de trocar.
+- **`VersaoCaixa`** (classe): Uma versão do agente da caixa, pela imagem e pelo resumo dela ([[D-67]]).
+- **`EscolhaDeVersao`** (classe): A versão escolhida para todas as caixas, para um site ou para uma caixa ([[D-67]]).
+- **`AtualizacaoCaixa`** (classe): Uma troca de versão, como a caixa contou ([[D-67]]). Só se acrescenta.
 
 ### `nuvem.frota.rotas`
 
 `nuvem/src/nuvem/frota/rotas.py`
 
-Rotas da frota: a caixa ativa, baixa a configuração e manda a saúde; a administração gera
-códigos e revoga caixas.
+Rotas da frota: a caixa ativa, baixa a configuração, manda a saúde, pergunta a versão e conta
+as atualizações; a administração gera códigos, revoga caixas e cuida das versões ([[D-67]]).
 
 Os identificadores que a caixa recebe são os ids da nuvem em texto (SDD [[D-21]]): são os mesmos
 que ela põe nas passagens.
@@ -53,12 +58,23 @@ que ela põe nas passagens.
 - **`Configuracao`** (classe): A configuração da caixa: o site dela, as faixas e as câmeras.
 - **`CodigoDeAtivacao`** (classe): Um código gerado para a administração entregar a quem instala a caixa.
 - **`CaixaPublica`** (classe): Uma caixa como a administração a vê.
+- **`VersaoParaCaixa`** (classe): A versão que vale para a caixa: o nome e a imagem pelo resumo.
+- **`AtualizacaoRegistrada`** (classe): A atualização gravada.
+- **`PedidoDeVersao`** (classe): Uma versão nova do agente ([[D-67]]).
+- **`VersaoPublica`** (classe): Uma versão como a administração a vê.
+- **`PedidoDeEscolha`** (classe): Para quem vale a versão: uma caixa, um site ou (sem os dois) todas as caixas.
+- **`EscolhaPublica`** (classe): A escolha gravada.
 - **`ativar`**: Troca o código de ativação pela chave da caixa (401 se o código não vale).
 - **`configuracao`**: As faixas e câmeras do site da caixa, com a senha das câmeras.
 - **`receber_saude`**: A saúde da caixa, a cada minuto ([[D-65]]): 403 se é de outra caixa ou de outro site.
+- **`versao_da_caixa`**: A versão que vale para a caixa ([[D-67]]); 204 se nenhuma foi escolhida.
+- **`contar_atualizacao`**: A troca de versão que a caixa fez ([[D-67]]); 422 se o resumo não é de uma versão.
 - **`gerar_codigo`**: Gera um código de ativação para o site (vale 24 horas, uma vez).
 - **`listar_caixas`**: Todas as caixas, das mais novas para as mais antigas.
 - **`revogar`**: Revoga a chave da caixa (404 se a caixa não existir).
+- **`cadastrar_versao`**: Cadastra uma versão do agente pelo resumo da imagem (422 se fora do formato ou repetida).
+- **`listar_versoes`**: As versões, das mais novas para as mais antigas, com as caixas em que deram certo.
+- **`escolher_versao`**: Escolhe a versão para uma caixa, um site ou todas (409 se ainda não deu certo numa caixa).
 
 ### `nuvem.frota.saude`
 
@@ -115,11 +131,40 @@ As funções gravam com ``flush``; o ``commit`` é de quem chama.
 - **`revogar`**: Revoga a chave da caixa: as chamadas dela passam a receber 401. Revogar de novo não muda a data da primeira revogação.
 - **`listar_caixas`**: Todas as caixas, das mais novas para as mais antigas. Só para a administração.
 
+### `nuvem.frota.versoes`
+
+`nuvem/src/nuvem/frota/versoes.py`
+
+As versões da caixa ([[7.4 A caixa de borda|SDD 7.4]], [[D-14]] e [[D-67]]).
+
+- **Cadastrar:** a administração cadastra cada versão pelo nome e pela imagem com o resumo
+  (``sha256:…``): a caixa só baixa a imagem pelo resumo, que o Docker confere.
+- **Escolher:** para todas as caixas, para um site ou para uma caixa. Vence a escolha mais
+  específica (a da caixa, depois a do site, depois a de todas); em cada alcance vale a última.
+- **A ordem:** uma versão só vai para um site ou para todas depois de dar certo numa caixa.
+- **As atualizações** são contadas pela caixa e aparecem na frota.
+
+As funções gravam com ``flush``; o ``commit`` é de quem chama.
+
+- **`FORMATO_DA_IMAGEM`**: O repositório, sem etiqueta nem resumo (ex.: ``ghcr.io/<conta>/patio-caixa``).
+- **`VersaoNaoProvadaError`** (classe): A versão ainda não deu certo numa caixa: só pode ir para uma caixa (409).
+- **`RelatoDeAtualizacao`** (classe): O que a caixa conta de uma troca de versão (``POST /api/borda/atualizacoes``).
+- **`VersaoNaListagem`** (classe): Uma versão, com em quantas caixas ela já deu certo.
+- **`cadastrar_versao`**: Cadastra uma versão do agente.
+- **`escolher_versao`**: Escolhe a versão para uma caixa, para um site ou (sem os dois) para todas as caixas.
+- **`versao_da_caixa`**: A versão que vale para a caixa (a da caixa, a do site ou a de todas), ou ``None``.
+- **`registrar_atualizacao`**: Grava a troca de versão que a caixa contou.
+- **`listar_versoes`**: As versões, das mais novas para as mais antigas, com as caixas em que deram certo.
+- **`atualizacoes_da_caixa`**: As últimas atualizações da caixa, das mais novas para as mais antigas, com a versão.
+- **`Alcances`** (classe): Para quem a administração pode escolher uma versão: os sites e as caixas no ar.
+- **`alcances`**: Os sites com caixa não revogada e as caixas não revogadas, para o formulário da escolha.
+
 ## Testes
 
 - `nuvem/tests/test_nuvem_frota_ativacao.py`: Ativação da caixa de borda ([[7.4 A caixa de borda|SDD 7.4]]): código de uso único, chave própria, revogação.
 - `nuvem/tests/test_nuvem_frota_rotas.py`: Rotas da frota: a administração gera o código; a caixa ativa e baixa a configuração.
 - `nuvem/tests/test_nuvem_frota_saude.py`: A saúde da caixa na nuvem ([[7.4 A caixa de borda|SDD 7.4]], [[D-65]]): o último contato, o histórico e a frota.
+- `nuvem/tests/test_nuvem_frota_versoes.py`: As versões da caixa ([[7.4 A caixa de borda|SDD 7.4]], [[D-67]]): cadastrar, escolher por alcance, a ordem (uma caixa antes das outras) e as atualizações contadas pela caixa.
 
 ---
 

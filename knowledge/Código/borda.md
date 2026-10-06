@@ -70,6 +70,43 @@ assim, porque traz as senhas das câmeras: com ela, a caixa começa sem a nuvem 
 - **`apagar_configuracao`**: Apaga a configuração guardada (a chave recusada, ou a caixa ativada de novo).
 - **`ler_caixa`**: Lê a caixa guardada, ou ``None`` se ela ainda não foi ativada.
 
+### `borda.atualizador`
+
+`borda/src/borda/atualizador.py`
+
+O atualizador da caixa ([[7.4 A caixa de borda|SDD 7.4]], [[D-14]] e [[D-67]]): troca a versão do agente e volta para a anterior
+se a saúde não vier.
+
+Roda no próprio Ubuntu da caixa, fora dos contêineres (um timer do systemd a cada 5 minutos), no
+Python do sistema: por isso usa **só a biblioteca padrão**. Uma imagem ruim do agente não leva
+junto quem volta atrás. Uso::
+
+    python3 /opt/patio/atualizador.py --pasta /opt/patio/caixa
+
+1. Pergunta à nuvem a versão da caixa, com a chave dela (``GET /api/borda/versao``). Se é a que
+   já roda, ou uma que já falhou nesta caixa, não faz nada.
+2. Baixa a imagem pelo resumo (o Docker confere o resumo).
+3. Troca o agente: grava a imagem e o nome da versão no ``.env`` do compose e sobe o agente.
+4. Espera a saúde do agente novo por até 5 minutos: no ar, com as câmeras de placa no ar e aceita
+   pela nuvem (o agente grava a última saúde no volume dos dados, ``saude.json``).
+5. Se a saúde não vem, volta para a imagem anterior.
+6. Conta o resultado à nuvem (``POST /api/borda/atualizacoes``); se a nuvem não responde, o relato
+   fica guardado e vai da próxima vez.
+
+- **`PRAZO_DA_SAUDE`** = `300.0`: Segundos que o agente novo tem para mandar uma saúde boa.
+- **`INTERVALO`** = `10.0`: Segundos entre duas leituras da saúde.
+- **`TEMPO_DO_DOCKER`** = `900.0`: Segundos para baixar uma imagem ou subir o agente.
+- **`VOLUME_DOS_DADOS`** = `'patio-caixa_dados'`: O volume ``dados`` do compose ``patio-caixa``: a chave, a configuração, a fila e a saúde.
+- **`DockerFalhouError`** (classe): O Docker não fez o que foi pedido (a mensagem é a última linha do erro dele).
+- **`Versao`** (classe): A versão que a nuvem escolheu para a caixa: o nome e a imagem pelo resumo.
+- **`Nuvem`** (classe): O que o atualizador usa da nuvem.
+- **`Docker`** (classe): O que o atualizador usa do Docker.
+- **`Estado`** (classe): O que o atualizador lembra entre uma vez e outra (num arquivo JSON).
+- **`atualizar`**: Uma volta do atualizador.
+- **`NuvemDaCaixa`** (classe): A nuvem, pela chave da caixa (a mesma do agente).
+- **`DockerDoCompose`** (classe): O Docker da caixa: o compose de ``pasta`` (``/opt/patio/caixa``) e o ``.env`` dele.
+- **`principal`**: Uma volta do atualizador (o timer do systemd chama a cada 5 minutos).
+
 ### `borda.caixa`
 
 `borda/src/borda/caixa.py`
@@ -241,7 +278,8 @@ A saúde da caixa ([[7.4 A caixa de borda|SDD 7.4]], [[D-65]]): a cada minuto, a
 - **A máquina:** o psutil (BSD-3) mede a CPU (a média desde a medida anterior), a memória, o
   disco da pasta da fila e a temperatura do sensor mais quente.
 - **O pulso:** manda uma saúde logo ao começar e outra a cada minuto. A saúde não entra na
-  fila: a que não chega fica registrada e não vai de novo.
+  fila: a que não chega fica registrada e não vai de novo. A última saúde, e se a nuvem a aceitou,
+  fica gravada para o atualizador conferir a versão nova ([[D-67]]).
 
 - **`INTERVALO`** = `60.0`: Segundos entre duas saúdes.
 - **`JANELA_DOS_QUADROS`** = `timedelta(seconds=10)`: Os quadros por segundo são os desta janela; a câmera sem quadro nela saiu do ar.
@@ -251,6 +289,7 @@ A saúde da caixa ([[7.4 A caixa de borda|SDD 7.4]], [[D-65]]): a cada minuto, a
 - **`Maquina`** (classe): A máquina da caixa num momento.
 - **`medir_a_maquina`**: A CPU (desde a medida anterior), a temperatura, a memória e o disco da ``pasta``.
 - **`temperatura_mais_quente`**: A temperatura do sensor mais quente, em °C; ``None`` sem sensor.
+- **`versao_do_programa`**: A versão que o compose passa (``PATIO_VERSAO``, [[D-67]]) ou, fora dele, a do pacote.
 - **`montar_saude`**: A saúde da caixa em ``agora``, no formato do contrato.
 - **`Pulso`** (classe): Manda a saúde logo ao começar e, depois, a cada minuto, até a caixa desligar.
 
@@ -258,6 +297,7 @@ A saúde da caixa ([[7.4 A caixa de borda|SDD 7.4]], [[D-65]]): a cada minuto, a
 
 - `borda/tests/test_borda_agente.py`: Agente da caixa ([[7.4 A caixa de borda|SDD 7.4]]): junta rastreamento, composição e fila numa passagem por veículo.
 - `borda/tests/test_borda_ativacao.py`: Ativação da caixa e configuração baixada da nuvem ([[7.4 A caixa de borda|SDD 7.4]]).
+- `borda/tests/test_borda_atualizador.py`: O atualizador da caixa ([[7.4 A caixa de borda|SDD 7.4]], [[D-14]] e [[D-67]]): troca o agente e volta para o anterior se a saúde não vier em 5 minutos.
 - `borda/tests/test_borda_caixa.py`: O programa da caixa ([[7.4 A caixa de borda|SDD 7.4]]): ativa, baixa a configuração, lê as câmeras e guarda passagens.
 - `borda/tests/test_borda_captura.py`: Captura ([[4.2 O caminho de cada câmera, dentro da caixa|SDD 4.2]]): os quadros chegam por uma fonte, à taxa configurada (padrão 5 por segundo).
 - `borda/tests/test_borda_composicao.py`: Composição na caixa ([[4.3 Composições e o que a câmera não vê|SDD 4.3]], [[D-23]]): junta cavalo (frente) e reboque (trás) de cada faixa.

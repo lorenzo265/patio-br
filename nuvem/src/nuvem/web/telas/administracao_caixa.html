@@ -47,5 +47,22 @@
 {% else %}
 <p>Nenhuma saúde nos últimos 7 dias.</p>
 {% endif %}
-<p><a href="/administracao/frota">Frota de borda</a> · <a href="/">Início</a></p>
+<h2>Atualizações</h2>
+{% if atualizacoes %}
+<table>
+  <tr><th>Quando</th><th>De</th><th>Para</th><th>Resultado</th><th>Motivo</th></tr>
+  {% for atualizacao in atualizacoes %}
+  <tr>
+    <td>{{ atualizacao.quando }}</td>
+    <td><code>{{ atualizacao.de }}</code></td>
+    <td>{{ atualizacao.para }}</td>
+    <td{% if atualizacao.resultado != "deu certo" %} class="sem-contato"{% endif %}>{{ atualizacao.resultado }}</td>
+    <td>{{ atualizacao.motivo }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% else %}
+<p>Nenhuma atualização ainda.</p>
+{% endif %}
+<p><a href="/administracao/frota">Frota de borda</a> · <a href="/administracao/frota/versoes">Versões da caixa</a> · <a href="/">Início</a></p>
 {% endblock %}

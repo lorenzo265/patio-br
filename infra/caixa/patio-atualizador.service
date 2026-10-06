@@ -1,0 +1,13 @@
+# O atualizador da caixa (SDD 7.4, D-67): troca a versão do agente e volta para a anterior se a
+# saúde não vier em 5 minutos. Roda fora dos contêineres, no Python do Ubuntu, pelo timer
+# patio-atualizador.timer. Instalação: docs/guias/preparar-a-caixa.md.
+[Unit]
+Description=Atualizador da caixa de borda (patio-br)
+Wants=network-online.target docker.service
+After=network-online.target docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /opt/patio/atualizador.py --pasta /opt/patio/caixa
+# Uma troca leva até 5 minutos esperando a saúde, mais o tempo de baixar a imagem.
+TimeoutStartSec=20min
