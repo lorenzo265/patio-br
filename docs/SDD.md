@@ -1,7 +1,7 @@
 # SDD — patio-br (nome provisório)
 
 **Documento de desenho do software (SDD) do MVP do piloto**
-Versão 0.46 · 2026-10-06 · Situação: aprovado como base; itens em aberto na seção 12
+Versão 0.47 · 2026-10-06 · Situação: aprovado como base; itens em aberto na seção 12
 
 ---
 
@@ -630,7 +630,7 @@ Como cada conta é feita (versão 1 da regra, D-48):
 | Banco | PostgreSQL 16; fila de tarefas no próprio PostgreSQL, numa tabela nossa (D-38) |
 | Painel | páginas no servidor (Jinja) + **HTMX**; atualização ao vivo por SSE; instalável como **PWA** |
 | Gráficos | biblioteca JavaScript pequena, só onde houver gráfico |
-| Borda | OpenCV sem interface gráfica, com FFmpeg LGPL (D-27 e D-29), go2rtc, OpenVINO, rastreador próprio (D-25), SQLite (fila local), httpx; psutil (BSD-3) para a saúde da máquina (D-65) |
+| Borda | OpenCV sem interface gráfica, com FFmpeg LGPL (D-27 e D-29), go2rtc (MIT, montado por nós sem FFmpeg, D-66), ONNX Runtime para o leitor v0 (o OpenVINO entra com o leitor próprio), rastreador próprio (D-25), SQLite (fila local), httpx; psutil (BSD-3) para a saúde da máquina (D-65); Docker na caixa (D-66) |
 | Treino | PyTorch, Label Studio, exportação ONNX → OpenVINO |
 | Qualidade | ruff, mypy, pytest; checagem de licenças e vulnerabilidades das dependências |
 
@@ -762,7 +762,21 @@ Serve para desenvolver sem câmera, para os testes de ponta a ponta e para simul
 - **Equipamento por portaria:** mini PC N150 16 GB, nobreak, switch PoE, câmeras IP 4 MP e
   roteador 4G/5G de reserva. Site-tipo com 2 faixas de entrada e 2 de saída = **6 câmeras**:
   frente + traseira em cada entrada (4) e traseira em cada saída (2).
-- **Software:** Ubuntu Server 24.04, Docker, contêineres `go2rtc` e `agente`.
+- **Software:** Ubuntu Server 24.04 com o disco cifrado, Docker, contêineres `go2rtc` e
+  `agente` (D-66).
+- **Contêineres** (D-66), no compose de `infra/caixa/`, que sobem com a máquina:
+  - `agente`: a nossa imagem (`borda/Dockerfile`), com Python 3.12 e o programa da caixa, sem
+    root e com o sistema de arquivos só de leitura; os pesos do leitor vêm de `modelos/` por um
+    volume só de leitura, e não ficam na imagem; a chave, a configuração e a fila ficam num
+    volume próprio;
+  - `go2rtc` (MIT): montado por nós a partir do código, pelo proxy de módulos do Go, que confere
+    o resumo de cada módulo; sem FFmpeg (a imagem oficial traz um FFmpeg com partes GPL, que a
+    D-27 não deixa). Ele recebe cada câmera uma vez só e a repassa ao agente;
+  - o agente cadastra cada câmera de placa no go2rtc pela API dele (`PATCH /api/streams`, que
+    não grava a senha em arquivo) e lê o vídeo de `rtsp://go2rtc:8554/camera-<id>`; a cada vez
+    que reabre a câmera, cadastra de novo (o go2rtc que reinicia esquece as câmeras);
+  - a tela do go2rtc (ver a câmera na instalação) só responde na própria máquina; de fora, pelo
+    Tailscale.
 - **Ativação:** a administração gera, para um site, um código de uso único (12 letras e
   números, em três grupos de 4) que vale 24 horas. A caixa troca o código por uma **chave
   própria**; a nuvem guarda só o resumo da chave. Toda chamada da caixa leva
@@ -784,8 +798,11 @@ Serve para desenvolver sem câmera, para os testes de ponta a ponta e para simul
   - cada câmera é lida na própria linha de execução, e os quadros são processados na ordem em
     que chegam (D-30): uma câmera caída não segura as outras. Se o agente não dá conta, os
     quadros que não cabem na espera são descartados, com registro;
-  - a configuração vale até o programa reiniciar. Por enquanto, sem a nuvem no ar a caixa não
-    começa: a configuração não fica no disco, porque traz as senhas das câmeras.
+  - a configuração baixada fica guardada no disco (`dados/caixa/configuracao.json`), como a
+    chave, num arquivo que só o dono lê; se a nuvem não responde ao começar, a caixa começa com
+    a última configuração guardada, sem esperar (D-66). Sem configuração guardada, espera a
+    nuvem como antes. A chave recusada apaga a configuração guardada, e ativar de novo também;
+  - a configuração vale até o programa reiniciar;
 - **Saúde** (D-65): a cada minuto, e logo ao começar, a caixa manda a saúde (seção 3.2): as
   versões, a máquina, cada câmera de placa e a fila. Por dentro:
   - a CPU é a média desde a saúde anterior; a temperatura é a do sensor mais quente (sem
@@ -807,6 +824,12 @@ Serve para desenvolver sem câmera, para os testes de ponta a ponta e para simul
 - **Acesso remoto:** Tailscale Standard (US$ 8/mês; o plano gratuito é só para uso não comercial).
 - **Rede:** a caixa **só faz conexões de saída**. Nenhuma porta aberta na rede do cliente.
   Câmeras num switch separado.
+- **Preparação** (D-66): um arquivo de instalação automática do Ubuntu Server 24.04
+  (`infra/caixa/autoinstall.yaml`) instala o Docker, o Tailscale e o firewall, fecha a entrada
+  (só o Tailscale entra), acerta o relógio pelos servidores do NTP.br (o relógio da passagem é a
+  prova) e cifra o disco (LUKS). Depois da instalação, o disco é ligado ao TPM da máquina, que o
+  destrava sozinho ao ligar; a senha de recuperação do disco é única por caixa e fica guardada
+  por nós, fora do repositório. O guia `docs/guias/preparar-a-caixa.md` diz o resto.
 - **Disco local:** fila de passagens (SQLite) e cache de recortes por até 30 dias para treino.
 - **Fila de envio** (SQLite, no disco da caixa):
   - toda passagem é gravada primeiro na fila, com as fotos, e só depois enviada;
@@ -945,7 +968,8 @@ Serve para desenvolver sem câmera, para os testes de ponta a ponta e para simul
   rota responde 401; com o papel errado, 403. O gestor pode tudo o que o porteiro e o líder de
   pátio podem nos sites dele. A administração (nós) tem rotas próprias e não usa as do cliente
   (D-19).
-- Caixa com chave própria, revogável.
+- Caixa com chave própria, revogável. O disco da caixa é cifrado, porque a configuração guardada
+  traz as senhas das câmeras (D-66).
 - **Link da transportadora** (D-34): código aleatório e longo no endereço (`/agendar/<código>`);
   o banco guarda só o resumo (SHA-256, como o código da sessão), e o registro de acesso da API
   troca o código por `***`. O gestor dá um nome ao link (a transportadora), a validade (padrão 30
@@ -1127,6 +1151,7 @@ do cuidado de cargas (D-43).
 | D-63 | **O WhatsApp por dentro** (T52): o canal de cada mensagem é escolhido ao gravá-la (WhatsApp se o celular autorizou a empresa, senão SMS); o envio é uma tarefa da fila, e o erro passageiro tenta de novo, o definitivo deixa a mensagem como falhou; o webhook só confere a assinatura e guarda o aviso numa tarefa; a autorização vem da mensagem "AVISOS A<agendamento>" ou "AVISOS S<site>", vale para o celular de quem mandou naquela empresa, e "SAIR" a cancela em todas; o celular do Brasil sem o 9 ganha o 9 | o webhook responde na hora (a Meta repete o aviso que demora) e o worker, que já sabe tentar de novo, faz o trabalho; a mensagem do motorista diz de qual empresa é a autorização, já que o número do WhatsApp é um só para todos os clientes; quem pede para sair não quer aviso de ninguém | tratar o aviso dentro do pedido do webhook; uma autorização que valesse para todas as empresas; "SAIR" só na empresa da última conversa |
 | D-64 | **O SMS por dentro** (T53): o texto do SMS é outro, curto, sem acento e de no máximo 160 caracteres, e o da confirmação leva o link do WhatsApp; a mensagem do WhatsApp que falha de vez ganha uma cópia pelo SMS; o retorno da Zenvia chega num endereço com um segredo (`/api/sms/<segredo>`), escondido no registro de acesso; o "motorista não avisado" é o agendamento cujo último aviso falhou em todas as tentativas, e aparece no quadro do pátio. A mensagem passa a ser única por aviso e canal (o WhatsApp e a reserva pelo SMS) | o SMS com acento cai para 70 caracteres por pedaço e custa o dobro; a Zenvia não assina os avisos dela, e o segredo no endereço é o que ela aceita; quem chama o caminhão para a doca precisa saber que o motorista não recebeu o aviso | o mesmo texto do WhatsApp no SMS; conferir o aviso da Zenvia pelo endereço de origem; mostrar o "não avisado" só na tela de mensagens |
 | D-65 | **A saúde da caixa por dentro** (T54): o formato `Saude` no pacote `contratos/`, como a passagem, mandado a cada minuto e fora da fila; o último contato é a hora da nuvem em que a última saúde chegou; o histórico de 7 dias fica numa tabela à parte e se apaga ao receber; a caixa está sem contato depois de 3 minutos sem saúde, e a que nunca mandou saúde não conta; a portaria mostra "site sem conexão desde HH:MM"; a máquina é medida com o psutil (BSD-3) | a saúde velha não ajuda ninguém, e guardá-la na fila atrasaria as passagens; com o último contato pela hora da nuvem, um relógio errado na caixa não esconde a queda; o site da demonstração tem caixa sem programa rodando, e não pode aparecer como fora do ar; 7 dias bastam para ver o que aconteceu, e o histórico pequeno não pesa no banco | a saúde na fila da caixa; o último contato pela hora da caixa ou por qualquer chamada dela; ler a máquina direto do `/proc`, que só serve no Linux |
+| D-66 | **A caixa em contêineres por dentro** (T55): a imagem do agente é nossa, sem root, e os pesos vêm por volume só de leitura; o go2rtc é montado por nós a partir do código (v1.9.14), sem FFmpeg; o agente cadastra as câmeras no go2rtc pela API e lê o vídeo de lá; a configuração fica guardada no disco, e a caixa começa com ela quando a nuvem não responde; o disco é cifrado na preparação e destravado pelo TPM, com a senha de recuperação guardada por nós; o relógio vem do NTP.br; o OpenVINO entra com o leitor próprio, e o v0 roda no ONNX Runtime | a imagem oficial do go2rtc traz um FFmpeg do Alpine montado com partes GPL (x264 e x265), e a D-27 não deixa; o proxy de módulos do Go confere o resumo de cada módulo, e não é preciso copiar um resumo à mão; a caixa precisa trabalhar sem a nuvem desde o começo, e as senhas das câmeras no disco pedem o disco cifrado; sem o TPM, a caixa pediria a senha ao ligar e não voltaria sozinha depois de uma queda de energia | a imagem oficial do go2rtc; o binário do go2rtc baixado do GitHub com o resumo copiado à mão; a configuração só na memória (a caixa parada sem a nuvem); o disco cifrado com senha digitada ao ligar |
 
 ---
 
@@ -1182,6 +1207,9 @@ do cuidado de cargas (D-43).
 | **Resumo (hash)** | transformação de mão única: dá para conferir se uma senha ou código bate, mas não para recuperá-lo. Senhas e PINs usam o argon2, feito para ser lento de adivinhar |
 | **Cookie** | pequeno dado que o site guarda no navegador e que volta a cada pedido; aqui, só o código da sessão de login |
 | **Vault (Obsidian)** | uma pasta de notas em Markdown ligadas entre si, que o programa Obsidian abre como um caderno; o nosso é `knowledge/`, e começa na nota `00 Início` |
+| **Contêiner (Docker)** | um programa empacotado com tudo de que precisa para rodar (a **imagem**), isolado do resto da máquina; o **compose** é o arquivo que diz quais contêineres sobem juntos |
+| **TPM** | um chip de segurança da placa-mãe que guarda a chave do disco cifrado e só a entrega à própria máquina, sem ninguém digitar senha |
+| **Disco cifrado (LUKS)** | o disco gravado embaralhado: quem tira o disco da caixa não consegue ler nada sem a chave |
 
 ---
 
@@ -1235,3 +1263,4 @@ do cuidado de cargas (D-43).
 | 0.44 | 2026-10-06 | o WhatsApp por dentro (T52): o canal escolhido ao gravar a mensagem, o envio pela fila, o webhook com a assinatura, a autorização por empresa e o "SAIR" (D-63); as entidades `AutorizacaoWhatsApp` e `MensagemRecebida` e a `Mensagem` com a situação do envio (seções 5.1, 6.1, 7.5, 8.2 e 11) |
 | 0.45 | 2026-10-06 | o SMS por dentro (T53): o texto curto e sem acento, com o link do WhatsApp na confirmação, a reserva pelo SMS quando o WhatsApp falha, o retorno da Zenvia num endereço com segredo e o "motorista não avisado" no pátio (D-64; seções 5.1, 6.1, 6.2, 7.5, 8.2 e 11) |
 | 0.46 | 2026-10-06 | a saúde da caixa por dentro (T54): o formato `Saude` no contrato, o último contato, a diferença do relógio, o histórico de 7 dias, a frota de borda na administração e o "site sem conexão" na portaria (D-65); a entidade `SaudeCaixa`; o psutil na stack (seções 3.2, 5.1, 6.1, 6.2, 7.4, 8.1 e 11) |
+| 0.47 | 2026-10-06 | a caixa em contêineres (T55): o agente e o go2rtc no compose, o go2rtc montado sem FFmpeg, a configuração guardada no disco, o disco cifrado com o TPM e a preparação do Ubuntu (D-66; seções 6.1, 7.4, 8.2, 11 e 13) |
