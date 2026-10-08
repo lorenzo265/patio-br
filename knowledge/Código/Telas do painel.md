@@ -16,6 +16,8 @@ Os arquivos Jinja de `nuvem/src/nuvem/web/telas/`, a função que mostra cada um
 | `_alertas_whatsapp.html` |  |  |  |
 | `administracao_alertas.html` | `nuvem.web.alertas.tela_da_administracao` | `base.html` | `_alertas_whatsapp.html` |
 | `administracao_caixa.html` | `nuvem.web.frota.tela_da_caixa` | `base.html` |  |
+| `administracao_cliente.html` | `nuvem.web.clientes._ficha` | `base.html` |  |
+| `administracao_clientes.html` | `nuvem.web.clientes._lista` | `base.html` |  |
 | `administracao_demonstracao.html` | `nuvem.web.demonstracao._tela_dos_links` | `base.html` |  |
 | `administracao_frota.html` | `nuvem.web.frota.tela_da_frota` | `base.html` |  |
 | `administracao_titular.html` | `nuvem.web.titular._tela` | `base.html` |  |
@@ -57,6 +59,7 @@ Os arquivos Jinja de `nuvem/src/nuvem/web/telas/`, a função que mostra cada um
 | `prova.html` | `nuvem.web.prova.pagina` | `base.html` |  |
 | `prova_busca.html` | `nuvem.web.prova.busca` | `base.html` |  |
 | `recebimento.html` | `nuvem.web.em_breve.recebimento` | `base.html` |  |
+| `senha.html` | `nuvem.web.senha._tela` | `base.html` |  |
 | `trocar_porteiro.html` | `nuvem.web.rotas._tela_da_troca` | `base.html` |  |
 
 ---

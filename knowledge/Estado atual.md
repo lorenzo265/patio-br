@@ -133,7 +133,7 @@ recomendações ([[D-57]] a [[D-62]]). As tarefas que não precisam de conta com
 | [[T39]] placas sintéticas | feita ([#63](https://github.com/lorenzo265/patio-br/pull/63), [[D-72]]): o crédito da Artificial Mercosur espera os nomes dos autores, ao baixar a base |
 | [[T61]] API e webhooks | só se o cliente do piloto pedir |
 | [[T62]] o roteiro do piloto em homologação (o marco) | o roteiro e o simulador como caixa estão prontos ([#66](https://github.com/lorenzo265/patio-br/pull/66)); rodar espera a homologação ([[N21]]) e a [[T63]] |
-| [[T63]] o cadastro do cliente pela administração | tarefa nova, vinda da preparação da T62 |
+| [[T63]] o cadastro do cliente pela administração | feita ([#67](https://github.com/lorenzo265/patio-br/pull/67), [[D-75]]): tarefa nova, vinda da preparação da T62; a empresa, os sites, as portarias, as faixas, as câmeras, as docas e as pessoas, com o link de senha de uso único |
 
 ## O que existe no código hoje
 

@@ -40,6 +40,7 @@ As migrações do Alembic, em ordem, de `nuvem/migracoes/versions/`. Modelo novo
 | `0025` | guarda ([[D-70]]) | 2026-10-06 |
 | `0026` | treino ([[D-71]]) | 2026-10-06 |
 | `0027` | copias ([[D-74]]) | 2026-10-06 |
+| `0028` | link de senha ([[D-75]]) | 2026-10-06 |
 
 ---
 

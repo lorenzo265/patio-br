@@ -35,6 +35,46 @@ As dependências do FastAPI daqui respondem 401 sem login e 403 com o papel erra
 - **`exigir_papel`**: Cria a dependência que só deixa passar os papéis dados (os outros recebem 403).
 - **`obter_acesso_admin`**: Dependência do FastAPI: só a administração passa (o usuário do cliente recebe 403).
 
+### `nuvem.cadastro.cliente`
+
+`nuvem/src/nuvem/cadastro/cliente.py`
+
+O cadastro do cliente pela administração ([[6.2 Telas do MVP|SDD 6.2]] e [[8.2 Segurança|8.2]], [[D-75]]).
+
+A administração cadastra a empresa, os sites, as portarias, as faixas, as câmeras, as docas e as
+pessoas. Tudo o que pendura numa empresa é conferido contra ela: pela empresa A, o site da B
+"não existe" ([[5.5 Garantias|SDD 5.5]]).
+
+**Ninguém recebe a senha de outra pessoa:** a pessoa nova ganha um link de uso único, que vale
+72 horas, para criar a própria senha (e o PIN, se for porteiro). A senha esquecida é um link
+novo, que troca o anterior; criar a senha fecha as sessões abertas da pessoa. O código do link
+aparece uma vez, e o banco guarda só o resumo.
+
+Nada se apaga: a pessoa que sai é desativada (e as sessões dela se fecham).
+
+- **`conferir_cnpj`**: O CNPJ sem pontuação e em maiúsculas, se os dígitos conferem.
+- **`cadastrar_empresa`**: Cadastra o cliente.
+- **`cadastrar_site`**: Cadastra um site da empresa; sem ``abre`` nem ``fecha``, ele funciona 24 horas.
+- **`cadastrar_portaria`**: Cadastra uma portaria no site da empresa.
+- **`cadastrar_faixa`**: Cadastra uma faixa de entrada ou de saída na portaria da empresa.
+- **`cadastrar_camera`**: Cadastra uma câmera na faixa da empresa, com a senha cifrada.
+- **`trocar_camera`**: Troca o endereço e o login da câmera; a senha, só se vier uma nova (vazia: a mesma).
+- **`cadastrar_doca`**: Cadastra uma doca no site da empresa.
+- **`LinkGerado`** (classe): O link de senha que acabou de nascer: o código só existe aqui (o banco tem o resumo).
+- **`cadastrar_pessoa`**: Cadastra a pessoa, sem senha, nos sites da empresa, e gera o link para ela criar a senha.
+- **`gerar_link_de_senha`**: Um link novo de senha para a pessoa (a senha esquecida); o anterior deixa de valer.
+- **`mudar_situacao_da_pessoa`**: Ativa ou desativa a pessoa; desativar fecha as sessões dela e tira o link de uso.
+- **`link_de_senha`**: O link do código, se ele ainda vale (não usado, não trocado, no prazo, pessoa ativa).
+- **`pessoa_do_link`**: A pessoa do link.
+- **`criar_senha_pelo_link`**: Cria a senha (e o PIN do porteiro) pelo link, que deixa de valer; fecha as sessões.
+- **`CameraDaFicha`** (classe): A câmera como a tela mostra: sem a senha.
+- **`FaixaDaFicha`** (classe): A faixa e as câmeras dela.
+- **`PortariaDaFicha`** (classe): A portaria e as faixas dela.
+- **`SiteDaFicha`** (classe): O site, as portarias e as docas.
+- **`PessoaDaFicha`** (classe): A pessoa, os sites dela, se já tem senha e até quando vale o link que ela ainda não usou.
+- **`FichaDaEmpresa`** (classe): Tudo o que a administração cadastrou de uma empresa.
+- **`ficha_da_empresa`**: A empresa, a estrutura de cada site e as pessoas, por nome.
+
 ### `nuvem.cadastro.duas_etapas`
 
 `nuvem/src/nuvem/cadastro/duas_etapas.py`
@@ -131,6 +171,7 @@ A administração (nós) fica fora das empresas, numa tabela própria (SDD [[D-1
 - **`Administrador`** (classe): Uma pessoa da administração da plataforma (nós), fora de qualquer empresa ([[D-19]]).
 - **`SessaoLogin`** (classe): Uma sessão aberta no painel ([[D-20]]): de um usuário do cliente ou da administração.
 - **`CodigoRecuperacao`** (classe): Um código de recuperação da verificação em duas etapas ([[D-60]]): vale uma vez.
+- **`LinkDeSenha`** (classe): O link de uso único para a pessoa criar a própria senha ([[D-75]]), que vale 72 horas.
 - **`TentativaLogin`** (classe): Um erro de senha ou de PIN, para o limite de tentativas ([[8.2 Segurança|SDD 8.2]]).
 
 ### `nuvem.cadastro.rotas`
@@ -205,6 +246,7 @@ As funções gravam com ``flush`` (o registro ganha id); o ``commit`` é de quem
 ## Testes
 
 - `nuvem/tests/test_nuvem_cadastro_camera.py`: Câmeras: a senha fica cifrada no banco; o endereço não leva usuário nem senha.
+- `nuvem/tests/test_nuvem_cadastro_cliente.py`: O cadastro do cliente pela administração ([[6.2 Telas do MVP|SDD 6.2]] e [[8.2 Segurança|8.2]], [[D-75]]). Nomes, e-mails e CNPJs inventados (os CNPJs são os exemplos de conferência, não de empresas).
 - `nuvem/tests/test_nuvem_cadastro_duas_etapas.py`: O código do app autenticador ([[8.2 Segurança|SDD 8.2]], [[D-60]]): o TOTP da RFC 6238, sem banco.
 - `nuvem/tests/test_nuvem_cadastro_login.py`: Login ([[8.2 Segurança|SDD 8.2]], [[D-20]]): senha, sessão no banco, limite de tentativas e troca de porteiro.
 - `nuvem/tests/test_nuvem_cadastro_login_duas_etapas.py`: O login com a verificação em duas etapas ([[8.2 Segurança|SDD 8.2]], [[D-60]]): a sessão pela metade, ligar a verificação, o código do app, os códigos de recuperação e zerar.

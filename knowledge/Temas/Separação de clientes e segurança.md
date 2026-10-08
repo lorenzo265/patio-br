@@ -51,6 +51,11 @@ Uma empresa nunca vê o que é de outra, e quem não tem o papel certo não entr
     uma vez só (guardados só como resumo argon2); o segredo do app fica cifrado.
   - Perdeu o celular: um código de recuperação; a administração zera a do gestor pela rota
     dela, e a própria pelo comando, com `--zerar-duas-etapas`.
+- **O cadastro do cliente e o link de senha** ([[T63]], [[D-75]]): a administração cadastra a
+  empresa, os sites, as portarias, as faixas, as câmeras, as docas e as pessoas. Ninguém recebe a
+  senha de outra pessoa: cada pessoa cria a própria por um link de uso único, de 72 horas (e o
+  PIN, se for porteiro); a senha esquecida é um link novo, e as sessões abertas se fecham com a
+  senha nova.
 - **Nenhum segredo no repositório:** o `.env` é ignorado; o `.env.exemplo` só tem valores de
   exemplo do ambiente local.
 
@@ -59,7 +64,7 @@ Uma empresa nunca vê o que é de outra, e quem não tem o papel certo não entr
 - Regras: [[CLAUDE - regras do repositório]] (regras 4, 5 e 6), [[5.5 Garantias]],
   [[8.2 Segurança]].
 - Decisões: [[D-19]], [[D-20]], [[D-21]], [[D-22]], [[D-28]], [[D-34]], [[D-52]], [[D-54]],
-  [[D-55]], [[D-60]].
+  [[D-55]], [[D-60]], [[D-75]].
 - Código: [[nuvem.cadastro]] (acesso, papéis, sessões), [[nuvem.frota]] (chave da caixa),
   [[Tabelas do banco]].
 - Tarefas: [[T08]], [[T09]], [[T10]], [[T28]], [[T47]], [[T48]], [[T51]].

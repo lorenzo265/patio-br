@@ -237,6 +237,28 @@ class CodigoRecuperacao(Base):
     usado_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
+class LinkDeSenha(Base):
+    """O link de uso único para a pessoa criar a própria senha (D-75), que vale 72 horas.
+
+    O código só aparece uma vez, na tela da administração; o banco guarda só o resumo dele, como
+    o do link da transportadora. Um link novo da mesma pessoa troca o anterior.
+    """
+
+    __tablename__ = "link_de_senha"
+    __table_args__ = (do_pai_na_mesma_empresa("usuario"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    usuario_id: Mapped[int] = mapped_column(index=True)
+    empresa_id: Mapped[int]
+    codigo_resumo: Mapped[str] = mapped_column(String(64), unique=True)
+    criado_por: Mapped[int] = mapped_column(ForeignKey("administrador.id"))
+    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    vence_em: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    usado_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    trocado_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    """Quando um link novo (ou a pessoa desativada) o tirou de uso."""
+
+
 class TentativaLogin(Base):
     """Um erro de senha ou de PIN, para o limite de tentativas (SDD 8.2).
 
