@@ -17,7 +17,13 @@ from sqlalchemy.orm import Session
 
 from nuvem.banco import obter_sessao
 from nuvem.cadastro import login, servico
-from nuvem.cadastro.acesso import COOKIE_DA_SESSAO, Acesso, QuemPede, exigir_papel
+from nuvem.cadastro.acesso import (
+    COOKIE_DA_SESSAO,
+    Acesso,
+    AcessoAdmin,
+    QuemPede,
+    exigir_papel,
+)
 from nuvem.cadastro.duas_etapas import VALIDADE_DA_SESSAO_PELA_METADE
 from nuvem.cadastro.modelos import Administrador, Empresa, Falta, Usuario
 from nuvem.relogio import agora
@@ -43,9 +49,14 @@ def tela(
     """Desenha uma tela do painel.
 
     Nos ambientes da demonstração, a tela de quem é do cliente ganha a faixa que troca de papel
-    (D-54): ``papel_na_demonstracao`` é o papel de agora.
+    (D-54): ``papel_na_demonstracao`` é o papel de agora. A tela de quem entrou ganha o sino dos
+    alertas (D-68), e com ele o HTMX: ``sino`` é o endereço que o sino busca.
     """
     quem = getattr(request.state, "quem", None)
+    if isinstance(quem, Acesso):
+        contexto = {"sino": "/alertas/sino", **contexto}
+    elif isinstance(quem, AcessoAdmin):
+        contexto = {"sino": "/administracao/alertas/sino", **contexto}
     if request.app.state.tem_demonstracao and isinstance(quem, Acesso):
         contexto = {"papel_na_demonstracao": quem.papel, **contexto}
     codigo_csrf = csrf.codigo_do_pedido(request)

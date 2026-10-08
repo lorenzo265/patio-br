@@ -97,7 +97,7 @@ def celular(
         "agendamento_id": agendamento.id,
         "codigo": agendamento.codigo_externo,
         "site": site,
-        "para": _escondido(agendamento.motorista_celular),
+        "para": celular_escondido(agendamento.motorista_celular),
         "envia": request.app.state.whatsapp_numero is not None,
     }
     return tela(request, "mensagens_celular.html", contexto)
@@ -126,7 +126,7 @@ def _quando(momento: datetime, fuso: ZoneInfo) -> str:
     return f"{momento.astimezone(fuso):%d/%m %H:%M}"
 
 
-def _escondido(celular: str | None) -> str:
+def celular_escondido(celular: str | None) -> str:
     """Ex.: ``+5511987654321`` vira ``(11) •••••-4321``; vazio sem celular."""
     if not celular:
         return ""

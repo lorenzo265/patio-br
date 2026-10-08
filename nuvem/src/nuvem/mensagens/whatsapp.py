@@ -21,7 +21,7 @@ import httpx
 
 from nuvem.mensagens.canais import Envio, EnvioFalhouError, EnvioRecusadoError, Situacao
 from nuvem.mensagens.modelos import Mensagem, ModeloDeMensagem, SituacaoDaMensagem
-from nuvem.mensagens.modelos_do_whatsapp import IDIOMA, MODELOS
+from nuvem.mensagens.modelos_do_whatsapp import IDIOMA, MODELO_DO_ALERTA, MODELOS
 
 if TYPE_CHECKING:
     from nuvem.config import Configuracao
@@ -48,9 +48,16 @@ SITUACOES: dict[str, SituacaoDaMensagem] = {
 _CELULAR_COM_O_9 = re.compile(r"55([1-9]{2})(9\d{8})")
 _CELULAR_SEM_O_9 = re.compile(r"55([1-9]{2})([6-9]\d{7})")
 _AVISOS = re.compile(r"AVISOS ([AS])(\d{1,12})")
+_ALERTAS = re.compile(r"ALERTAS ([0-9A-Z]{4})-?([0-9A-Z]{4})")
 _SAIR = frozenset({"SAIR", "PARAR"})
 
-Pedido = tuple[Literal["agendamento", "site"], int] | tuple[Literal["sair"], None]
+Pedido = (
+    tuple[Literal["agendamento", "site"], int]
+    | tuple[Literal["sair"], None]
+    | tuple[Literal["alertas"], str]
+)
+"""O que a mensagem pede: os avisos de um agendamento ou de um site (o motorista), sair, ou os
+alertas de quem pediu o código (D-68)."""
 
 
 @dataclass(frozen=True)
@@ -105,6 +112,29 @@ class CanalWhatsApp:
                     "name": MODELOS[modelo].nome,
                     "language": {"code": IDIOMA},
                     "components": [{"type": "body", "parameters": parametros}],
+                },
+            }
+        )
+
+    def enviar_alerta(self, para: str, site: str, texto: str) -> Envio:
+        """Manda um alerta grave pelo modelo dos alertas (D-68)."""
+        return self._postar(
+            {
+                "messaging_product": "whatsapp",
+                "to": para.removeprefix("+"),
+                "type": "template",
+                "template": {
+                    "name": MODELO_DO_ALERTA.nome,
+                    "language": {"code": IDIOMA},
+                    "components": [
+                        {
+                            "type": "body",
+                            "parameters": [
+                                {"type": "text", "text": site},
+                                {"type": "text", "text": texto},
+                            ],
+                        }
+                    ],
                 },
             }
         )
@@ -200,6 +230,8 @@ def o_que_pediu(texto: str) -> Pedido | None:
     if achado := _AVISOS.fullmatch(limpo):
         tipo: Literal["agendamento", "site"] = "agendamento" if achado.group(1) == "A" else "site"
         return (tipo, int(achado.group(2)))
+    if achado := _ALERTAS.fullmatch(limpo):
+        return ("alertas", achado.group(1) + achado.group(2))
     return None
 
 

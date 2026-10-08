@@ -103,6 +103,7 @@ As funções gravam com ``flush``; o ``commit`` é de quem chama.
 - **`frota`**: As caixas não revogadas de todas as empresas, das mais novas para as mais antigas.
 - **`caixa_da_frota`**: Uma caixa da frota (também a revogada).
 - **`historico_por_hora`**: Os últimos 7 dias da caixa, hora a hora, no fuso do site; a hora mais recente primeiro.
+- **`nomes_das_cameras`**: O nome de cada câmera dos sites, por (site, id da câmera em texto, como vem na saúde).
 
 ### `nuvem.frota.servico`
 

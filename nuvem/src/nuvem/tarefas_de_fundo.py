@@ -42,6 +42,7 @@ from sqlalchemy.dialects.postgresql import JSONB, insert
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from nuvem.agendamento import servico as agendamentos
+from nuvem.alertas import servico as alertas
 from nuvem.banco import Base, texto_de_lista
 from nuvem.mensagens import servico as mensagens
 from nuvem.mensagens.canais import Canais
@@ -53,7 +54,9 @@ from nuvem.relogio import agora as agora_de_verdade
 
 _registro = logging.getLogger(__name__)
 
-TipoDeTarefa = Literal["casar_passagem", "enviar_mensagem", "aviso_do_whatsapp", "aviso_do_sms"]
+TipoDeTarefa = Literal[
+    "casar_passagem", "enviar_mensagem", "aviso_do_whatsapp", "aviso_do_sms", "avisar_alerta"
+]
 SituacaoDaTarefa = Literal["pendente", "feita", "falhou"]
 
 MAXIMO_DE_TENTATIVAS = 8
@@ -65,6 +68,8 @@ TAMANHO_DO_ERRO = 500
 TOLERANCIA_DO_NAO_VEIO = TOLERANCIA_PADRAO
 """Quanto depois do fim da janela o agendamento sem chegada vira "não veio" (``[ABERTO-09]``)."""
 INTERVALO_DO_NAO_VEIO = timedelta(minutes=5)
+INTERVALO_DOS_ALERTAS = timedelta(minutes=1)
+"""O worker confere os alertas a cada minuto (D-68)."""
 JANELAS_OLHADAS = timedelta(days=7)
 """O "não veio" olha as janelas que terminaram nos últimos 7 dias (cobre o worker parado)."""
 TRAVA_DO_NAO_VEIO = 7301
@@ -136,11 +141,18 @@ def _aviso_do_sms(
     mensagens.tratar_aviso_do_sms(sessao, dados["aviso"])
 
 
+def _avisar_alerta(
+    sessao: Session, dados: dict[str, Any], agora: datetime, contexto: Contexto
+) -> None:
+    alertas.avisar(sessao, contexto.canais, int(dados["aviso_id"]), agora=agora)
+
+
 EXECUTORES: dict[str, Executor] = {
     "casar_passagem": _casar,
     "enviar_mensagem": _enviar,
     "aviso_do_whatsapp": _aviso_do_whatsapp,
     "aviso_do_sms": _aviso_do_sms,
+    "avisar_alerta": _avisar_alerta,
 }
 """O que cada tipo de tarefa faz."""
 
@@ -310,6 +322,7 @@ def rodar(
     """
     contexto = Contexto(canais=canais or Canais())
     ultimo_nao_veio: datetime | None = None
+    ultimos_alertas: datetime | None = None
     while not parar.is_set():
         try:
             with abrir_sessao() as sessao:
@@ -324,6 +337,16 @@ def rodar(
                     ultimo_nao_veio = momento
                     if abertas:
                         _registro.info('"não veio": %d visitas', abertas)
+                if ultimos_alertas is None or momento - ultimos_alertas >= INTERVALO_DOS_ALERTAS:
+                    conferencia = alertas.conferir(sessao, agora=momento)
+                    sessao.commit()
+                    ultimos_alertas = momento
+                    if conferencia.abertos or conferencia.fechados:
+                        _registro.info(
+                            "alertas: %d abertos, %d fechados",
+                            conferencia.abertos,
+                            conferencia.fechados,
+                        )
                 mensagens.preparar(sessao, agora=momento, canais=canais)
                 sessao.commit()
         except Exception:

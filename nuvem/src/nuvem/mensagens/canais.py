@@ -61,11 +61,21 @@ class CanalDeEnvio(Protocol):
 
 
 class CanalDoWhatsApp(CanalDeEnvio, Protocol):
-    """O WhatsApp: além de mandar o modelo, responde ao motorista e tem o número dos links."""
+    """O WhatsApp: além de mandar o modelo, manda os alertas, responde a quem escreveu e tem o
+    número dos links."""
 
     @property
     def numero(self) -> str:
         """O número do WhatsApp do produto, só números, com o 55 (para o link ``wa.me``)."""
+        ...
+
+    def enviar_alerta(self, para: str, site: str, texto: str) -> Envio:
+        """Manda um alerta grave a quem autorizou (o modelo ``patio_alerta``, D-68).
+
+        Raises:
+            EnvioFalhouError: se vale tentar de novo.
+            EnvioRecusadoError: se o WhatsApp recusou de vez.
+        """
         ...
 
     def responder(self, para: str, texto: str) -> Envio:

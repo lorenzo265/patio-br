@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block titulo %}Alertas pelo WhatsApp · patio-br{% endblock %}
+{% block cabeca %}
+<style>.qr svg { width: 14rem; height: auto; }</style>
+{% endblock %}
+{% block conteudo %}
+<h1>Alertas pelo WhatsApp</h1>
+{% if link %}
+<p>No celular que vai receber os alertas, leia o QR com a câmera, ou abra o link, e mande a mensagem que aparece.</p>
+<div class="qr">{{ qr }}</div>
+<p><a href="{{ link }}">{{ link }}</a></p>
+<p>Ou mande <strong>ALERTAS {{ codigo }}</strong> para o WhatsApp do produto. O código vale {{ minutos }} minutos e serve uma vez só; depois disso, peça outro.</p>
+<p>Para parar, responda SAIR no WhatsApp.</p>
+{% else %}
+<p>O WhatsApp ainda não está ligado neste ambiente: os alertas ficam só no painel.</p>
+{% endif %}
+<p><a href="{{ voltar }}">Voltar aos alertas</a></p>
+{% endblock %}

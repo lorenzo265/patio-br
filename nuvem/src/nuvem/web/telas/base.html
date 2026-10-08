@@ -15,7 +15,11 @@
     th, td { border-bottom: 1px solid #ccc; padding: 0.4rem; text-align: left; vertical-align: top; }
     .faixa-da-demonstracao { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; border-bottom: 1px solid #ccc; padding-bottom: 0.5rem; margin-bottom: 1rem; }
     .faixa-da-demonstracao button { margin-top: 0; }
+    .sino { text-align: right; min-height: 1.5rem; }
   </style>
+  {% if sino %}
+  <script src="/estatico/htmx-2.0.11.min.js" defer></script>
+  {% endif %}
   {% block cabeca %}{% endblock %}
 </head>
 <body{% if csrf %} hx-headers='{"X-CSRF-Token": "{{ csrf }}"}'{% endif %}>
@@ -28,6 +32,9 @@
     {% endfor %}
     <a href="/mensagens">Motorista</a>
   </form>
+  {% endif %}
+  {% if sino %}
+  <div class="sino" hx-get="{{ sino }}" hx-trigger="load, every 60s" aria-live="polite"></div>
   {% endif %}
   {% block conteudo %}{% endblock %}
 </body>
