@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block titulo %}Criar a senha · patio-br{% endblock %}
+{% block conteudo %}
+<h1>Criar a senha</h1>
+{% if nao_vale %}
+<p class="erro" role="alert">{{ nao_vale }}</p>
+{% elif pronto %}
+<p>Pronto: a senha está criada. <a href="/entrar">Entre com o seu e-mail e a senha nova.</a></p>
+{% else %}
+<p>{{ pessoa.nome }} ({{ pessoa.email }}): crie a sua senha. Ninguém mais a conhece, nem quem cadastrou você.</p>
+{% if erro %}<p class="erro" role="alert">{{ erro }}</p>{% endif %}
+<form method="post" action="/senha/{{ codigo }}">
+  <input type="email" name="email" value="{{ pessoa.email }}" autocomplete="username" hidden readonly>
+  <label>Senha (de 10 a 128 caracteres)
+    <input type="password" name="senha" autocomplete="new-password" minlength="10" maxlength="128" required autofocus>
+  </label>
+  <label>A mesma senha de novo
+    <input type="password" name="confirmacao" autocomplete="new-password" minlength="10" maxlength="128" required>
+  </label>
+  {% if pessoa.papel == "porteiro" %}
+  <label>PIN de 6 números (para a troca de porteiro no tablet)
+    <input type="password" name="pin" inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6" autocomplete="off" required>
+  </label>
+  {% endif %}
+  <button type="submit">Criar a senha</button>
+</form>
+{% endif %}
+{% endblock %}

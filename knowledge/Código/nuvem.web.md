@@ -84,6 +84,32 @@ Os alertas nas telas ([[6.2 Telas do MVP|SDD 6.2]] e [[8.1 Falhas|8.1]], [[D-68]
 - **`sino_da_administracao`**: O sino da administração.
 - **`pedir_o_whatsapp_da_administracao`**: O link do WhatsApp com o código de uso único, para a administração.
 
+### `nuvem.web.clientes`
+
+`nuvem/src/nuvem/web/clientes.py`
+
+O cadastro do cliente na administração ([[6.2 Telas do MVP|SDD 6.2]], [[D-75]]).
+
+- ``GET /administracao/clientes``: as empresas e o formulário da empresa nova.
+- ``GET /administracao/clientes/{empresa}``: a ficha da empresa, com um formulário para cada
+  coisa que se cadastra (site, portaria, faixa, câmera, doca e pessoa).
+- Os ``POST`` cadastram e voltam à ficha. A pessoa nova e o link novo de senha mostram o link
+  **uma vez só**, na própria resposta (que não fica guardada no navegador): o código nunca vai
+  para um endereço de redirecionamento.
+
+- **`empresas`**: As empresas e o formulário da empresa nova.
+- **`nova_empresa`**: Cadastra a empresa e abre a ficha dela.
+- **`ficha`**: A ficha da empresa.
+- **`novo_site`**: Cadastra um site (sem horário, 24 horas).
+- **`nova_portaria`**: Cadastra uma portaria no site.
+- **`nova_faixa`**: Cadastra uma faixa de entrada ou de saída na portaria.
+- **`nova_camera`**: Cadastra uma câmera na faixa (a senha vai cifrada).
+- **`trocar_camera`**: Troca o endereço e o login da câmera; a senha, só se vier uma nova.
+- **`nova_doca`**: Cadastra uma doca no site.
+- **`nova_pessoa`**: Cadastra a pessoa, sem senha, e mostra o link para ela criar a senha (uma vez só).
+- **`novo_link`**: Um link novo de senha (a senha esquecida); o anterior deixa de valer.
+- **`mudar_situacao`**: Ativa ou desativa a pessoa (desativar fecha as sessões dela).
+
 ### `nuvem.web.csrf`
 
 `nuvem/src/nuvem/web/csrf.py`
@@ -98,7 +124,8 @@ código que outro site não tem como saber: o HMAC do código da sessão com um 
 - **No formulário:** o campo escondido ``_csrf`` (as telas recebem ``csrf`` no contexto).
 - **No HTMX:** o cabeçalho ``X-CSRF-Token`` (o ``hx-headers`` do ``<body>``).
 - **Ficam de fora** só as rotas em que o cookie não decide quem pede (``ISENTAS``): o login
-  (que recusa o envio vindo de outro site), o link da transportadora, o link de demonstração, a
+  (que recusa o envio vindo de outro site), o link da transportadora, o link de senha ([[D-75]]), o
+  link de demonstração, a
   API da caixa (pela chave), o webhook do WhatsApp (pela assinatura, [[D-63]]) e o retorno do SMS
   (pelo segredo no endereço, [[D-64]]).
 
@@ -343,6 +370,22 @@ cookie, recusa o envio que o navegador marca como vindo de outro site (``Sec-Fet
 - **`ir_com_a_sessao`**: Leva a ``destino`` com o cookie da sessão aberta (o código só vai no cookie).
 - **`por_o_cookie`**: Põe na resposta o cookie da sessão aberta (``HttpOnly``, ``SameSite=Lax``).
 
+### `nuvem.web.senha`
+
+`nuvem/src/nuvem/web/senha.py`
+
+A pessoa cria a própria senha pelo link da administração ([[8.2 Segurança|SDD 8.2]], [[D-75]]).
+
+- ``GET /senha/{codigo}``: o formulário (a senha duas vezes e, para o porteiro, o PIN).
+- ``POST /senha/{codigo}``: cria a senha; o link deixa de valer e as sessões da pessoa se fecham.
+
+Quem decide quem pede é o código do endereço, e não o cookie: a rota fica de fora do código
+anti-CSRF (como o link da transportadora), e o código sai do registro de acesso ([[D-34]]). A página
+não guarda nada no navegador nem manda o endereço a outro site.
+
+- **`formulario`**: O formulário da senha, ou o aviso de que o link não vale.
+- **`criar`**: Cria a senha (e o PIN do porteiro).
+
 ### `nuvem.web.titular`
 
 `nuvem/src/nuvem/web/titular.py`
@@ -381,6 +424,7 @@ A base de treino na administração ([[6.2 Telas do MVP|SDD 6.2]], [[D-71]]).
 - `nuvem/tests/test_nuvem_web_agendamentos.py`: Tela de agendamentos ([[6.2 Telas do MVP|SDD 6.2]]): o gestor vê e alimenta os agendamentos dos sites dele.
 - `nuvem/tests/test_nuvem_web_agendar.py`: Telas do link da transportadora ([[6.2 Telas do MVP|SDD 6.2]] e [[8.2 Segurança|8.2]]): o formulário, a confirmação e os avisos.
 - `nuvem/tests/test_nuvem_web_alertas.py`: Os alertas nas telas ([[6.2 Telas do MVP|SDD 6.2]] e [[8.1 Falhas|8.1]], [[D-68]]): o sino, a lista e o link do WhatsApp.
+- `nuvem/tests/test_nuvem_web_clientes.py`: As telas do cadastro do cliente e o link de senha ([[6.2 Telas do MVP|SDD 6.2]] e [[8.2 Segurança|8.2]], [[D-75]]). Nomes, e-mails e CNPJs inventados.
 - `nuvem/tests/test_nuvem_web_csrf.py`: O código anti-CSRF ([[8.2 Segurança|SDD 8.2]], [[D-55]]): todo pedido que muda alguma coisa, de quem tem a sessão aberta, leva o código tirado da sessão.
 - `nuvem/tests/test_nuvem_web_demonstracao.py`: A tela do dia de demonstração ([[T45]], [[D-49]]): começar o dia e acompanhar.
 - `nuvem/tests/test_nuvem_web_demonstracao_link.py`: As telas do link de demonstração ([[T48]], [[D-52]] e [[D-54]]): a administração, a página do link e a faixa que troca de papel.

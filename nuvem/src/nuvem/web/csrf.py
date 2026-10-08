@@ -8,7 +8,8 @@ código que outro site não tem como saber: o HMAC do código da sessão com um 
 - **No formulário:** o campo escondido ``_csrf`` (as telas recebem ``csrf`` no contexto).
 - **No HTMX:** o cabeçalho ``X-CSRF-Token`` (o ``hx-headers`` do ``<body>``).
 - **Ficam de fora** só as rotas em que o cookie não decide quem pede (``ISENTAS``): o login
-  (que recusa o envio vindo de outro site), o link da transportadora, o link de demonstração, a
+  (que recusa o envio vindo de outro site), o link da transportadora, o link de senha (D-75), o
+  link de demonstração, a
   API da caixa (pela chave), o webhook do WhatsApp (pela assinatura, D-63) e o retorno do SMS
   (pelo segredo no endereço, D-64).
 """
@@ -25,6 +26,7 @@ CABECALHO = "X-CSRF-Token"
 ISENTAS = (
     "/entrar",
     "/agendar/",
+    "/senha/",
     "/demonstracao/link/",
     "/api/borda/",
     "/api/whatsapp",

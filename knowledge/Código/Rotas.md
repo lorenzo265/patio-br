@@ -17,6 +17,18 @@ Os endereços da API e das telas, lidos dos decoradores (`@roteador.get(...)`) c
 | `/administracao/alertas` | GET | `tela_da_administracao` | [[nuvem.web]] | Os alertas abertos da caixa, da câmera e das tarefas, de todas as empresas. |
 | `/administracao/alertas/sino` | GET | `sino_da_administracao` | [[nuvem.web]] | O sino da administração. |
 | `/administracao/alertas/whatsapp` | POST | `pedir_o_whatsapp_da_administracao` | [[nuvem.web]] | O link do WhatsApp com o código de uso único, para a administração. |
+| `/administracao/clientes` | GET | `empresas` | [[nuvem.web]] | As empresas e o formulário da empresa nova. |
+| `/administracao/clientes` | POST | `nova_empresa` | [[nuvem.web]] | Cadastra a empresa e abre a ficha dela. |
+| `/administracao/clientes/{empresa_id}` | GET | `ficha` | [[nuvem.web]] | A ficha da empresa. |
+| `/administracao/clientes/{empresa_id}/cameras` | POST | `nova_camera` | [[nuvem.web]] | Cadastra uma câmera na faixa (a senha vai cifrada). |
+| `/administracao/clientes/{empresa_id}/cameras/{camera_id}` | POST | `trocar_camera` | [[nuvem.web]] | Troca o endereço e o login da câmera; a senha, só se vier uma nova. |
+| `/administracao/clientes/{empresa_id}/docas` | POST | `nova_doca` | [[nuvem.web]] | Cadastra uma doca no site. |
+| `/administracao/clientes/{empresa_id}/faixas` | POST | `nova_faixa` | [[nuvem.web]] | Cadastra uma faixa de entrada ou de saída na portaria. |
+| `/administracao/clientes/{empresa_id}/pessoas` | POST | `nova_pessoa` | [[nuvem.web]] | Cadastra a pessoa, sem senha, e mostra o link para ela criar a senha (uma vez só). |
+| `/administracao/clientes/{empresa_id}/pessoas/{usuario_id}/link` | POST | `novo_link` | [[nuvem.web]] | Um link novo de senha (a senha esquecida); o anterior deixa de valer. |
+| `/administracao/clientes/{empresa_id}/pessoas/{usuario_id}/situacao` | POST | `mudar_situacao` | [[nuvem.web]] | Ativa ou desativa a pessoa (desativar fecha as sessões dela). |
+| `/administracao/clientes/{empresa_id}/portarias` | POST | `nova_portaria` | [[nuvem.web]] | Cadastra uma portaria no site. |
+| `/administracao/clientes/{empresa_id}/sites` | POST | `novo_site` | [[nuvem.web]] | Cadastra um site (sem horário, 24 horas). |
 | `/administracao/demonstracao` | GET | `lista_de_links` | [[nuvem.web]] | Os links de demonstração e o formulário de gerar um novo. |
 | `/administracao/demonstracao` | POST | `gerar_link` | [[nuvem.web]] | Gera um link para uma empresa visitada e mostra o endereço, uma vez só. |
 | `/administracao/demonstracao/{link_id}/revogar` | POST | `revogar_link` | [[nuvem.web]] | Revoga o link: ele deixa de valer, e as pessoas da empresa dele saem na hora. |
@@ -119,6 +131,8 @@ Os endereços da API e das telas, lidos dos decoradores (`@roteador.get(...)`) c
 | `/prova/visitas/{visita_id}/disputa` | POST | `disputa` | [[nuvem.web]] | Marca ou desmarca a visita em disputa e volta à página da prova. |
 | `/recebimento` | GET | `recebimento` | [[nuvem.web]] | A conferência de uma nota na doca, com dados de exemplo. |
 | `/sair` | POST | `sair` | [[nuvem.web]] | Fecha a sessão no servidor e apaga o cookie. |
+| `/senha/{codigo}` | GET | `formulario` | [[nuvem.web]] | O formulário da senha, ou o aviso de que o link não vale. |
+| `/senha/{codigo}` | POST | `criar` | [[nuvem.web]] | Cria a senha (e o PIN do porteiro). |
 | `/trocar-porteiro` | GET | `tela_de_trocar_porteiro` | [[nuvem.web]] | Os porteiros que podem assumir o tablet, e o campo do PIN. |
 | `/trocar-porteiro` | POST | `trocar_porteiro` | [[nuvem.web]] | Passa a sessão para o porteiro escolhido, se o PIN dele conferir. |
 

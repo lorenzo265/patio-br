@@ -42,6 +42,7 @@ from nuvem.treino.guarda import guarda_do_treino_da_configuracao
 from nuvem.web import agendamentos as tela_de_agendamentos
 from nuvem.web import agendar as tela_do_link
 from nuvem.web import alertas as tela_dos_alertas
+from nuvem.web import clientes as telas_dos_clientes
 from nuvem.web import csrf
 from nuvem.web import demonstracao as tela_da_demonstracao
 from nuvem.web import duas_etapas as telas_das_duas_etapas
@@ -54,6 +55,7 @@ from nuvem.web import portaria as tela_da_portaria
 from nuvem.web import prova as tela_da_prova
 from nuvem.web import resolucao as tela_de_resolucao
 from nuvem.web import rotas as web
+from nuvem.web import senha as tela_da_senha
 from nuvem.web import titular as tela_do_titular
 from nuvem.web import treino as tela_do_treino
 
@@ -147,6 +149,8 @@ def criar_app(configuracao: Configuracao | None = None, senhas: Senhas | None = 
     app.include_router(tela_dos_alertas.roteador_da_administracao)
     app.include_router(tela_da_prova.roteador)
     app.include_router(tela_do_titular.roteador)
+    app.include_router(telas_dos_clientes.roteador)
+    app.include_router(tela_da_senha.roteador)
     app.include_router(tela_do_treino.roteador)
     tela_do_link.esconder_codigo_no_registro_de_acesso()
     app.mount("/estatico", StaticFiles(directory=PASTA_ESTATICA), name="estatico")

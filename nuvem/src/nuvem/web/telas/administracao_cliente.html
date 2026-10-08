@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% block titulo %}{{ ficha.empresa.nome }} · patio-br{% endblock %}
+{% block cabeca %}
+<style>body { max-width: 64rem; } code { overflow-wrap: anywhere; } .link { padding: 0.75rem; border: 2px solid currentColor; }</style>
+{% endblock %}
+{% block conteudo %}
+{% set base = "/administracao/clientes/" ~ ficha.empresa.id %}
+<h1>{{ ficha.empresa.nome }}</h1>
+<p>CNPJ {{ ficha.empresa.cnpj }} · <a href="/administracao/clientes">todos os clientes</a></p>
+{% if erro %}<p class="erro" role="alert">{{ erro }}</p>{% endif %}
+{% if link %}
+<div class="link" role="status">
+  <p><strong>O link de senha de {{ link_de }}</strong>, que vale até {{ quando(link_vence_em) }}. Ele aparece só agora: copie e mande para a pessoa.</p>
+  <p><code>{{ link }}</code></p>
+</div>
+{% endif %}
+
+<h2>Os sites</h2>
+{% for s in ficha.sites %}
+<h3>{{ s.site.nome }}</h3>
+<p>Fuso {{ s.site.fuso }} · {% if s.site.abre %}das {{ s.site.abre.strftime("%H:%M") }} às {{ s.site.fecha.strftime("%H:%M") }}{% else %}24 horas{% endif %}</p>
+{% for p in s.portarias %}
+<h4>Portaria {{ p.portaria.nome }}</h4>
+<ul>
+  {% for f in p.faixas %}
+  <li>Faixa {{ f.faixa.nome }} ({{ f.faixa.sentido }})
+    <ul>
+      {% for c in f.cameras %}
+      <li>Câmera {{ c.nome }} ({{ c.posicao }}) · <code>{{ c.endereco }}</code>{% if c.login %} · login {{ c.login }}{% endif %}
+        <form method="post" action="{{ base }}/cameras/{{ c.id }}">
+          <input type="hidden" name="_csrf" value="{{ csrf }}">
+          <label>Endereço <input name="endereco" value="{{ c.endereco }}" maxlength="300" required></label>
+          <label>Login <input name="login" value="{{ c.login }}" maxlength="100" autocomplete="off"></label>
+          <label>Senha nova (vazia: a mesma) <input type="password" name="senha" maxlength="200" autocomplete="new-password"></label>
+          <button type="submit">Trocar</button>
+        </form>
+      </li>
+      {% else %}<li>Nenhuma câmera.</li>{% endfor %}
+    </ul>
+  </li>
+  {% else %}<li>Nenhuma faixa.</li>{% endfor %}
+</ul>
+{% else %}<p>Nenhuma portaria.</p>{% endfor %}
+<p>Docas: {% for d in s.docas %}{{ d.nome }}{% if not loop.last %}, {% endif %}{% else %}nenhuma{% endfor %}</p>
+{% else %}
+<p>Nenhum site ainda.</p>
+{% endfor %}
+
+<h2>As pessoas</h2>
+{% if ficha.pessoas %}
+<table>
+  <tr><th>Nome</th><th>E-mail</th><th>Papel</th><th>Sites</th><th>Senha</th><th></th></tr>
+  {% for p in ficha.pessoas %}
+  <tr>
+    <td>{{ p.usuario.nome }}{% if not p.usuario.ativo %} (desativada){% endif %}</td>
+    <td>{{ p.usuario.email }}</td>
+    <td>{{ papeis[p.usuario.papel] }}</td>
+    <td>{{ p.sites | join(", ") }}</td>
+    <td>{% if p.tem_senha %}criada{% else %}ainda não{% endif %}{% if p.link_vence_em %} · link até {{ quando(p.link_vence_em) }}{% endif %}</td>
+    <td>
+      {% if p.usuario.ativo %}
+      <form method="post" action="{{ base }}/pessoas/{{ p.usuario.id }}/link">
+        <input type="hidden" name="_csrf" value="{{ csrf }}">
+        <button type="submit">Link novo de senha</button>
+      </form>
+      {% endif %}
+      <form method="post" action="{{ base }}/pessoas/{{ p.usuario.id }}/situacao">
+        <input type="hidden" name="_csrf" value="{{ csrf }}">
+        <input type="hidden" name="ativa" value="{{ 'false' if p.usuario.ativo else 'true' }}">
+        <button type="submit">{% if p.usuario.ativo %}Desativar{% else %}Reativar{% endif %}</button>
+      </form>
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+{% else %}
+<p>Ninguém ainda.</p>
+{% endif %}
+
+<h2>Cadastrar</h2>
+<h3>Site</h3>
+<form method="post" action="{{ base }}/sites">
+  <input type="hidden" name="_csrf" value="{{ csrf }}">
+  <label>Nome <input name="nome" maxlength="100" required></label>
+  <label>Fuso <input name="fuso" value="{{ fuso_padrao }}" maxlength="60" required></label>
+  <label>Abre (vazio: 24 horas) <input type="time" name="abre"></label>
+  <label>Fecha <input type="time" name="fecha"></label>
+  <button type="submit">Cadastrar o site</button>
+</form>
+{% if ficha.sites %}
+<h3>Portaria</h3>
+<form method="post" action="{{ base }}/portarias">
+  <input type="hidden" name="_csrf" value="{{ csrf }}">
+  <label>Site <select name="site">{% for s in ficha.sites %}<option value="{{ s.site.id }}">{{ s.site.nome }}</option>{% endfor %}</select></label>
+  <label>Nome <input name="nome" maxlength="100" required></label>
+  <button type="submit">Cadastrar a portaria</button>
+</form>
+<h3>Doca</h3>
+<form method="post" action="{{ base }}/docas">
+  <input type="hidden" name="_csrf" value="{{ csrf }}">
+  <label>Site <select name="site">{% for s in ficha.sites %}<option value="{{ s.site.id }}">{{ s.site.nome }}</option>{% endfor %}</select></label>
+  <label>Nome <input name="nome" maxlength="100" required></label>
+  <button type="submit">Cadastrar a doca</button>
+</form>
+{% set portarias = ficha.sites | map(attribute="portarias") | sum(start=[]) %}
+{% if portarias %}
+<h3>Faixa</h3>
+<form method="post" action="{{ base }}/faixas">
+  <input type="hidden" name="_csrf" value="{{ csrf }}">
+  <label>Portaria <select name="portaria">{% for p in portarias %}<option value="{{ p.portaria.id }}">{{ p.portaria.nome }}</option>{% endfor %}</select></label>
+  <label>Nome <input name="nome" maxlength="100" required></label>
+  <label>Sentido <select name="sentido"><option value="entrada">entrada</option><option value="saida">saída</option></select></label>
+  <button type="submit">Cadastrar a faixa</button>
+</form>
+{% set faixas = portarias | map(attribute="faixas") | sum(start=[]) %}
+{% if faixas %}
+<h3>Câmera</h3>
+<form method="post" action="{{ base }}/cameras">
+  <input type="hidden" name="_csrf" value="{{ csrf }}">
+  <label>Faixa <select name="faixa">{% for f in faixas %}<option value="{{ f.faixa.id }}">{{ f.faixa.nome }}</option>{% endfor %}</select></label>
+  <label>Nome <input name="nome" maxlength="100" required></label>
+  <label>Posição <select name="posicao"><option value="frente">frente</option><option value="tras">trás</option><option value="contexto">contexto</option></select></label>
+  <label>Endereço (rtsp://…, sem usuário nem senha) <input name="endereco" maxlength="300" required></label>
+  <label>Login <input name="login" maxlength="100" autocomplete="off"></label>
+  <label>Senha <input type="password" name="senha" maxlength="200" autocomplete="new-password"></label>
+  <button type="submit">Cadastrar a câmera</button>
+</form>
+{% endif %}
+{% endif %}
+<h3>Pessoa</h3>
+<form method="post" action="{{ base }}/pessoas">
+  <input type="hidden" name="_csrf" value="{{ csrf }}">
+  <label>Nome <input name="nome" maxlength="100" required></label>
+  <label>E-mail <input type="email" name="email" maxlength="200" required autocomplete="off"></label>
+  <label>Papel <select name="papel">{% for valor, nome in papeis.items() %}<option value="{{ valor }}">{{ nome }}</option>{% endfor %}</select></label>
+  <fieldset><legend>Sites</legend>
+    {% for s in ficha.sites %}<label><input type="checkbox" name="sites" value="{{ s.site.id }}"> {{ s.site.nome }}</label>{% endfor %}
+  </fieldset>
+  <button type="submit">Cadastrar a pessoa e gerar o link de senha</button>
+</form>
+{% endif %}
+<p><a href="/">Início</a></p>
+{% endblock %}
