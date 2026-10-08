@@ -350,7 +350,7 @@ def test_chamada_e_fim_na_doca_avisam_o_motorista(
     conversa = mensagens.conversa(sessao, acesso_a, agendamento.id)
     assert [m.modelo for m in conversa] == ["confirmacao", "na_fila", "chamada", "pode_sair"]
     assert conversa[2].texto == "Sua vez! Siga para a Doca 2."
-    assert conversa[3].texto == "Descarga terminada. Pode sair pela portaria. Boa viagem!"
+    assert conversa[3].texto == "Pronto! Descarga terminada. Pode sair pela portaria. Boa viagem!"
     assert all(m.para == CELULAR for m in conversa)
 
 
@@ -365,7 +365,7 @@ def test_o_fim_da_carga_diz_carga(
 
     mensagens.preparar(sessao, agora=AGORA)
 
-    assert _textos(sessao, acesso_a, agendamento)[-1].startswith("Carga terminada.")
+    assert _textos(sessao, acesso_a, agendamento)[-1].startswith("Pronto! Carga terminada.")
 
 
 def test_cada_evento_gera_uma_mensagem_so(

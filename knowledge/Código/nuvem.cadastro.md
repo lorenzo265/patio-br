@@ -187,6 +187,7 @@ As funções gravam com ``flush`` (o registro ganha id); o ``commit`` é de quem
 - **`estrutura_do_site`**: As faixas de um site (por id), com as câmeras de cada uma, sem senhas.
 - **`HorarioDoSite`** (classe): O nome, o fuso e o horário de operação de um site (vazio = 24 horas).
 - **`horario_do_site`**: O horário de um site, para o formulário do link da transportadora.
+- **`empresa_do_site`**: A empresa de um site, ou ``None`` se ele não existe.
 - **`obter_site_para_administracao`**: Um site de qualquer empresa. Só para a administração (as rotas dela conferem).
 - **`criar_empresa`**: Cadastra um cliente. O CNPJ vai sem pontuação (14 caracteres).
 - **`criar_site`**: Cadastra um site do cliente; sem ``abre`` nem ``fecha``, ele funciona 24 horas.

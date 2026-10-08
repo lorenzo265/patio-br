@@ -9,7 +9,9 @@
 - **"Não veio"** (SDD 5.2): a cada 5 minutos, o agendamento ativo sem visita, com a janela
   vencida há mais que a tolerância, ganha a visita em ``NAO_VEIO``. Um worker de cada vez (trava
   do PostgreSQL).
-- **Mensagens ao motorista** (D-47): a cada volta, as que faltam (``mensagens.preparar``).
+- **Mensagens ao motorista** (D-47): a cada volta, as que faltam (``mensagens.preparar``); a
+  que sai por um canal de verdade vira a tarefa "enviar mensagem", e o aviso do webhook do
+  WhatsApp, a tarefa "aviso do WhatsApp" (D-63). As duas usam os canais do ``Contexto``.
 - **Dia de demonstração** (D-49): a cada volta, se o ambiente tiver, as chegadas e o líder
   automático.
 
@@ -20,6 +22,7 @@ import logging
 import threading
 import time
 from collections.abc import Callable, Sequence
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any, Literal
 from uuid import UUID
@@ -40,6 +43,7 @@ from sqlalchemy.orm import Mapped, Session, mapped_column
 from nuvem.agendamento import servico as agendamentos
 from nuvem.banco import Base, texto_de_lista
 from nuvem.mensagens import servico as mensagens
+from nuvem.mensagens.canais import Canais
 from nuvem.portaria import visitas
 from nuvem.portaria.casamento import TOLERANCIA_PADRAO, processar_passagem
 from nuvem.portaria.modelos import Visita
@@ -48,7 +52,7 @@ from nuvem.relogio import agora as agora_de_verdade
 
 _registro = logging.getLogger(__name__)
 
-TipoDeTarefa = Literal["casar_passagem"]
+TipoDeTarefa = Literal["casar_passagem", "enviar_mensagem", "aviso_do_whatsapp"]
 SituacaoDaTarefa = Literal["pendente", "feita", "falhou"]
 
 MAXIMO_DE_TENTATIVAS = 8
@@ -101,14 +105,35 @@ class TarefaDeFundo(Base):
     ultimo_erro: Mapped[str | None] = mapped_column(String(TAMANHO_DO_ERRO))
 
 
-Executor = Callable[[Session, dict[str, Any], datetime], None]
+@dataclass(frozen=True)
+class Contexto:
+    """O que as tarefas usam além do banco: os canais das mensagens (D-63)."""
+
+    canais: Canais = field(default_factory=Canais)
 
 
-def _casar(sessao: Session, dados: dict[str, Any], agora: datetime) -> None:
+Executor = Callable[[Session, dict[str, Any], datetime, Contexto], None]
+
+
+def _casar(sessao: Session, dados: dict[str, Any], agora: datetime, _contexto: Contexto) -> None:
     processar_passagem(sessao, UUID(dados["passagem_id"]), agora=agora)
 
 
-EXECUTORES: dict[str, Executor] = {"casar_passagem": _casar}
+def _enviar(sessao: Session, dados: dict[str, Any], agora: datetime, contexto: Contexto) -> None:
+    mensagens.enviar(sessao, contexto.canais, int(dados["mensagem_id"]), agora=agora)
+
+
+def _aviso_do_whatsapp(
+    sessao: Session, dados: dict[str, Any], agora: datetime, contexto: Contexto
+) -> None:
+    mensagens.tratar_aviso(sessao, contexto.canais, dados["aviso"], agora=agora)
+
+
+EXECUTORES: dict[str, Executor] = {
+    "casar_passagem": _casar,
+    "enviar_mensagem": _enviar,
+    "aviso_do_whatsapp": _aviso_do_whatsapp,
+}
 """O que cada tipo de tarefa faz."""
 
 
@@ -163,7 +188,7 @@ def espera(tentativas: int) -> timedelta:
     return min(dobrada, MAIOR_ESPERA)
 
 
-def executar_uma(sessao: Session, *, agora: datetime) -> bool:
+def executar_uma(sessao: Session, *, agora: datetime, contexto: Contexto | None = None) -> bool:
     """Executa a próxima tarefa e grava o resultado (com ``commit``).
 
     Returns:
@@ -174,7 +199,7 @@ def executar_uma(sessao: Session, *, agora: datetime) -> bool:
         return False
     try:
         with sessao.begin_nested():  # a falha desfaz só o que a tarefa gravou
-            EXECUTORES[tarefa.tipo](sessao, tarefa.dados, agora)
+            EXECUTORES[tarefa.tipo](sessao, tarefa.dados, agora, contexto or Contexto())
     except Exception as erro:
         _falhou(tarefa, erro, agora)
     else:
@@ -184,10 +209,12 @@ def executar_uma(sessao: Session, *, agora: datetime) -> bool:
     return True
 
 
-def executar_pendentes(sessao: Session, *, agora: datetime, limite: int = 100) -> int:
+def executar_pendentes(
+    sessao: Session, *, agora: datetime, limite: int = 100, contexto: Contexto | None = None
+) -> int:
     """Executa as tarefas que já podem rodar, até ``limite``; devolve quantas executou."""
     executadas = 0
-    while executadas < limite and executar_uma(sessao, agora=agora):
+    while executadas < limite and executar_uma(sessao, agora=agora, contexto=contexto):
         executadas += 1
     return executadas
 
@@ -263,14 +290,17 @@ def rodar(
     relogio: Callable[[], datetime] = agora_de_verdade,
     dormir: Callable[[float], None] = time.sleep,
     demonstracao: Callable[[Session, datetime], int] | None = None,
+    canais: Canais | None = None,
 ) -> None:
     """Executa as tarefas, confere o "não veio" e prepara as mensagens até ``parar`` ser ligado.
 
     Com ``demonstracao`` (só nos ambientes que têm o dia de demonstração, D-49), ela roda antes,
-    a cada volta: as passagens que ela manda casam na mesma volta.
+    a cada volta: as passagens que ela manda casam na mesma volta. Com ``canais``, as mensagens
+    saem por eles (D-63); sem, ficam no canal de demonstração.
 
     Um erro inesperado (ex.: o banco fora do ar) fica registrado, e o laço segue.
     """
+    contexto = Contexto(canais=canais or Canais())
     ultimo_nao_veio: datetime | None = None
     while not parar.is_set():
         try:
@@ -279,14 +309,14 @@ def rodar(
                 if demonstracao is not None:
                     demonstracao(sessao, momento)
                     sessao.commit()
-                executadas = executar_pendentes(sessao, agora=momento)
+                executadas = executar_pendentes(sessao, agora=momento, contexto=contexto)
                 if ultimo_nao_veio is None or momento - ultimo_nao_veio >= INTERVALO_DO_NAO_VEIO:
                     abertas = conferir_nao_veio(sessao, agora=momento)
                     sessao.commit()
                     ultimo_nao_veio = momento
                     if abertas:
                         _registro.info('"não veio": %d visitas', abertas)
-                mensagens.preparar(sessao, agora=momento)
+                mensagens.preparar(sessao, agora=momento, canais=canais)
                 sessao.commit()
         except Exception:
             _registro.exception("erro no laço do worker; ele segue")

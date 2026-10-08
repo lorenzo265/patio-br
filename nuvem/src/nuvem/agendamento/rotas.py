@@ -52,7 +52,6 @@ class AgendamentoPublico(BaseModel):
     placas_reboques: list[str]
     motorista_nome: str | None
     motorista_celular: str | None
-    whatsapp_autorizado_em: datetime | None
     toneladas: Decimal | None
     chave_nfe: str | None
     origem: Origem

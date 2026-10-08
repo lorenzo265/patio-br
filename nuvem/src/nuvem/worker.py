@@ -1,9 +1,10 @@
 """O worker da nuvem (SDD 6.1 e D-38): ``python -m nuvem.worker``.
 
-Executa as tarefas da fila (o casamento das passagens), confere o "não veio", prepara as
-mensagens e, nos ambientes que têm, avança o dia de demonstração (D-49) e apaga as empresas dos
-links de demonstração vencidos (D-54), até receber o sinal de parar (SIGTERM do Docker, ou
-Ctrl+C). Lê a configuração do ambiente, como a API.
+Executa as tarefas da fila (o casamento das passagens; o envio das mensagens e o aviso do
+WhatsApp, D-63), confere o "não veio", prepara as mensagens e, nos ambientes que têm, avança o
+dia de demonstração (D-49) e apaga as empresas dos links de demonstração vencidos (D-54), até
+receber o sinal de parar (SIGTERM do Docker, ou Ctrl+C). Lê a configuração do ambiente, como a
+API.
 """
 
 import logging
@@ -20,6 +21,8 @@ from nuvem.cifra import Cifra
 from nuvem.config import ConfiguracaoInvalidaError, ler_configuracao
 from nuvem.demonstracao import dia as dia_de_demonstracao
 from nuvem.demonstracao import link as links_de_demonstracao
+from nuvem.mensagens import whatsapp
+from nuvem.mensagens.canais import Canais
 
 _registro = logging.getLogger("nuvem.worker")
 
@@ -44,11 +47,14 @@ def main() -> None:
             faxina(sessao, agora)
             return dia_de_demonstracao.avancar(sessao, agora=agora, armazenamento=armazenamento)
 
+    canais = Canais(whatsapp=whatsapp.canal_da_configuracao(configuracao))
     for sinal in (signal.SIGTERM, signal.SIGINT):
         signal.signal(sinal, lambda *_: parar.set())
-    _registro.info("worker no ar")
+    _registro.info("worker no ar (WhatsApp %s)", "ligado" if canais.whatsapp else "desligado")
     try:
-        tarefas_de_fundo.rodar(sessionmaker(motor), parar, demonstracao=avancar_a_demonstracao)
+        tarefas_de_fundo.rodar(
+            sessionmaker(motor), parar, demonstracao=avancar_a_demonstracao, canais=canais
+        )
     finally:
         motor.dispose()
         _registro.info("worker parado")

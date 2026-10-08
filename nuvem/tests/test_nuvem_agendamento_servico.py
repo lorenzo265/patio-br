@@ -184,36 +184,6 @@ def test_mesmo_codigo_em_outro_site_e_outro_agendamento(
     assert _gravar(sessao, site_a).agendamento.id != _gravar(sessao, site_b).agendamento.id
 
 
-def test_trocar_o_celular_apaga_a_autorizacao_de_whatsapp(
-    sessao: Session, site_a: SiteDoAgendamento
-) -> None:
-    agendamento = _gravar(sessao, site_a).agendamento
-    agendamento.whatsapp_autorizado_em = AGORA  # o motorista autorizou (mês 4)
-    sessao.flush()
-
-    _gravar(sessao, site_a, motorista_celular="21987654321")
-
-    assert agendamento.whatsapp_autorizado_em is None
-    mudanca = _mudancas(sessao, agendamento)[-1]
-    assert mudanca.antes == {
-        "motorista_celular": "+5511987654321",
-        "whatsapp_autorizado_em": AGORA.isoformat(),
-    }
-    assert mudanca.depois == {"motorista_celular": "+5521987654321", "whatsapp_autorizado_em": None}
-
-
-def test_reenvio_sem_trocar_o_celular_mantem_a_autorizacao(
-    sessao: Session, site_a: SiteDoAgendamento
-) -> None:
-    agendamento = _gravar(sessao, site_a).agendamento
-    agendamento.whatsapp_autorizado_em = AGORA
-    sessao.flush()
-
-    _gravar(sessao, site_a, toneladas="31")
-
-    assert agendamento.whatsapp_autorizado_em == AGORA
-
-
 # --- Cancelar ---------------------------------------------------------------------------------
 
 

@@ -258,6 +258,15 @@ testes.
 **Verificar:** com o número de teste da Meta, as quatro mensagens chegam ao celular do Lorenzo, e
 "SAIR" para o envio.
 
+*Detalhado na execução (D-63):*
+- o canal é escolhido ao gravar a mensagem: WhatsApp se o celular autorizou a empresa, senão SMS
+  (que a T53 manda); sem o WhatsApp configurado, o de demonstração;
+- a autorização vem da mensagem "AVISOS A<agendamento>" (o link do SMS) ou "AVISOS S<site>" (o QR
+  da portaria, numa tela para o gestor imprimir); "SAIR" cancela em todas as empresas;
+- o webhook só confere a assinatura e guarda o aviso numa tarefa; o worker faz o resto;
+- o texto do "pode sair" ganhou "Pronto!" na frente: a Meta recusa modelo que começa com uma
+  variável.
+
 **Commit:** `feat(mensagens): WhatsApp pela Cloud API`
 
 #### T53. SMS de reserva e o "motorista não avisado"

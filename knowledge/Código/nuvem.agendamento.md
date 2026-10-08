@@ -184,6 +184,7 @@ As funções gravam com ``flush``; o ``commit`` é de quem chama.
 - **`ativos_perto`**: Os agendamentos ativos de um site cuja janela, alargada pela folga, contém o momento.
 - **`ativos_que_terminaram`**: Os agendamentos ativos, de todos os sites, cuja janela terminou em ``[de, ate)``.
 - **`para_confirmar`**: Os agendamentos ativos com celular, de todos os sites, criados ou mudados desde ``mudados_desde`` e cuja janela ainda não terminou.
+- **`empresa_do_agendamento`**: A empresa de um agendamento de qualquer site, ou ``None`` se ele não existe.
 - **`com_celular`**: Os agendamentos com celular entre estes, de todos os sites, por id.
 - **`listar`**: Os agendamentos de um site cuja janela toca o período ``[de, ate)``, pelo início.
 - **`dias_com_agendamento`**: Os dias, no fuso do site, em que começa algum agendamento do site em ``[de, ate)``.

@@ -70,8 +70,6 @@ class Agendamento(Base):
     motorista_nome: Mapped[str | None] = mapped_column(String(120))
     motorista_celular: Mapped[str | None] = mapped_column(String(14))
     """Com o +55 (ex.: ``+5511987654321``)."""
-    whatsapp_autorizado_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    """Quando o motorista autorizou as mensagens (mês 4); trocar o celular apaga."""
     toneladas: Mapped[Decimal | None] = mapped_column(Numeric(9, 3))
     chave_nfe: Mapped[str | None] = mapped_column(String(44))
     origem: Mapped[Origem] = mapped_column(texto_de_lista(Origem, "origem"))

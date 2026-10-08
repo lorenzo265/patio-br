@@ -163,3 +163,65 @@ def test_so_a_homologacao_e_a_producao_exigem_as_duas_etapas(
     monkeypatch.setenv("PATIO_AMBIENTE", ambiente)
 
     assert Configuracao(_env_file=None).exige_duas_etapas is exige
+
+
+WHATSAPP_COMPLETO = {
+    "PATIO_WHATSAPP_TOKEN": "token-inventado",
+    "PATIO_WHATSAPP_NUMERO_ID": "1234567890",
+    "PATIO_WHATSAPP_NUMERO": "5511900000000",
+    "PATIO_WHATSAPP_SEGREDO_DO_APP": "segredo-inventado",
+    "PATIO_WHATSAPP_CODIGO_DO_WEBHOOK": "codigo-inventado",
+}
+
+
+def test_o_whatsapp_completo_fica_configurado(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("PATIO_URL_BANCO", URL)
+    for nome, valor in WHATSAPP_COMPLETO.items():
+        monkeypatch.setenv(nome, valor)
+
+    configuracao = Configuracao(_env_file=None)
+
+    assert configuracao.tem_whatsapp
+    assert configuracao.whatsapp_versao == "v25.0"
+
+
+@pytest.mark.parametrize("faltando", list(WHATSAPP_COMPLETO))
+def test_o_whatsapp_pela_metade_impede_a_nuvem_de_iniciar(
+    monkeypatch: pytest.MonkeyPatch, faltando: str
+) -> None:
+    monkeypatch.setenv("PATIO_URL_BANCO", URL)
+    for nome, valor in WHATSAPP_COMPLETO.items():
+        if nome != faltando:
+            monkeypatch.setenv(nome, valor)
+
+    with pytest.raises(ValidationError, match="whatsapp"):
+        Configuracao(_env_file=None)
+
+
+def test_sem_whatsapp_nada_e_enviado(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("PATIO_URL_BANCO", URL)
+
+    assert not Configuracao(_env_file=None).tem_whatsapp
+
+
+def test_a_demonstracao_nunca_manda_whatsapp(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("PATIO_URL_BANCO", URL)
+    monkeypatch.setenv("PATIO_AMBIENTE", "demonstracao")
+    for nome, valor in WHATSAPP_COMPLETO.items():
+        monkeypatch.setenv(nome, valor)
+
+    with pytest.raises(ValidationError, match="demonstração"):
+        Configuracao(_env_file=None)
+
+
+@pytest.mark.parametrize("numero", ["+5511900000000", "11900000000", "55119000a0000"])
+def test_o_numero_do_whatsapp_e_so_numeros_com_o_55(
+    monkeypatch: pytest.MonkeyPatch, numero: str
+) -> None:
+    monkeypatch.setenv("PATIO_URL_BANCO", URL)
+    for nome, valor in WHATSAPP_COMPLETO.items():
+        monkeypatch.setenv(nome, valor)
+    monkeypatch.setenv("PATIO_WHATSAPP_NUMERO", numero)
+
+    with pytest.raises(ValidationError, match="whatsapp_numero"):
+        Configuracao(_env_file=None)
