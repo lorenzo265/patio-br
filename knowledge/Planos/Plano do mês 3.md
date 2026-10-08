@@ -46,7 +46,7 @@ números são gerados pela semente (regra 3 do [[CLAUDE - regras do repositório
 - a caixa de borda com fila offline, saúde, atualização e contêiner → mês 4;
 - a trilha de prova completa → mês 4 (a demonstração usa os eventos que já existem);
 - os alertas por mensagem → mês 4, com o WhatsApp de verdade;
-- o gerador de placas sintéticas (T39) → depois da demonstração; ele não aparece nela.
+- o gerador de placas sintéticas ([[T39]]) → depois da demonstração; ele não aparece nela.
 
 **O que vem do mês 4 para cá:** os indicadores e o extrato, o ambiente na internet (só para a
 demonstração, com dados inventados) e a segurança mínima para a internet (anti-CSRF e limite
@@ -69,7 +69,7 @@ de login por endereço).
 
 As mesmas regras dos meses 1 e 2 ([[CLAUDE - regras do repositório|CLAUDE.md]]), com estes ajustes:
 
-- **Numeração:** as tarefas continuam de onde parou ([[T40]] em diante; a T39, das placas
+- **Numeração:** as tarefas continuam de onde parou ([[T40]] em diante; a [[T39]], das placas
   sintéticas, fica para depois). As branches levam `mes3/` (ex.: `mes3/t40-visual`).
 - **Telas de verdade, não maquetes:** tudo o que a demonstração mostra roda no código do
   produto, com testes, exceto a visão do recebimento e do estoque ([[T46]]), que é declarada

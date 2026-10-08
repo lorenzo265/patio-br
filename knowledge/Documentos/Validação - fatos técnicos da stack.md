@@ -111,3 +111,33 @@ sem partes GPL.
 | Windows x86-64 | uma DLL só, `opencv_videoio_ffmpeg500_64.dll`, com o FFmpeg dentro | **LGPL 2.1** ("libswscale license: LGPL version 2.1 or later"); nada de x264, x265 nem OpenSSL |
 
 A lista e o texto das licenças vêm na própria roda, em `cv2/LICENSE-3RD-PARTY.txt`.
+
+## WhatsApp e SMS para o mês 4 (verificados em 2026-10-06)
+
+Fontes abertas uma a uma, para o plano do mês 4 ([[Plano do mês 4|docs/planos/2027-01-plano-mes-4.md]]).
+
+- **Autorização (opt-in):** a política da Meta diz "You may only contact people on WhatsApp if:
+  (a) they have given you their mobile phone number or username; and (b) you have received
+  opt-in permission from the recipient confirming that they wish to receive subsequent messages
+  or calls from you". O jeito de colher a autorização é responsabilidade da empresa, e a
+  política não diz se um terceiro pode colhê-la por ela
+  ([WhatsApp Business Messaging Policy](https://whatsappbusiness.com/policy/)). No patio-br, o
+  número do motorista vem da transportadora ou da planilha do cliente: isso vira o
+  [[ABERTO-22]].
+- **Limites de envio:** "Newly created business portfolios have a messaging limit of 250"; com a
+  verificação da empresa, 2.000; depois, 10 mil, 100 mil e sem limite, subindo sozinho. O limite
+  é do portfólio da empresa, dividido por todos os números dele
+  ([Meta, messaging limits](https://developers.facebook.com/docs/whatsapp/messaging-limits)).
+- **Preço:** a Meta cobra por mensagem desde 01/07/2025
+  ([Meta, pricing](https://developers.facebook.com/docs/whatsapp/pricing)). A página da Meta
+  ainda diz que o modelo de utilidade enviado dentro da janela de 24 horas (depois da última
+  mensagem da pessoa) é grátis; a Zenvia, parceira da Meta, diz que desde 01/10/2026 ele e as
+  respostas livres passam a ser cobrados, com as 1.000 primeiras mensagens de serviço do mês
+  grátis ([Zenvia](https://zenvia.com/novas-regras-cobranca-whatsapp-2026/)), o que bate com a
+  tabela em reais de 29/09 (acima). As contas do [[7.6 Custos de operação (piloto, 1 site; preços de 2026-09-29)|SDD 7.6]] já cobram toda mensagem; conferir na
+  abertura da conta. Desde 01/07/2026, a conta pode ser cobrada em reais pela Meta no Brasil.
+- **SMS:** a Twilio cobra US$ 0,0599 por SMS ao Brasil, menos com volume
+  ([Twilio](https://www.twilio.com/sms/pricing/br)); a Zenvia, brasileira e cobrando em reais,
+  não publica o preço no site: é por orçamento ([Zenvia](https://zenvia.com/sms/)). O preço é
+  por pedaço de mensagem: com só os caracteres do GSM-7, cabem 160; um acento do português que
+  não está nele (á, ã, ç, õ, ê...) muda a mensagem para 70 caracteres por pedaço.

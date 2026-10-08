@@ -1,7 +1,7 @@
 ---
 tipo: "mapa"
 escrita: "à mão"
-atualizada: "2026-10-05"
+atualizada: "2026-10-06"
 tags: [pendencias]
 ---
 
@@ -10,7 +10,7 @@ tags: [pendencias]
 O que só o Lorenzo pode fazer ou decidir. O código não resolve nenhum item em aberto sem passar
 por ele ([[0. Como usar este documento|SDD, seção 0]]).
 
-> [!info] Retrato de 05/10/2026
+> [!info] Retrato de 06/10/2026
 > A situação dos itens da trilha não técnica não fica registrada no repositório: confira e
 > atualize esta nota quando algum andar.
 
@@ -28,8 +28,19 @@ por ele ([[0. Como usar este documento|SDD, seção 0]]).
   - o acesso passa pelo cofre de segredos do ambiente, nunca pelo repositório;
   - o passo a passo, com as variáveis de ambiente: [[Guia da demonstração na internet]].
 - [ ] **Listar as empresas para apresentar** e marcar as conversas ([[N18]]).
-- [ ] **Juntar os PRs abertos:** o [#47](https://github.com/lorenzo265/patio-br/pull/47) (decisões
-  e prompt) e, depois dele, o deste vault.
+
+## Para o mês 4 (a versão do piloto)
+
+- [x] **Aprovar o [[Plano do mês 4]]**: aprovado em 06/10, com as recomendações ([[D-57]] a
+  [[D-62]]).
+- [ ] **Pedir o orçamento da Zenvia** e conferir que ganha da Twilio ([[D-59]], [[N20]]).
+- [ ] **Abrir as contas do mês:** o número do WhatsApp e os modelos de mensagem ([[N19]], depois
+  da verificação da [[N1]]), o SMS ([[N20]]), a AWS e o domínio ([[N21]]) e o Tailscale e uma
+  caixa de teste ([[N23]]).
+- [ ] **Levar ao advogado** a autorização do motorista ([[D-58]]: ele confere antes do primeiro
+  motorista de verdade), o SMS, os prazos de guarda, a cláusula do treino e o contrato do piloto
+  ([[N22]]).
+- [ ] **Fechar o piloto pago:** o cliente, o site, o preço e a data da instalação ([[N24]]).
 
 ## Com o advogado
 

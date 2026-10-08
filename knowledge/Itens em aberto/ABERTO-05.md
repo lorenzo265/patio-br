@@ -19,6 +19,8 @@ tags: [item-em-aberto]
 ## Onde aparece
 
 - [[5.4 Contas do extrato]]
+- [[N24]]
+- [[Plano do mês 4]]
 
 ---
 
