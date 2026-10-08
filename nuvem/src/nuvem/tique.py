@@ -51,7 +51,10 @@ def avancar(
         return False
     dia.avancar(sessao, agora=agora, armazenamento=armazenamento)
     sessao.commit()
-    tarefas_de_fundo.executar_pendentes(sessao, agora=agora, limite=TAREFAS_POR_TIQUE)
+    contexto = tarefas_de_fundo.Contexto(armazenamento=armazenamento)
+    tarefas_de_fundo.executar_pendentes(
+        sessao, agora=agora, limite=TAREFAS_POR_TIQUE, contexto=contexto
+    )
     mensagens.preparar(sessao, agora=agora)
     if conferir_alertas:
         alertas.conferir(sessao, agora=agora)

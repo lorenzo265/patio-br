@@ -32,6 +32,10 @@ Uma empresa nunca vê o que é de outra, e quem não tem o papel certo não entr
 - **A prova só se apaga na demonstração:** o banco deixa apagar evento, mudança de agendamento,
   conferência e extrato só de uma empresa que nasceu de um link de demonstração, e só quando a
   transação avisa qual empresa está apagando ([[D-54]], [[5.5 Garantias]]).
+- **A prova é uma cadeia** ([[D-69]], [[T58]]): cada registro da visita vira um elo com o
+  resumo do anterior; mudar um registro no meio quebra a cadeia, e a âncora do dia (o último
+  resumo de cada visita, num balde travado por 5 anos, fora do banco) mostra se alguém refez a
+  cadeia inteira. A página da prova é só do gestor dos sites dele.
 - **Antes da internet** (feito no mês 3, [[T47]] parte 1, [[8.2 Segurança]]):
   - **código anti-CSRF** tirado da sessão ([[D-55]]): todo formulário que muda alguma coisa leva
     o campo `_csrf`, o HTMX leva o cabeçalho `X-CSRF-Token`, e a nuvem recusa o pedido sem ele

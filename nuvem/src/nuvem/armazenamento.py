@@ -147,6 +147,22 @@ def armazenamento_da_configuracao(configuracao: Configuracao, cifra: Cifra) -> "
     )
 
 
+def cliente_s3(*, endereco: str, regiao: str, chave: str, segredo: str) -> Any:
+    """O cliente S3 do boto3 para um S3 qualquer (a AWS ou o Supabase), com o balde no caminho."""
+    # Importados aqui: só quem usa o S3 paga o tempo de importar o boto3.
+    import boto3
+    from botocore.config import Config
+
+    return boto3.client(
+        "s3",
+        endpoint_url=endereco,
+        region_name=regiao,
+        aws_access_key_id=chave,
+        aws_secret_access_key=segredo,
+        config=Config(signature_version="s3v4", s3={"addressing_style": "path"}),
+    )
+
+
 class ArmazenamentoS3:
     """Fotos num balde S3 (D-56), cada caixa na sua pasta (``caixa-<id>/``), como no disco."""
 
@@ -165,19 +181,9 @@ class ArmazenamentoS3:
         cls, *, endereco: str, regiao: str, balde: str, chave: str, segredo: str
     ) -> "ArmazenamentoS3":
         """O armazenamento num S3 qualquer; o balde vai no caminho, como o Supabase pede."""
-        # Importados aqui: só quem usa o S3 paga o tempo de importar o boto3.
-        import boto3
-        from botocore.config import Config
-
-        cliente = boto3.client(
-            "s3",
-            endpoint_url=endereco,
-            region_name=regiao,
-            aws_access_key_id=chave,
-            aws_secret_access_key=segredo,
-            config=Config(signature_version="s3v4", s3={"addressing_style": "path"}),
+        return cls(
+            cliente_s3(endereco=endereco, regiao=regiao, chave=chave, segredo=segredo), balde
         )
-        return cls(cliente, balde)
 
     def endereco_de_envio(self, caixa_id: int, ref: str, *, agora: datetime) -> str:
         """Devolve o endereço assinado do S3 para a caixa enviar a foto (15 minutos)."""

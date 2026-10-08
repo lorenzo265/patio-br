@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block titulo %}Prova da visita {{ visita.id }} · patio-br{% endblock %}
+{% block cabeca %}
+<style>
+  body { max-width: 60rem; }
+  .integra { color: #075e2a; font-weight: bold; }
+  .resumo { font-family: ui-monospace, monospace; font-size: 0.85rem; word-break: break-all; }
+  .recorte { height: 80px; }
+  @media print { .acoes, .sino { display: none; } }
+</style>
+{% endblock %}
+{% block conteudo %}
+<h1>Prova da visita {{ visita.id }}</h1>
+<p><strong>{{ visita.placa }}</strong> · {{ visita.site }} · chegou {{ visita.chegou or "—" }}{% if visita.saiu %} · saiu {{ visita.saiu }}{% endif %} · {{ visita.estado }}</p>
+<p class="acoes"><a href="/prova/visitas/{{ visita.id }}.json">Baixar o arquivo da prova</a> · imprima esta página ou salve em PDF pelo navegador.</p>
+
+<h2>Conferência</h2>
+{% if conferencia.quebrado %}
+<p class="erro" role="alert">Elo quebrado: nº {{ conferencia.quebrado.ordem }} ({{ conferencia.quebrado.tipo }} {{ conferencia.quebrado.referencia }}): {{ conferencia.quebrado.motivo }}.</p>
+{% elif conferencia.integra %}
+<p class="integra">Cadeia íntegra: {{ conferencia.elos }} elos conferidos (os resumos, os registros de origem e as fotos).</p>
+{% else %}
+<p>Os {{ conferencia.elos }} elos conferem, mas uma âncora não (abaixo).</p>
+{% endif %}
+<ul>
+  {% for ancora in conferencia.ancoras %}
+  <li>Âncora de {{ ancora.dia }}:
+    {% if ancora.situacao == "confere" %}confere{% if ancora.travada %} (arquivo travado contra apagar e mudar){% else %} (arquivo sem trava neste ambiente){% endif %}
+    {% elif ancora.situacao == "sem_ancora" %}ainda sem âncora (ela é gravada depois que o dia termina, em UTC)
+    {% else %}<span class="erro">não confere: {{ ancora.motivo }}</span>{% endif %}
+  </li>
+  {% endfor %}
+</ul>
+
+<h2>Passagens</h2>
+{% for passagem in passagens %}
+<article>
+  <h3>{{ passagem.sentido }} · {{ passagem.faixa }} · {{ passagem.inicio }} a {{ passagem.fim }} (hora da caixa)</h3>
+  <p>Recebida pela nuvem em {{ passagem.recebida }} · leitor {{ passagem.leitor }} · {{ passagem.saude }}</p>
+  <table>
+    <tr><th>Placa lida</th><th>Papel</th><th>Confiança</th><th>Câmera</th></tr>
+    {% for placa in passagem.placas %}
+    <tr><td>{{ placa.placa }}</td><td>{{ placa.papel }}</td><td>{{ placa.confianca }}</td><td>{{ placa.camera }}</td></tr>
+    {% else %}
+    <tr><td colspan="4">nenhuma placa lida</td></tr>
+    {% endfor %}
+  </table>
+  {% for foto in passagem.fotos %}
+  <p>Foto {{ foto.indice }} ({{ foto.tipo }}, {{ foto.camera }}):
+    {% if foto.resumo %}<br><img class="recorte" src="/portaria/fotos/{{ passagem.id }}/{{ foto.indice }}" alt="foto {{ foto.indice }} da passagem"><br><span class="resumo">SHA-256 {{ foto.resumo }}</span>
+    {% else %}não chegou{% endif %}
+  </p>
+  {% endfor %}
+</article>
+{% else %}
+<p>Nenhuma passagem (registro à mão ou sem câmera).</p>
+{% endfor %}
+
+<h2>Eventos</h2>
+<table>
+  <tr><th>Quando</th><th>O quê</th><th>Quem</th></tr>
+  {% for evento in eventos %}
+  <tr><td>{{ evento.quando }}</td><td>{{ evento.o_que }}</td><td>{{ evento.quem }}</td></tr>
+  {% endfor %}
+</table>
+
+{% if conferencias %}
+<h2>Conferências da placa</h2>
+<table>
+  <tr><th>Quando</th><th>Lida</th><th>Conferida</th><th>Quem</th></tr>
+  {% for c in conferencias %}
+  <tr><td>{{ c.quando }}</td><td>{{ c.lida }}</td><td>{{ c.placa }}</td><td>{{ c.quem }}</td></tr>
+  {% endfor %}
+</table>
+{% endif %}
+
+{% if mensagens %}
+<h2>Mensagens ao motorista</h2>
+<table>
+  <tr><th>Mensagem</th><th>Para</th><th>Situações</th></tr>
+  {% for m in mensagens %}
+  <tr><td>{{ m.modelo }} ({{ m.canal }}){% if m.texto %}<br>{{ m.texto }}{% endif %}</td><td>{{ m.para }}</td><td>{{ m.situacoes | join(" · ") }}</td></tr>
+  {% endfor %}
+</table>
+{% endif %}
+
+<h2>A cadeia</h2>
+<p>Regra do resumo: <span class="resumo">{{ regra }}</span>.</p>
+<table>
+  <tr><th>Nº</th><th>Tipo</th><th>Sobre</th><th>Resumo</th><th>Selado</th></tr>
+  {% for elo in elos %}
+  <tr><td>{{ elo.ordem }}</td><td>{{ elo.tipo }}</td><td class="resumo">{{ elo.referencia }}</td><td class="resumo">{{ elo.resumo }}</td><td>{{ elo.selado }}</td></tr>
+  {% endfor %}
+</table>
+<p class="acoes"><a href="/prova">Outras visitas</a> · <a href="/">Início</a></p>
+{% endblock %}

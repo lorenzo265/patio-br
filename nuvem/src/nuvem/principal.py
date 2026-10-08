@@ -35,6 +35,7 @@ from nuvem.erros import (
 from nuvem.frota import rotas as frota
 from nuvem.mensagens import rotas as webhook_do_whatsapp
 from nuvem.portaria import rotas as portaria
+from nuvem.prova.ancoras import guarda_da_configuracao
 from nuvem.senhas import Senhas
 from nuvem.web import agendamentos as tela_de_agendamentos
 from nuvem.web import agendar as tela_do_link
@@ -48,6 +49,7 @@ from nuvem.web import frota as tela_da_frota
 from nuvem.web import mensagens as tela_das_mensagens
 from nuvem.web import patio as tela_do_patio
 from nuvem.web import portaria as tela_da_portaria
+from nuvem.web import prova as tela_da_prova
 from nuvem.web import resolucao as tela_de_resolucao
 from nuvem.web import rotas as web
 
@@ -85,6 +87,7 @@ def criar_app(configuracao: Configuracao | None = None, senhas: Senhas | None = 
     app.state.senhas = senhas or Senhas()
     app.state.cifra = Cifra(configuracao.chave_cifra)
     app.state.armazenamento = armazenamento_da_configuracao(configuracao, app.state.cifra)
+    app.state.ancoras = guarda_da_configuracao(configuracao)
     app.state.tique = configuracao.tique
     app.state.alertas_conferidos_em = None  # pelo tique (D-68)
     app.state.segredo_do_cron = (
@@ -134,6 +137,7 @@ def criar_app(configuracao: Configuracao | None = None, senhas: Senhas | None = 
     app.include_router(tela_de_agendamentos.roteador)
     app.include_router(tela_dos_alertas.roteador)
     app.include_router(tela_dos_alertas.roteador_da_administracao)
+    app.include_router(tela_da_prova.roteador)
     tela_do_link.esconder_codigo_no_registro_de_acesso()
     app.mount("/estatico", StaticFiles(directory=PASTA_ESTATICA), name="estatico")
     return app

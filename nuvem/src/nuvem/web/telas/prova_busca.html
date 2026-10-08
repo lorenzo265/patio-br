@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block titulo %}Prova das visitas · patio-br{% endblock %}
+{% block conteudo %}
+<h1>Prova das visitas</h1>
+<p>Cada visita tem a prova dela: as passagens, os eventos, as conferências da placa e as mensagens ao motorista, numa cadeia conferível.</p>
+<form method="get" action="/prova">
+  <label for="placa">Placa</label>
+  <input id="placa" name="placa" value="{{ placa }}" placeholder="ABC1D23" autocomplete="off">
+  <button type="submit">Procurar</button>
+</form>
+{% if erro %}<p class="erro" role="alert">{{ erro }}</p>{% endif %}
+{% if visitas %}
+<table>
+  <tr><th>Visita</th><th>Placa</th><th>Site</th><th>Chegou</th><th>Estado</th></tr>
+  {% for visita in visitas %}
+  <tr><td><a href="/prova/visitas/{{ visita.id }}">{{ visita.id }}</a></td><td>{{ visita.placa }}</td><td>{{ visita.site }}</td><td>{{ visita.chegou }}</td><td>{{ visita.estado }}</td></tr>
+  {% endfor %}
+</table>
+{% elif not erro %}
+<p>Nenhuma visita{% if placa %} com essa placa{% endif %}.</p>
+{% endif %}
+<p><a href="/">Início</a></p>
+{% endblock %}

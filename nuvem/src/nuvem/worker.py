@@ -1,10 +1,10 @@
 """O worker da nuvem (SDD 6.1 e D-38): ``python -m nuvem.worker``.
 
 Executa as tarefas da fila (o casamento das passagens; o envio das mensagens e o aviso do
-WhatsApp, D-63), confere o "não veio", prepara as mensagens e, nos ambientes que têm, avança o
-dia de demonstração (D-49) e apaga as empresas dos links de demonstração vencidos (D-54), até
-receber o sinal de parar (SIGTERM do Docker, ou Ctrl+C). Lê a configuração do ambiente, como a
-API.
+WhatsApp, D-63; o resumo das fotos, D-69), confere o "não veio" e os alertas, prepara as
+mensagens, sela a prova e grava a âncora do dia (D-69) e, nos ambientes que têm, avança o dia de
+demonstração (D-49) e apaga as empresas dos links de demonstração vencidos (D-54), até receber o
+sinal de parar (SIGTERM do Docker, ou Ctrl+C). Lê a configuração do ambiente, como a API.
 """
 
 import logging
@@ -23,6 +23,7 @@ from nuvem.demonstracao import dia as dia_de_demonstracao
 from nuvem.demonstracao import link as links_de_demonstracao
 from nuvem.mensagens import sms, whatsapp
 from nuvem.mensagens.canais import Canais
+from nuvem.prova.ancoras import guarda_da_configuracao
 
 _registro = logging.getLogger("nuvem.worker")
 
@@ -39,8 +40,8 @@ def main() -> None:
     motor = motor_da_configuracao(configuracao)
     parar = threading.Event()
     avancar_a_demonstracao = None
+    armazenamento = armazenamento_da_configuracao(configuracao, Cifra(configuracao.chave_cifra))
     if configuracao.tem_demonstracao:
-        armazenamento = armazenamento_da_configuracao(configuracao, Cifra(configuracao.chave_cifra))
         faxina = links_de_demonstracao.Faxina(armazenamento)
 
         def avancar_a_demonstracao(sessao: Session, agora: datetime) -> int:
@@ -60,7 +61,12 @@ def main() -> None:
     )
     try:
         tarefas_de_fundo.rodar(
-            sessionmaker(motor), parar, demonstracao=avancar_a_demonstracao, canais=canais
+            sessionmaker(motor),
+            parar,
+            demonstracao=avancar_a_demonstracao,
+            canais=canais,
+            armazenamento=armazenamento,
+            ancoras=guarda_da_configuracao(configuracao),
         )
     finally:
         motor.dispose()

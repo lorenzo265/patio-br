@@ -488,6 +488,14 @@ terceiros dentro.
 - **Quem vê:** só o gestor do site, com as regras de separação de sempre.
 - **No SDD:** a cadeia e a âncora viram uma D-nn.
 
+*Detalhado na execução (D-69):* o elo é selado depois de o registro ser gravado (o worker, a cada
+minuto, o que chegou nos últimos 7 dias; a página, a visita que abre), e não dentro de cada
+gravação; o resumo da foto é feito pela nuvem por uma tarefa da fila, logo que a passagem chega
+(as fotos chegam antes dela); a saúde da caixa vai no retrato da passagem, porque a saúde só fica
+7 dias; a âncora vai para um balde só dela, com Object Lock por 5 anos, porque as fotos precisam
+se apagar aos 90 dias (T59). Uma foto que sumiu conta como elo quebrado: a T59 separa a foto
+apagada pela guarda.
+
 **Commit:** `feat(prova): a prova da visita, encadeada e conferível`
 
 #### T59. Prazos de guarda e o pedido do titular

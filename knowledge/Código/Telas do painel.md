@@ -52,6 +52,8 @@ Os arquivos Jinja de `nuvem/src/nuvem/web/telas/`, a função que mostra cada um
 | `portaria_excecoes.html` | `nuvem.web.portaria.lista_de_excecoes` |  |  |
 | `portaria_manual.html` | `nuvem.web.resolucao._chegada_manual` | `base.html` |  |
 | `portaria_passagens.html` | `nuvem.web.portaria.lista_de_passagens` |  |  |
+| `prova.html` | `nuvem.web.prova.pagina` | `base.html` |  |
+| `prova_busca.html` | `nuvem.web.prova.busca` | `base.html` |  |
 | `recebimento.html` | `nuvem.web.em_breve.recebimento` | `base.html` |  |
 | `trocar_porteiro.html` | `nuvem.web.rotas._tela_da_troca` | `base.html` |  |
 
