@@ -582,6 +582,12 @@ exportação é o comando `tarefas treino`; a empresa de demonstração não ent
 - **As imagens não vão para o Git:** ficam em `dados/`, e só o código entra.
 - **A base Artificial Mercosur** (CC BY 4.0) entra com o crédito que a licença pede.
 
+*Detalhado na execução (D-72):* as letras são uma fonte de traços desenhada por nós (o gerador
+aceita uma TTF de licença permissiva ou OFL no lugar); só o tamanho de carro e caminhão (a placa
+de moto fica de fora: o pátio é de caminhões); o comando `uv run tarefas sinteticas` gera as
+placas em `dados/sinteticas`. O crédito da Artificial Mercosur fica em `ml/CREDITOS.md`, com os
+nomes dos autores a copiar da página da base quando ela for baixada.
+
 **Commit:** `feat(ml): gerador de placas sintéticas`
 
 #### T61. Agendamentos por API e webhooks

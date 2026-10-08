@@ -781,12 +781,18 @@ version = "0.1.0"
 source = { editable = "ml" }
 dependencies = [
     { name = "httpx" },
+    { name = "numpy" },
+    { name = "patio-contratos" },
+    { name = "pillow" },
     { name = "pyyaml" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "httpx", specifier = ">=0.28.1" },
+    { name = "numpy", specifier = ">=2.5.3" },
+    { name = "patio-contratos", editable = "contratos" },
+    { name = "pillow", specifier = ">=12.3.0" },
     { name = "pyyaml", specifier = ">=6.0.3" },
 ]
 

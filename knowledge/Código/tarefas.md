@@ -48,6 +48,7 @@ Novos comandos entram junto com a tarefa que cria o que eles executam.
 - **`etapas_do_semente`**: Devolve a etapa que grava os dados de demonstração no banco de ``PATIO_URL_BANCO``.
 - **`etapas_do_demonstracao`**: Devolve a etapa que cria a empresa de demonstração no banco de desenvolvimento ([[D-49]]).
 - **`etapas_do_treino`**: Monta a pasta da base de treino em ``dados/treino`` ([[D-71]]).
+- **`etapas_do_sinteticas`**: Gera um lote de placas sintéticas em ``dados/sinteticas`` ([[D-72]]).
 - **`etapas_do_conhecimento`**: Devolve a etapa que gera o vault do Obsidian (``knowledge/``) de docs/ e do código.
 - **`etapas_do_modelos`**: Devolve a etapa que baixa os modelos do leitor v0 para ``modelos/v0`` (fora do Git).
 - **`etapas_do_demo`**: Devolve a demonstração: sobe tudo, migra, semeia e roda o simulador.

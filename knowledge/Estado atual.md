@@ -129,7 +129,7 @@ recomendações ([[D-57]] a [[D-62]]). As tarefas que não precisam de conta com
 | [[T58]] prova encadeada | feita ([#60](https://github.com/lorenzo265/patio-br/pull/60), [[D-69]]): a trava de verdade das âncoras espera o balde da AWS com Object Lock ([[T49]]) |
 | [[T59]] prazos de guarda e o pedido do titular | feita ([#61](https://github.com/lorenzo265/patio-br/pull/61), [[D-70]]): os prazos são parâmetros até o [[ABERTO-04]] |
 | [[T60]] base de treino | feita ([#62](https://github.com/lorenzo265/patio-br/pull/62), [[D-71]]): com cliente, espera a cláusula do contrato ([[N22]]) |
-| [[T39]] placas sintéticas | pode começar |
+| [[T39]] placas sintéticas | feita ([#63](https://github.com/lorenzo265/patio-br/pull/63), [[D-72]]): o crédito da Artificial Mercosur espera os nomes dos autores, ao baixar a base |
 | [[T61]] API e webhooks | só se o cliente do piloto pedir |
 | [[T62]] o roteiro do piloto em homologação (o marco) | depois das outras |
 

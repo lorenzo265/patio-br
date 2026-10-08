@@ -44,6 +44,7 @@ Ferramentas do projeto: comandos do dia a dia e simulador.
 Treino, avaliação e exportação dos modelos do leitor de placas.
 
 - [[ml]]: Treino, avaliação e exportação dos modelos do leitor de placas ([[4.6 Dados de treino|SDD, seção 4.6]]).
+	- [[ml.sinteticas]]: Placas sintéticas para começar o treino da leitura sem placas reais ([[4.6 Dados de treino|SDD 4.6]], [[D-44]] e [[D-72]]).
 
 ## nuvem (`nuvem/`)
 

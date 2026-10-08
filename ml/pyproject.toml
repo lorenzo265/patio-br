@@ -5,8 +5,14 @@ description = "Treino, avaliação e exportação dos modelos do leitor de placa
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "httpx>=0.28.1",
+    "numpy>=2.5.3",
+    "patio-contratos",
+    "pillow>=12.3.0",
     "pyyaml>=6.0.3",
 ]
+
+[tool.uv.sources]
+patio-contratos = { workspace = true }
 
 [build-system]
 requires = ["hatchling>=1.25"]
