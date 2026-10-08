@@ -2,12 +2,16 @@
 Caddy, o ``.env`` de exemplo e o workflow do deploy prometem. Subir de verdade espera a conta da
 AWS (N21); a CI sobe o compose como na homologação (o trabalho ``producao`` do ``ci.yml``)."""
 
+import json
+import logging
 import re
 from pathlib import Path
 from typing import Any
 
 import pytest
 import yaml
+
+from nuvem.registro import FormatoJson
 
 pytestmark = pytest.mark.integracao  # lê os arquivos do repositório
 
@@ -190,6 +194,119 @@ def test_a_ci_sobe_o_compose_da_producao_como_na_homologacao() -> None:
     [subir] = [passo["run"] for passo in passos if "up -d --wait" in passo.get("run", "")]
 
     assert "cp infra/producao/compose.yml infra/producao/Caddyfile" in comandos
+    assert "compose.registros.yml" in comandos
     assert "cp infra/producao/env.exemplo" in comandos  # o exemplo precisa ser lido
     assert "\nCOMPOSE_PROFILES=homologacao\n" in subir  # o banco num contêiner
     assert "https://localhost/saude" in comandos
+
+
+# --- O registro no CloudWatch e os alarmes (D-74) -------------------------------------------
+
+REGISTROS = PASTA / "compose.registros.yml"
+ALARMES = PASTA / "aws" / "alarmes.yml"
+VERIFICACAO = PASTA / "aws" / "verificacao.yml"
+DOCKERFILE = RAIZ / "nuvem" / "Dockerfile"
+
+
+def test_o_registro_de_cada_servico_vai_ao_cloudwatch_sem_travar_a_nuvem() -> None:
+    servicos = _yaml(REGISTROS)["services"]
+
+    assert set(servicos) == {"migracoes", "api", "worker", "caddy"}
+    for nome, servico in servicos.items():
+        registro = servico["logging"]
+        assert registro["driver"] == "awslogs", nome
+        opcoes = registro["options"]
+        assert opcoes["awslogs-region"] == "sa-east-1"  # o registro fica no Brasil
+        assert opcoes["awslogs-group"].startswith("${REGISTRO_GRUPO:?")
+        assert opcoes["mode"] == "non-blocking"
+
+
+def test_o_env_de_exemplo_liga_o_registro_e_o_balde_das_copias() -> None:
+    valores = _env_exemplo()
+
+    assert valores["COMPOSE_FILE"] == "compose.yml:compose.registros.yml"
+    assert valores["REGISTRO_GRUPO"] == "patio-producao"
+    assert valores["PATIO_COPIAS_S3_BALDE"].startswith("TROQUE")
+
+
+def _recursos(arquivo: Path) -> dict[str, Any]:
+    recursos: dict[str, Any] = _yaml(arquivo)["Resources"]
+    return recursos
+
+
+def test_cada_erro_do_registro_toca_o_alarme_por_email() -> None:
+    recursos = _recursos(ALARMES)
+    filtro = recursos["ContagemDeErros"]["Properties"]
+    alarme = recursos["AlarmeDeErro"]["Properties"]
+
+    assert recursos["Registro"]["Properties"]["RetentionInDays"] == 30
+    # O filtro lê o campo que a nuvem escreve em cada linha (nuvem.registro.FormatoJson).
+    linha = json.loads(
+        FormatoJson().format(
+            logging.LogRecord("nuvem", logging.ERROR, __file__, 1, "falhou", None, None)
+        )
+    )
+    assert linha["nivel"] == "ERROR"
+    assert '($.nivel = "ERROR")' in filtro["FilterPattern"]
+    [metrica] = filtro["MetricTransformations"]
+    assert (alarme["MetricName"], alarme["Namespace"]) == (
+        metrica["MetricName"],
+        metrica["MetricNamespace"],
+    )
+    assert (alarme["Period"], alarme["Threshold"], alarme["Statistic"]) == (60, 1, "Sum")
+    assert alarme["ComparisonOperator"] == "GreaterThanOrEqualToThreshold"
+    assert alarme["AlarmActions"] == [{"Ref": "Avisos"}]
+    assert recursos["Avisos"]["Properties"]["Subscription"][0]["Protocol"] == "email"
+
+
+def test_quem_escreve_o_registro_so_escreve_nele() -> None:
+    usuario = _recursos(ALARMES)["QuemEscreveORegistro"]["Properties"]
+
+    [politica] = usuario["Policies"]
+    [permissao] = politica["PolicyDocument"]["Statement"]
+    assert permissao["Effect"] == "Allow"
+    assert sorted(permissao["Action"]) == ["logs:CreateLogStream", "logs:PutLogEvents"]
+    assert permissao["Resource"] == {"Fn::GetAtt": ["Registro", "Arn"]}
+    assert not any(r["Type"] == "AWS::IAM::AccessKey" for r in _recursos(ALARMES).values())
+
+
+def test_o_saude_e_verificado_de_fora_a_cada_30_segundos() -> None:
+    recursos = _recursos(VERIFICACAO)
+    verificacao = recursos["Saude"]["Properties"]["HealthCheckConfig"]
+    alarme = recursos["AlarmeDaSaude"]["Properties"]
+
+    assert (verificacao["Type"], verificacao["ResourcePath"]) == ("HTTPS", "/saude")
+    assert (verificacao["RequestInterval"], verificacao["FailureThreshold"]) == (30, 2)
+    assert len(verificacao["Regions"]) >= 3
+    assert alarme["MetricName"] == "HealthCheckStatus"
+    assert alarme["Dimensions"] == [{"Name": "HealthCheckId", "Value": {"Ref": "Saude"}}]
+    assert (alarme["ComparisonOperator"], alarme["Threshold"]) == ("LessThanThreshold", 1)
+    assert alarme["TreatMissingData"] == "breaching"  # sem resposta também é fora do ar
+    assert alarme["AlarmActions"] == [{"Ref": "Avisos"}]
+
+
+def test_o_alerta_de_gasto_e_da_conta_e_sai_so_com_a_producao() -> None:
+    modelo = _yaml(VERIFICACAO)
+    gasto = modelo["Resources"]["Gasto"]
+
+    assert gasto["Condition"] == "EAProducao"
+    assert modelo["Conditions"]["EAProducao"] == {"Fn::Equals": [{"Ref": "Ambiente"}, "producao"]}
+    orcamento = gasto["Properties"]["Budget"]
+    assert (orcamento["TimeUnit"], orcamento["BudgetLimit"]["Amount"]) == (
+        "MONTHLY",
+        {"Ref": "GastoDoMes"},
+    )
+    tipos = {n["Notification"]["NotificationType"] for n in gasto["Properties"][
+        "NotificationsWithSubscribers"]}  # fmt: skip
+    assert tipos == {"ACTUAL", "FORECASTED"}
+
+
+def test_a_imagem_tem_o_cliente_do_postgresql_da_versao_do_servidor() -> None:
+    texto = DOCKERFILE.read_text(encoding="utf-8")
+
+    assert "postgresql-client-16" in texto
+    assert "/usr/lib/postgresql/16/bin" in texto
+    assert _servicos()["postgres"]["image"].startswith("postgres:16")  # a mesma versão
+    passos = _yaml(CI)["jobs"]["producao"]["steps"]
+    comandos = "\n".join(passo.get("run", "") for passo in passos)
+    assert 'pg_dump --version | grep -q " 16\\."' in comandos

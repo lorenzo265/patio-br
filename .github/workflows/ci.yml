@@ -54,7 +54,13 @@ jobs:
           enable-cache: true
       - name: Instalar o ambiente (exatamente o uv.lock)
         run: uv sync --frozen
+      - name: O cliente do PostgreSQL 16 (a cópia do banco, D-74)
+        run: |
+          command -v pg_dump || { sudo apt-get update && sudo apt-get install -y postgresql-client-16; }
+          pg_dump --version
       - name: tarefas check
+        env:
+          PATIO_EXIGE_PG_DUMP: "1"  # aqui, o teste da cópia de verdade não pode ser pulado
         run: uv run tarefas check
 
   licencas:
@@ -174,12 +180,19 @@ jobs:
         run: |
           pasta="$RUNNER_TEMP/patio"
           mkdir -p "$pasta"
-          cp infra/producao/compose.yml infra/producao/Caddyfile "$pasta/"
+          cp infra/producao/compose.yml infra/producao/Caddyfile infra/producao/compose.registros.yml \
+            "$pasta/"
           cp infra/producao/env.exemplo "$pasta/.env"
-          docker compose --project-directory "$pasta" config -q
-          COMPOSE_PROFILES=homologacao docker compose --project-directory "$pasta" config -q
+          # Como na máquina: dentro da pasta (o COMPOSE_FILE do .env é relativo a ela).
+          cd "$pasta"
+          docker compose config -q
+          COMPOSE_PROFILES=homologacao docker compose config -q
       - name: A imagem da nuvem, com o nome que o deploy usa
         run: docker build -f nuvem/Dockerfile -t ghcr.io/lorenzo265/patio-nuvem:ci .
+      - name: A imagem tem o pg_dump e o pg_restore da versão do servidor (16)
+        run: |
+          docker run --rm ghcr.io/lorenzo265/patio-nuvem:ci pg_dump --version | grep -q " 16\."
+          docker run --rm ghcr.io/lorenzo265/patio-nuvem:ci pg_restore --version | grep -q " 16\."
       - name: Sobe como na homologação (o banco num contêiner, o Caddy no localhost)
         # Valores só desta checagem; a chave é a do ambiente local (.env.exemplo).
         run: |

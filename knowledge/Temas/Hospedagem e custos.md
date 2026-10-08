@@ -37,6 +37,11 @@ Onde cada ambiente roda e quanto custa ([[7.1 Ambientes]]).
   (`infra/producao/`) nas duas máquinas, com as migrações antes da API e só o Caddy com portas
   abertas; o deploy entra pela Tailscale SSH; o passo a passo para subir, quando houver a conta,
   está no guia da produção (`docs/guias/producao.md`).
+- **As cópias e os alarmes por dentro** ([[D-74]]): o worker faz a cópia diária do banco
+  (`pg_dump`, direto para um balde S3 só das cópias, 30 dias) e, todo mês, a volta num banco
+  temporário no mesmo servidor e confere; o `/saude` falha se o worker parar de bater; o registro
+  vai ao CloudWatch em JSON, sem placa nem telefone, e os alarmes (erro, `/saude` de fora pelo
+  Route 53 e gasto) estão em dois modelos do CloudFormation, em `infra/producao/aws/`.
 - **Custos do piloto** (1 site, preços de 2026-09-29): nuvem de US$ 60 a 80 por mês, Tailscale
   US$ 8, WhatsApp cerca de R$ 380 por site e hardware de R$ 15 a 22 mil por site, uma vez
   ([[7.6 Custos de operação (piloto, 1 site; preços de 2026-09-29)]]).
@@ -45,6 +50,6 @@ Onde cada ambiente roda e quanto custa ([[7.1 Ambientes]]).
 
 - SDD: [[7.1 Ambientes]], [[7.2 Nuvem (AWS, sa-east-1)]], [[7.3 Do código à produção]],
   [[7.6 Custos de operação (piloto, 1 site; preços de 2026-09-29)]].
-- Decisões: [[D-11]], [[D-13]], [[D-51]], [[D-56]], [[D-57]], [[D-61]].
+- Decisões: [[D-11]], [[D-13]], [[D-51]], [[D-56]], [[D-57]], [[D-61]], [[D-73]], [[D-74]].
 - Tarefas: [[T04]], [[T47]], [[T49]], [[T50]]; contas: [[N2]], [[N17]], [[N21]].
 - Fatos de preço e licença: [[Validação - fatos técnicos da stack]].

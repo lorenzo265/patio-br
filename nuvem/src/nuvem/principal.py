@@ -7,6 +7,7 @@ aqui as suas rotas.
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from datetime import datetime
 from pathlib import Path
 from typing import Annotated
 
@@ -18,7 +19,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
 
-from nuvem import cron, tique
+from nuvem import batida, cron, registro, relogio, tique
 from nuvem.agendamento import rotas as agendamento
 from nuvem.armazenamento import armazenamento_da_configuracao
 from nuvem.banco import motor_da_configuracao, obter_sessao
@@ -73,6 +74,7 @@ def criar_app(configuracao: Configuracao | None = None, senhas: Senhas | None = 
         nuvem.config.ConfiguracaoInvalidaError: se faltar um valor obrigatório no ambiente.
     """
     configuracao = configuracao or ler_configuracao()
+    registro.configurar(configuracao.ambiente)
     motor = motor_da_configuracao(configuracao)
 
     @asynccontextmanager
@@ -109,6 +111,7 @@ def criar_app(configuracao: Configuracao | None = None, senhas: Senhas | None = 
     app.state.url_publica = str(configuracao.url_publica) if configuracao.url_publica else None
     app.state.segredo_csrf = csrf.segredo(configuracao.chave_cifra.get_secret_value())
     app.state.cabecalho_do_ip = configuracao.cabecalho_do_ip
+    app.state.confere_o_worker = configuracao.confere_o_worker
     app.add_api_route("/saude", saude, methods=["GET"])
     app.add_exception_handler(NaoEncontradoError, _nao_encontrado)
     app.add_exception_handler(NaoIdentificadoError, _nao_identificado)
@@ -204,11 +207,25 @@ def _sem_permissao(requisicao: Request, _erro: Exception) -> Response:
     return web.tela(requisicao, "aviso.html", contexto, status.HTTP_403_FORBIDDEN)
 
 
-def saude(sessao: Annotated[Session, Depends(obter_sessao)]) -> JSONResponse:
-    """Responde se a API está no ar e alcança o banco (503 quando não alcança)."""
+def saude(
+    requisicao: Request,
+    sessao: Annotated[Session, Depends(obter_sessao)],
+    agora: Annotated[datetime, Depends(relogio.agora)],
+) -> JSONResponse:
+    """Responde se a API está no ar e alcança o banco (503 quando não alcança).
+
+    Na homologação e na produção, responde 503 também quando o worker parou de bater (D-74):
+    a verificação de fora (o Route 53) toca o alarme.
+    """
     try:
         sessao.execute(text("select 1"))
+        worker_parado = requisicao.app.state.confere_o_worker and not batida.viva(
+            sessao, agora=agora
+        )
     except SQLAlchemyError:
         _registro.exception("saúde: o banco não respondeu")
+        return JSONResponse({"ok": False}, status_code=503)
+    if worker_parado:
+        _registro.warning("saúde: o worker não bate há mais de %s", batida.LIMITE)
         return JSONResponse({"ok": False}, status_code=503)
     return JSONResponse({"ok": True})

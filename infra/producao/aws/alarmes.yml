@@ -1,0 +1,83 @@
+# O registro da nuvem e o alarme de erro (SDD 8.1, D-61 e D-74). Em São Paulo (sa-east-1),
+# um por ambiente; o guia da produção diz como subir:
+#   aws cloudformation deploy --region sa-east-1 --stack-name patio-producao-alarmes \
+#     --template-file infra/producao/aws/alarmes.yml --capabilities CAPABILITY_NAMED_IAM \
+#     --parameter-overrides Ambiente=producao Email=<quem recebe>
+# Cada registro de erro (uma linha JSON com "nivel": "ERROR") conta; um erro num minuto manda
+# um e-mail, e outro quando o minuto passa sem erro.
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "patio-br: o registro da nuvem (30 dias) e o alarme de erro, por e-mail (D-74)"
+
+Parameters:
+  Ambiente:
+    Type: String
+    AllowedValues: [producao, homologacao]
+  Email:
+    Type: String
+    Description: quem recebe os alarmes (confirma a inscrição pelo e-mail da AWS)
+
+Resources:
+  Registro:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: {"Fn::Sub": "patio-${Ambiente}"}
+      RetentionInDays: 30
+
+  ContagemDeErros:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: {Ref: Registro}
+      FilterPattern: '{ ($.nivel = "ERROR") || ($.nivel = "CRITICAL") }'
+      MetricTransformations:
+        - MetricNamespace: patio
+          MetricName: {"Fn::Sub": "erros-${Ambiente}"}
+          MetricValue: "1"
+          DefaultValue: 0
+
+  Avisos:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: {"Fn::Sub": "patio-${Ambiente}-avisos"}
+      KmsMasterKeyId: alias/aws/sns
+      Subscription:
+        - Protocol: email
+          Endpoint: {Ref: Email}
+
+  AlarmeDeErro:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: {"Fn::Sub": "patio-${Ambiente}-erro"}
+      AlarmDescription: "Um erro registrado pela nuvem (o registro patio-<ambiente> diz qual)."
+      Namespace: patio
+      MetricName: {"Fn::Sub": "erros-${Ambiente}"}
+      Statistic: Sum
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [{Ref: Avisos}]
+      OKActions: [{Ref: Avisos}]
+
+  # Quem escreve o registro: o Docker da máquina, com a chave deste usuário. Ele só cria as
+  # linhas do grupo; não lê, não apaga e não mexe em mais nada.
+  QuemEscreveORegistro:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: {"Fn::Sub": "patio-${Ambiente}-registro"}
+      Policies:
+        - PolicyName: escrever-o-registro
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: [logs:CreateLogStream, logs:PutLogEvents]
+                Resource: {"Fn::GetAtt": [Registro, Arn]}
+
+Outputs:
+  GrupoDoRegistro:
+    Description: o REGISTRO_GRUPO do .env da máquina
+    Value: {Ref: Registro}
+  UsuarioDoRegistro:
+    Description: crie a chave dele no console do IAM e ponha no Docker da máquina (guia)
+    Value: {Ref: QuemEscreveORegistro}

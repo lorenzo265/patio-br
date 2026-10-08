@@ -54,6 +54,7 @@ Aplicação da nuvem: API, painel e módulos do produto.
 	- [[nuvem.agendamento]]: Agendamento ([[3.3 Módulos da nuvem no MVP|SDD 3.3]] e [[3.4 Conectores de agendamento|3.4]]): os agendamentos de cada site e os conectores que os trazem.
 	- [[nuvem.alertas]]: Os alertas ([[8.1 Falhas|SDD 8.1]], [[D-62]] e [[D-68]]): abrem uma vez, fecham sozinhos e avisam quem autorizou.
 	- [[nuvem.cadastro]]: Módulo cadastro ([[3.3 Módulos da nuvem no MVP|SDD 3.3]]): empresas, sites, portarias, faixas, câmeras, docas e usuários.
+	- [[nuvem.copias]]: As cópias do banco e a restauração de teste ([[7.2 Nuvem (AWS, sa-east-1)|SDD 7.2]], [[D-74]]).
 	- [[nuvem.demonstracao]]: A demonstração comercial ([[D-45]] e [[D-49]]): empresas inventadas, o mês de histórico e o dia ao vivo.
 	- [[nuvem.extrato]]: Indicadores e extrato do mês em R$ ([[5.4 Contas do extrato|SDD 5.4]] e [[D-48]]).
 	- [[nuvem.frota]]: Frota de borda ([[3.3 Módulos da nuvem no MVP|SDD 3.3]] e [[7.4 A caixa de borda|7.4]]): as caixas de cada site, a ativação e a chave de cada uma.

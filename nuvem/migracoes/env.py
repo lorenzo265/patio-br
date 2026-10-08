@@ -9,12 +9,14 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy import Connection
 
+from nuvem import batida as _batida  # noqa: F401
 from nuvem import tarefas_de_fundo as _fila  # noqa: F401
 from nuvem.agendamento import modelos as _modelos_do_agendamento  # noqa: F401
 from nuvem.alertas import modelos as _modelos_dos_alertas  # noqa: F401
 from nuvem.banco import Base, motor_da_configuracao
 from nuvem.cadastro import modelos as _modelos_do_cadastro  # noqa: F401  (registra as tabelas)
 from nuvem.config import ConfiguracaoInvalidaError, ler_configuracao
+from nuvem.copias import modelos as _modelos_das_copias  # noqa: F401
 from nuvem.demonstracao import modelos as _modelos_da_demonstracao  # noqa: F401
 from nuvem.extrato import modelos as _modelos_do_extrato  # noqa: F401
 from nuvem.frota import modelos as _modelos_da_frota  # noqa: F401
