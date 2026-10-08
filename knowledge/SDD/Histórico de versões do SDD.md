@@ -66,6 +66,7 @@ tags: [sdd]
 | 0.53 | 2026-10-06 | o gerador de placas sintéticas por dentro ([[T39]]): os tipos, as cores e as proporções, a fonte de traços nossa, as variações do recorte, a semente e o crédito da Artificial Mercosur ([[D-72]]; seção [[11. Registro de decisões\|11]]) |
 | 0.54 | 2026-10-06 | a produção e a homologação por dentro ([[T49]]): a imagem da nuvem, o compose das máquinas com as migrações antes da API, o deploy pela Tailscale SSH e a aprovação da produção no GitHub ([[D-73]]; seções [[7.3 Do código à produção\|7.3]] e [[11. Registro de decisões\|11]]) |
 | 0.55 | 2026-10-06 | as cópias, a restauração testada e os alarmes por dentro ([[T50]]): a cópia diária e a restauração de teste mensal pelo worker, a batida do worker no `/saude`, o registro em JSON sem placa nem telefone, e os alarmes no CloudFormation ([[D-74]]); as entidades `CopiaDoBanco` e `RestauracaoDeTeste` (seções [[5.1 Entidades\|5.1]], [[6.1 Stack\|6.1]], [[7.2 Nuvem (AWS, sa-east-1)\|7.2]], [[8.1 Falhas\|8.1]], [[11. Registro de decisões\|11]] e [[13. Glossário\|13]]) |
+| 0.56 | 2026-10-06 | o simulador sem rede e numa imagem, para o roteiro do piloto em homologação ([[T62]]; seção [[6.4 Simulador de portaria\|6.4]]) |
 
 ---
 

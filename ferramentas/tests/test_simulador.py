@@ -16,7 +16,12 @@ from PIL import Image
 
 from borda.leitor.interface import LeituraBruta, Quadro, Regiao
 from borda.rastreio import Deteccao
-from simulador.__main__ import ARQUIVO_DA_CAIXA, cliente_para, principal
+from simulador.__main__ import (
+    ARQUIVO_DA_CAIXA,
+    ARQUIVO_DA_CONFIGURACAO,
+    cliente_para,
+    principal,
+)
 
 pytestmark = pytest.mark.integracao  # fila e chave ficam em arquivos
 
@@ -84,8 +89,12 @@ class NuvemFalsa:
         """As planilhas recebidas: o site pedido e o texto do CSV."""
         self.ordem: list[str] = []
         self.planilha_recusada: str | None = None
+        self.sem_rede = False
+        """A internet da caixa caiu: nenhum pedido chega."""
 
     def __call__(self, pedido: httpx.Request) -> httpx.Response:
+        if self.sem_rede:
+            raise httpx.ConnectError("sem rede", request=pedido)
         caminho = pedido.url.path
         self.enderecos.add(f"{pedido.url.host}:{pedido.url.port}")
         autorizacao = pedido.headers.get("authorization", "")
@@ -607,3 +616,81 @@ def test_colunas_da_planilha_batem_com_o_modelo_da_nuvem() -> None:
     from simulador.__main__ import COLUNAS_DA_PLANILHA
 
     assert tuple(coluna.nome for coluna in COLUNAS) == COLUNAS_DA_PLANILHA
+
+
+# --- A internet da caixa cai e volta (SDD 9, item 3; T62) -----------------------------------
+
+
+def test_sem_rede_usa_a_configuracao_guardada_e_as_passagens_esperam_na_fila(
+    nuvem: NuvemFalsa, tmp_path: Path
+) -> None:
+    primeira, _ = _rodar(nuvem, tmp_path, "--codigo", "XXXX-YYYY-ZZZZ", "--passagens", "amostra")
+    enviadas = len(nuvem.passagens)
+    nuvem.sem_rede = True
+
+    codigo, saida = _rodar(nuvem, tmp_path, "--passagens", "amostra", "--esperar-no-maximo", "0")
+
+    assert (primeira, codigo) == (0, 1)
+    assert "sem rede: usando a configuração guardada" in saida
+    assert f"0 enviadas; 0 recusadas pela nuvem; {enviadas} na fila" in saida
+    assert len(nuvem.passagens) == enviadas
+
+    # A rede volta: a próxima rodada manda o que ficou, sem perder nada.
+    nuvem.sem_rede = False
+    vazio = tmp_path / "nenhuma.json"
+    vazio.write_text("[]", encoding="utf-8")
+    codigo, saida = _rodar(nuvem, tmp_path, "--passagens", str(vazio))
+
+    assert codigo == 0
+    assert f"{enviadas} enviadas; 0 recusadas pela nuvem; 0 na fila" in saida
+    assert len(nuvem.passagens) == 2 * enviadas
+    assert len({p["id"] for p in nuvem.passagens}) == 2 * enviadas
+
+
+def test_a_configuracao_baixada_fica_guardada(nuvem: NuvemFalsa, tmp_path: Path) -> None:
+    _rodar(nuvem, tmp_path, "--codigo", "XXXX-YYYY-ZZZZ", "--passagens", "amostra")
+
+    guardada = json.loads((tmp_path / ARQUIVO_DA_CONFIGURACAO).read_text(encoding="utf-8"))
+    assert guardada["caixa_id"] == "7"
+    assert [f["id"] for f in guardada["faixas"]] == ["11", "12"]
+
+
+def test_sem_rede_e_sem_configuracao_guardada_explica(nuvem: NuvemFalsa, tmp_path: Path) -> None:
+    _rodar(nuvem, tmp_path, "--codigo", "XXXX-YYYY-ZZZZ", "--passagens", "amostra")
+    (tmp_path / ARQUIVO_DA_CONFIGURACAO).unlink()
+    nuvem.sem_rede = True
+
+    codigo, saida = _rodar(nuvem, tmp_path, "--passagens", "amostra")
+
+    assert codigo == 1
+    assert "sem rede" in saida and "sem configuração guardada" in saida
+
+
+def test_a_mesma_passagem_mandada_de_novo_vai_de_novo(nuvem: NuvemFalsa, tmp_path: Path) -> None:
+    # A nuvem é quem ignora a repetida (SDD 5.5): o simulador manda, para o teste da T62.
+    arquivo = tmp_path / "uma.json"
+    arquivo.write_text(
+        json.dumps([{"id": "00000000-0000-4000-8000-000000000002", "placas": []}]),
+        encoding="utf-8",
+    )
+
+    _rodar(nuvem, tmp_path, "--codigo", "XXXX-YYYY-ZZZZ", "--passagens", str(arquivo))
+    _rodar(nuvem, tmp_path, "--passagens", str(arquivo))
+
+    assert [p["id"] for p in nuvem.passagens] == ["00000000-0000-4000-8000-000000000002"] * 2
+
+
+# --- A imagem do simulador (T62) ------------------------------------------------------------
+
+RAIZ = Path(__file__).resolve().parents[2]
+
+
+def test_a_imagem_roda_o_simulador_sem_root_e_com_os_dados_num_volume() -> None:
+    texto = (RAIZ / "ferramentas" / "Dockerfile").read_text(encoding="utf-8")
+
+    assert 'ENTRYPOINT ["simulador"]' in texto
+    assert "USER simulador" in texto
+    assert "WORKDIR /simulador" in texto  # os dados ficam em /simulador/dados (ARQUIVO_DA_FILA)
+    assert "--package patio-ferramentas" in texto
+    ci = (RAIZ / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    assert "docker build -f ferramentas/Dockerfile" in ci

@@ -1,7 +1,7 @@
 # SDD — patio-br (nome provisório)
 
 **Documento de desenho do software (SDD) do MVP do piloto**
-Versão 0.55 · 2026-10-06 · Situação: aprovado como base; itens em aberto na seção 12
+Versão 0.56 · 2026-10-06 · Situação: aprovado como base; itens em aberto na seção 12
 
 ---
 
@@ -756,6 +756,12 @@ Serve para desenvolver sem câmera, para os testes de ponta a ponta e para simul
   ainda vale, usa a mesma: o que ficou na fila de uma rodada anterior é dela.
 - Com a nuvem local, o simulador não usa o proxy do sistema (numa rede de empresa, ele não
   alcançaria o `localhost`).
+- **Sem rede:** como a caixa, o simulador guarda a última configuração baixada. Sem rede, ele usa
+  a guardada, e as passagens esperam na fila até a próxima rodada com rede (a internet que cai e
+  volta).
+- **Numa imagem** (`ferramentas/Dockerfile`): o simulador roda como uma caixa contra a
+  homologação, de qualquer máquina com Docker; com `--network none`, é a internet do site caindo.
+  O roteiro do piloto (`docs/guias/roteiro-do-piloto.md`, T62) diz como usar.
 
 ---
 
@@ -1438,3 +1444,4 @@ do cuidado de cargas (D-43).
 | 0.53 | 2026-10-06 | o gerador de placas sintéticas por dentro (T39): os tipos, as cores e as proporções, a fonte de traços nossa, as variações do recorte, a semente e o crédito da Artificial Mercosur (D-72; seção 11) |
 | 0.54 | 2026-10-06 | a produção e a homologação por dentro (T49): a imagem da nuvem, o compose das máquinas com as migrações antes da API, o deploy pela Tailscale SSH e a aprovação da produção no GitHub (D-73; seções 7.3 e 11) |
 | 0.55 | 2026-10-06 | as cópias, a restauração testada e os alarmes por dentro (T50): a cópia diária e a restauração de teste mensal pelo worker, a batida do worker no `/saude`, o registro em JSON sem placa nem telefone, e os alarmes no CloudFormation (D-74); as entidades `CopiaDoBanco` e `RestauracaoDeTeste` (seções 5.1, 6.1, 7.2, 8.1, 11 e 13) |
+| 0.56 | 2026-10-06 | o simulador sem rede e numa imagem, para o roteiro do piloto em homologação (T62; seção 6.4) |

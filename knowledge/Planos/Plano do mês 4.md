@@ -124,6 +124,7 @@ As mesmas regras dos meses anteriores ([[CLAUDE - regras do repositório|CLAUDE.
 - [[T39]] Gerador de placas sintéticas
 - [[T61]] Agendamentos por API e webhooks
 - [[T62]] A versão do piloto em homologação
+- [[T63]] O cadastro do cliente pela administração (tarefa nova)
 
 ## 5. Trilha não técnica
 
@@ -166,4 +167,5 @@ As mesmas regras dos meses anteriores ([[CLAUDE - regras do repositório|CLAUDE.
 - [ ] Prova da visita encadeada, com a âncora do dia.
 - [ ] Prazos de guarda e o pedido do titular.
 - [ ] Base de treino e gerador de placas sintéticas.
+- [ ] O cadastro do cliente pela administração ([[T63]], tarefa nova).
 - [ ] **Marco:** o roteiro do piloto rodado na homologação, e a mesma versão na produção.

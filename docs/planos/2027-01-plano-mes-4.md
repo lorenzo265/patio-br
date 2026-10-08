@@ -663,7 +663,40 @@ planilha (SDD 2.3, 3.3 e 3.4).
 - **A restauração da cópia do banco** passa.
 - **A tag da versão** vai para a produção, que fica vazia e pronta para o piloto.
 
+*Detalhado na execução:* o que dá para fazer sem a homologação ficou pronto antes dela:
+- o roteiro, em `docs/guias/roteiro-do-piloto.md`;
+- o simulador numa imagem (`ferramentas/Dockerfile`), que roda como uma caixa de qualquer máquina
+  com Docker;
+- o simulador guardando a configuração como a caixa: sem rede (`--network none`), as passagens
+  esperam na fila, e é assim que o roteiro testa a internet que cai e volta.
+
+A câmera parada e a atualização que volta pedem a caixa de verdade (N23). Rodar o roteiro espera
+a homologação (N21) e a T63. Ao escrever o roteiro, apareceu o que faltava para ter uma empresa
+de teste na homologação e o cliente na produção: o cadastro pela administração (T63, tarefa
+nova).
+
 **Commit:** `docs: roteiro do piloto em homologação`
+
+#### T63. O cadastro do cliente pela administração (tarefa nova)
+
+**Objetivo:** a administração cadastra o cliente do piloto sem mexer no banco: a empresa, o site
+e os parâmetros dele, a portaria, as faixas, as câmeras, as docas e as pessoas (SDD 6.2, tela da
+administração).
+
+**Depende de:** nada. Veio da preparação da T62: até aqui, só a semente e o link de demonstração
+criavam empresas, e a produção ficaria vazia sem jeito de receber o cliente.
+
+**Arquivos:** `nuvem/src/nuvem/cadastro/`, telas da administração, migração (se precisar),
+testes.
+
+**Regras (teste primeiro):**
+- **Só a administração** (`AcessoAdmin`) cadastra; toda tela tem o código anti-CSRF.
+- **As pessoas não recebem senha de ninguém:** a administração cadastra a pessoa e gera um link
+  de uso único para ela criar a própria senha; o banco guarda só o resumo do código do link.
+- **A senha da câmera** fica cifrada (como hoje).
+- **Nada se apaga:** o que sai de uso é desativado.
+
+**Commit:** `feat(cadastro): o cadastro do cliente pela administração`
 
 ---
 
@@ -708,4 +741,5 @@ planilha (SDD 2.3, 3.3 e 3.4).
 - [ ] Prova da visita encadeada, com a âncora do dia.
 - [ ] Prazos de guarda e o pedido do titular.
 - [ ] Base de treino e gerador de placas sintéticas.
+- [ ] O cadastro do cliente pela administração (T63, tarefa nova).
 - [ ] **Marco:** o roteiro do piloto rodado na homologação, e a mesma versão na produção.
