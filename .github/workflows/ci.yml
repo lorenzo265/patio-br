@@ -1,11 +1,12 @@
 # CI do projeto (T03 do plano do mês 1; SDD seções 6.1 e 7.3).
-# Cinco verificações independentes, em paralelo:
+# Seis verificações independentes, em paralelo:
 #   1. verificar: estilo, formato, tipos e testes (o mesmo `uv run tarefas check` de quem desenvolve),
 #      com o PostgreSQL de teste dos testes da nuvem
 #   2. licencas: toda dependência precisa de licença permissiva (regra do SDD 6.1)
 #   3. vulnerabilidades: nenhuma dependência com falha de segurança conhecida
 #   4. ambiente: `tarefas up` constrói a API e sobe o ambiente local; migrações e /saude (T04, T07)
 #   5. imagens-da-caixa: as imagens do agente e do go2rtc montam e sobem (T55, SDD D-66)
+#   6. producao: o compose das máquinas da AWS sobe como na homologação (T49, SDD D-73)
 name: ci
 
 on:
@@ -162,3 +163,49 @@ jobs:
           docker rm -f go2rtc
       - name: O compose da caixa
         run: docker compose -f infra/caixa/compose.yml config -q
+
+  producao:
+    name: compose da produção (como na homologação)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: O compose da produção lê o .env de exemplo
+        run: |
+          pasta="$RUNNER_TEMP/patio"
+          mkdir -p "$pasta"
+          cp infra/producao/compose.yml infra/producao/Caddyfile "$pasta/"
+          cp infra/producao/env.exemplo "$pasta/.env"
+          docker compose --project-directory "$pasta" config -q
+          COMPOSE_PROFILES=homologacao docker compose --project-directory "$pasta" config -q
+      - name: A imagem da nuvem, com o nome que o deploy usa
+        run: docker build -f nuvem/Dockerfile -t ghcr.io/lorenzo265/patio-nuvem:ci .
+      - name: Sobe como na homologação (o banco num contêiner, o Caddy no localhost)
+        # Valores só desta checagem; a chave é a do ambiente local (.env.exemplo).
+        run: |
+          cat > "$RUNNER_TEMP/patio/.env" <<'FIM'
+          VERSAO=ci
+          DOMINIO=localhost
+          COMPOSE_PROFILES=homologacao
+          POSTGRES_SENHA=homologacao-da-ci
+          PATIO_AMBIENTE=homologacao
+          PATIO_URL_PUBLICA=https://localhost
+          PATIO_CABECALHO_DO_IP=X-Real-IP
+          PATIO_URL_BANCO=postgresql+pg8000://patio:homologacao-da-ci@postgres:5432/patio
+          PATIO_CHAVE_CIFRA=_0_jqx-SW46BKdQoB9mZcMouVAft1Qjf8Pf2niPbThI=
+          PATIO_PASTA_FOTOS=/tmp/fotos
+          FIM
+          docker compose --project-directory "$RUNNER_TEMP/patio" up -d --wait --wait-timeout 180
+      - name: A API responde pelo Caddy, com HTTPS
+        run: test "$(curl -fsSk https://localhost/saude)" = '{"ok":true}'
+      - name: O worker está de pé e as migrações terminaram bem
+        run: |
+          cd "$RUNNER_TEMP/patio"
+          docker compose ps --status running --services | grep -qx worker
+          test "$(docker compose ps -a migracoes --format '{{.ExitCode}}')" = 0
+      - name: Os registros, se algo falhou
+        if: failure()
+        run: docker compose --project-directory "$RUNNER_TEMP/patio" logs --no-color
+      - name: Derrubar
+        if: always()
+        run: docker compose --project-directory "$RUNNER_TEMP/patio" down -v

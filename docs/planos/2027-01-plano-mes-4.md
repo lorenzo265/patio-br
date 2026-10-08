@@ -128,6 +128,13 @@ As mesmas regras dos meses anteriores (`CLAUDE.md`), com estes ajustes:
 - o simulador manda passagens à homologação, e a foto chega ao S3;
 - a tag chega à produção só depois da aprovação.
 
+*Detalhado na execução (D-73):* o código fica pronto antes da conta: o compose de
+`infra/producao/` (as migrações num serviço que roda uma vez antes da API, a API, o worker e o
+Caddy; a homologação com o PostgreSQL num contêiner), o `.env` de exemplo, o workflow
+`nuvem.yml` (a `main` vai para a homologação; a etiqueta `nuvem-v*`, para a produção, com a
+aprovação) e o guia `docs/guias/producao.md`. O deploy entra pela Tailscale SSH. A conferência
+de verdade (os itens "Verificar") espera a conta da AWS e o domínio (N21).
+
 **Commit:** `infra: produção e homologação na AWS`
 
 #### T50. Cópias, restauração testada e alarmes

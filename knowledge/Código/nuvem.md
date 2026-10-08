@@ -318,6 +318,7 @@ API.
 - `nuvem/tests/test_nuvem_cifra.py`: Cifra dos segredos guardados no banco (ex.: senha da câmera).
 - `nuvem/tests/test_nuvem_config.py`: Configuração da nuvem: lida do ambiente (variáveis PATIO_*) ou do .env da pasta atual.
 - `nuvem/tests/test_nuvem_pacote.py`: O pacote nuvem usa o mesmo contrato de passagem que o resto do sistema ([[3.2 O contrato entre borda e nuvem - a Passagem|SDD 3.2]]).
+- `nuvem/tests/test_nuvem_producao.py`: A produção e a homologação ([[7.2 Nuvem (AWS, sa-east-1)|SDD 7.2]] e [[7.3 Do código à produção|7.3]], [[D-57]] e [[D-73]]): o que o compose das máquinas, o Caddy, o ``.env`` de exemplo e o workflow do deploy prometem. Subir de verdade espera a conta da AWS ([[N21]]); a CI sobe o compose como na homologação (o trabalho ``producao`` do ``ci.yml``).
 - `nuvem/tests/test_nuvem_saude.py`: GET /saude: a API está no ar e alcança o banco.
 - `nuvem/tests/test_nuvem_semente.py`: Dados de demonstração (`uv run tarefas semente`).
 - `nuvem/tests/test_nuvem_senhas.py`: Resumo de senhas e PINs com argon2 ([[8.2 Segurança|SDD 8.2]]): guarda-se o resumo, nunca o texto.

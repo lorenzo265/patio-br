@@ -1,0 +1,9 @@
+{$DOMINIO} {
+	# A nuvem atrás do Caddy, que pede e renova o certificado HTTPS sozinho (SDD 7.2).
+	encode zstd gzip
+	reverse_proxy api:8000 {
+		# O endereço de quem pede, escrito pelo Caddy: quem pede não consegue falsificá-lo
+		# (PATIO_CABECALHO_DO_IP=X-Real-IP, D-55).
+		header_up X-Real-IP {remote_host}
+	}
+}

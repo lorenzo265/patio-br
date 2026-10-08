@@ -64,6 +64,7 @@ tags: [sdd]
 | 0.51 | 2026-10-06 | a guarda e o pedido do titular por dentro ([[T59]]): os prazos como parâmetros, a foto vencida apagada pelo worker com o resumo e o registro na prova, a marca de disputa, e o levantamento de uma placa ou de um celular pela administração ([[D-70]]); as entidades `FotoApagada` e `MarcaDeDisputa` (seções [[5.1 Entidades\|5.1]], [[5.5 Garantias\|5.5]], [[6.1 Stack\|6.1]], [[6.2 Telas do MVP\|6.2]], [[8.3 LGPD\|8.3]] e [[11. Registro de decisões\|11]]) |
 | 0.52 | 2026-10-06 | a base de treino por dentro ([[T60]]): a autorização do contrato, o rótulo que nasce da conferência com a cópia do recorte, a régua sorteada pelo resumo, a rotulagem, a exportação e o apagar ao revogar ([[D-71]]); a entidade `AutorizacaoDeTreino` (seções [[3.3 Módulos da nuvem no MVP\|3.3]], [[5.1 Entidades\|5.1]], [[6.2 Telas do MVP\|6.2]], [[8.3 LGPD\|8.3]] e [[11. Registro de decisões\|11]]) |
 | 0.53 | 2026-10-06 | o gerador de placas sintéticas por dentro ([[T39]]): os tipos, as cores e as proporções, a fonte de traços nossa, as variações do recorte, a semente e o crédito da Artificial Mercosur ([[D-72]]; seção [[11. Registro de decisões\|11]]) |
+| 0.54 | 2026-10-06 | a produção e a homologação por dentro ([[T49]]): a imagem da nuvem, o compose das máquinas com as migrações antes da API, o deploy pela Tailscale SSH e a aprovação da produção no GitHub ([[D-73]]; seções [[7.3 Do código à produção\|7.3]] e [[11. Registro de decisões\|11]]) |
 
 ---
 
