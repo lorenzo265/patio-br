@@ -106,6 +106,33 @@ class ConfiguracaoDoAgente:
             cameras=tuple(cameras),
         )
 
+    def para_json(self) -> dict[str, Any]:
+        """No formato da nuvem, para guardar no disco (o contrário de ``de_json``)."""
+        return {
+            "caixa_id": self.caixa_id,
+            "site_id": self.site_id,
+            "faixas": [
+                {
+                    "id": faixa.id,
+                    "nome": faixa.nome,
+                    "sentido": faixa.sentido,
+                    "cameras": [
+                        {
+                            "id": camera.id,
+                            "nome": camera.nome,
+                            "posicao": camera.posicao,
+                            "endereco": camera.endereco,
+                            "login": camera.login,
+                            "senha": camera.senha,
+                        }
+                        for camera in self.cameras
+                        if camera.faixa_id == faixa.id
+                    ],
+                }
+                for faixa in self.faixas
+            ],
+        }
+
 
 class RastreadorDeCamera(Protocol):
     """O que o agente usa de um rastreador (``rastreio.Rastreador``)."""

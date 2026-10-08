@@ -11,7 +11,8 @@ import httpx
 import numpy as np
 import pytest
 
-from borda.ativacao import CaixaAtivada, ChaveRecusadaError
+from borda.agente import ConfiguracaoDoAgente
+from borda.ativacao import CaixaAtivada, ChaveRecusadaError, guardar_configuracao, ler_configuracao
 from borda.caixa import baixar_com_paciencia, principal
 from borda.envio import FilaDeEnvio
 from borda.leitor.interface import LeituraBruta, Quadro, Regiao
@@ -60,8 +61,12 @@ class NuvemFalsa:
         self.respostas_da_configuracao: list[int] = []
         self.saudes: list[dict[str, Any]] = []
         self.demora_da_saude = 0.0
+        self.cadastros_no_go2rtc: list[dict[str, str]] = []
 
     def __call__(self, pedido: httpx.Request) -> httpx.Response:
+        if pedido.url.host == "go2rtc":
+            self.cadastros_no_go2rtc.append(dict(pedido.url.params))
+            return httpx.Response(200)
         if pedido.url.path == "/api/borda/saude":
             time.sleep(self.demora_da_saude)
             self.saudes.append(json.loads(pedido.content))
@@ -245,6 +250,120 @@ def test_rodar_manda_a_saude_das_cameras_de_placa(
     assert (primeira["caixa_id"], primeira["site_id"]) == ("7", "3")
     assert [camera["camera_id"] for camera in primeira["cameras"]] == ["21"]
     assert primeira["versao_leitor"] == "v0"
+
+
+def _rodar(
+    cliente: httpx.Client, pasta: Path, *extras: str, **opcoes: Any
+) -> tuple[int, str, CamerasFalsas]:
+    parar = threading.Event()
+    cameras = CamerasFalsas(parar)
+    codigo, saida = _caixa(
+        ["rodar", "--pasta", str(pasta), "--por-segundo", "1000", *extras],
+        cliente,
+        parar=parar,
+        abrir=cameras.abrir,
+        carregar_modelos=lambda: (DetectorDeTudo(), LeitorFixo()),
+        **opcoes,
+    )
+    return codigo, saida, cameras
+
+
+def test_rodar_guarda_a_configuracao_baixada(cliente: httpx.Client, tmp_path: Path) -> None:
+    _ativar(cliente, tmp_path)
+
+    codigo, saida, _ = _rodar(cliente, tmp_path)
+
+    assert codigo == 0, saida
+    guardada = ler_configuracao(tmp_path / "configuracao.json")
+    assert guardada == ConfiguracaoDoAgente.de_json(CONFIGURACAO)
+
+
+def test_ativar_de_novo_apaga_a_configuracao_guardada(
+    cliente: httpx.Client, tmp_path: Path
+) -> None:
+    # A caixa pode ir para outro site: a configuração do site antigo não vale mais.
+    guardar_configuracao(ConfiguracaoDoAgente.de_json(CONFIGURACAO), tmp_path / "configuracao.json")
+
+    _ativar(cliente, tmp_path)
+
+    assert not (tmp_path / "configuracao.json").exists()
+
+
+def test_rodar_com_o_go2rtc_cadastra_a_camera_e_le_de_la(
+    cliente: httpx.Client, nuvem: NuvemFalsa, tmp_path: Path
+) -> None:
+    _ativar(cliente, tmp_path)
+
+    codigo, saida, cameras = _rodar(cliente, tmp_path, "--go2rtc", "http://go2rtc:1984")
+
+    assert codigo == 0, saida
+    assert set(cameras.abertas) == {"rtsp://go2rtc:8554/camera-21"}
+    assert nuvem.cadastros_no_go2rtc[0] == {
+        "name": "camera-21",
+        "src": "rtsp://leitura:s3nh4%3Ainventada@10.0.0.1:554/1",
+    }
+    assert SENHA not in saida
+
+
+def test_o_go2rtc_vem_do_ambiente(
+    cliente: httpx.Client, nuvem: NuvemFalsa, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("PATIO_GO2RTC", "http://go2rtc:1984")
+    _ativar(cliente, tmp_path)
+
+    codigo, saida, cameras = _rodar(cliente, tmp_path)
+
+    assert codigo == 0, saida
+    assert set(cameras.abertas) == {"rtsp://go2rtc:8554/camera-21"}
+
+
+def test_nuvem_fora_do_ar_com_configuracao_guardada_comeca_com_ela(
+    cliente: httpx.Client, nuvem: NuvemFalsa, tmp_path: Path
+) -> None:
+    arquivo = tmp_path / "configuracao.json"
+    guardar_configuracao(ConfiguracaoDoAgente.de_json(CONFIGURACAO), arquivo)
+    nuvem.respostas_da_configuracao = [503] * 10
+    esperas: list[float] = []
+    caixa = CaixaAtivada(nuvem=NUVEM, caixa_id="7", site_id="3", chave=CHAVE)
+
+    configuracao = baixar_com_paciencia(
+        cliente, caixa, parar=threading.Event(), dormir=esperas.append, arquivo=arquivo
+    )
+
+    assert configuracao == ConfiguracaoDoAgente.de_json(CONFIGURACAO)
+    assert esperas == []  # não espera a nuvem
+
+
+def test_nuvem_fora_do_ar_sem_configuracao_guardada_espera_e_guarda(
+    cliente: httpx.Client, nuvem: NuvemFalsa, tmp_path: Path
+) -> None:
+    arquivo = tmp_path / "configuracao.json"
+    nuvem.respostas_da_configuracao = [503, 503]
+    esperas: list[float] = []
+    caixa = CaixaAtivada(nuvem=NUVEM, caixa_id="7", site_id="3", chave=CHAVE)
+
+    configuracao = baixar_com_paciencia(
+        cliente, caixa, parar=threading.Event(), dormir=esperas.append, arquivo=arquivo
+    )
+
+    assert esperas == [1, 2]
+    assert ler_configuracao(arquivo) == configuracao
+
+
+def test_chave_recusada_apaga_a_configuracao_guardada(
+    cliente: httpx.Client, tmp_path: Path
+) -> None:
+    arquivo = tmp_path / "configuracao.json"
+    guardar_configuracao(ConfiguracaoDoAgente.de_json(CONFIGURACAO), arquivo)
+    caixa = CaixaAtivada(nuvem=NUVEM, caixa_id="7", site_id="3", chave="chave-revogada")
+
+    with pytest.raises(ChaveRecusadaError):
+        baixar_com_paciencia(
+            cliente, caixa, parar=threading.Event(), dormir=lambda _s: None, arquivo=arquivo
+        )
+
+    # As senhas das câmeras não ficam na caixa revogada.
+    assert not arquivo.exists()
 
 
 def test_nuvem_fora_do_ar_no_inicio_tenta_de_novo_esperando_mais(

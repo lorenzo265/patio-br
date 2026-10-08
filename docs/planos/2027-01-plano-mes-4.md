@@ -350,7 +350,8 @@ terceiros dentro.
 
 **Regras:**
 - **A imagem do agente:**
-  - Python 3.12, OpenCV sem interface (D-29), OpenVINO e o leitor, sem root;
+  - Python 3.12, OpenCV sem interface (D-29), ~~OpenVINO~~ e o leitor, sem root (o OpenVINO vai
+    com o leitor v1, na T26: o v0 roda no ONNX Runtime);
   - os pesos vêm por volume, de `modelos/`, e não ficam na imagem.
 - **O go2rtc** (MIT) recebe cada câmera uma vez só e a repassa ao agente. Ele também permite ver
   a câmera pelo Tailscale na instalação.
@@ -364,6 +365,18 @@ terceiros dentro.
 - **A preparação:** um arquivo de instalação do Ubuntu Server 24.04 instala o Docker, o
   Tailscale, o NTP (o relógio da passagem é a prova) e o disco cifrado. O guia diz o resto.
 - **Os créditos de terceiros** da imagem vão para `borda/AVISOS-DE-TERCEIROS.md`.
+
+*Detalhado na execução (D-66):*
+- o go2rtc é montado por nós a partir do código (v1.9.14, pelo proxy de módulos do Go), sem
+  FFmpeg: a imagem oficial traz um FFmpeg do Alpine com x264 e x265 (GPL);
+- o agente cadastra cada câmera no go2rtc com `PATCH /api/streams`, que não grava a senha em
+  arquivo (o `PUT` grava na configuração do go2rtc), e cadastra de novo a cada vez que reabre a
+  câmera;
+- o disco cifrado é destravado pelo TPM (clevis), ligado no primeiro acesso, pelo guia; a senha
+  de recuperação fica conosco, nunca no arquivo de instalação do repositório;
+- as imagens são montadas na CI, num trabalho novo ("imagens da caixa"): este ambiente de
+  desenvolvimento não tem o Docker no ar. A conferência num N150 de verdade continua sendo a
+  N23.
 
 **Commit:** `infra(borda): a caixa em contêineres`
 

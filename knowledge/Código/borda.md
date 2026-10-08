@@ -56,7 +56,8 @@ Ativação da caixa e configuração baixada da nuvem ([[7.4 A caixa de borda|SD
 
 A administração gera um código de uso único para o site; a caixa troca o código por uma chave
 própria e, com ela, baixa as faixas e as câmeras do site. A chave é um segredo: fica num arquivo
-que só o dono lê e não aparece ao imprimir a caixa.
+que só o dono lê e não aparece ao imprimir a caixa. A configuração baixada também fica guardada
+assim, porque traz as senhas das câmeras: com ela, a caixa começa sem a nuvem ([[D-66]]).
 
 - **`CaixaAtivada`** (classe): A caixa depois da ativação: a nuvem dela, os ids da nuvem e a chave.
 - **`CodigoRecusadoError`** (classe): O código de ativação é inválido, já foi usado ou venceu.
@@ -64,6 +65,9 @@ que só o dono lê e não aparece ao imprimir a caixa.
 - **`ativar`**: Troca o código de ativação pela chave da caixa.
 - **`baixar_configuracao`**: Baixa as faixas e as câmeras do site da caixa (com as senhas das câmeras).
 - **`guardar_caixa`**: Guarda a caixa ativada num arquivo que só o dono lê (a chave é um segredo).
+- **`guardar_configuracao`**: Guarda a configuração num arquivo que só o dono lê (traz as senhas das câmeras).
+- **`ler_configuracao`**: A configuração guardada, ou ``None`` se não há (ou se o arquivo está estragado).
+- **`apagar_configuracao`**: Apaga a configuração guardada (a chave recusada, ou a caixa ativada de novo).
 - **`ler_caixa`**: Lê a caixa guardada, ou ``None`` se ela ainda não foi ativada.
 
 ### `borda.caixa`
@@ -78,15 +82,19 @@ Uso::
     caixa rodar
 
 - ``ativar`` troca o código (gerado pela administração para o site) pela chave da caixa e a
-  guarda em ``dados/caixa/caixa.json``, que só o dono lê.
+  guarda em ``dados/caixa/caixa.json``, que só o dono lê; a configuração guardada de antes (de
+  outro site, talvez) é apagada.
 - ``rodar`` baixa a configuração, abre as câmeras de placa por RTSP, roda o agente, o remetente
   da fila (``dados/caixa/fila.sqlite``) e o pulso da saúde (a cada minuto, [[D-65]]) até receber o
   sinal de término (ou Ctrl+C). Os modelos do leitor v0 ficam em ``modelos/v0``
   (``uv run tarefas modelos``).
 
-A configuração vale até o programa reiniciar. Sem a nuvem no ar, a caixa espera para começar:
-a configuração não fica no disco, porque traz as senhas das câmeras.
+A configuração baixada fica guardada em ``dados/caixa/configuracao.json``, que só o dono lê (o
+disco da caixa é cifrado, [[D-66]]): sem a nuvem no ar, a caixa começa com ela. A configuração vale
+até o programa reiniciar. Com ``--go2rtc`` (ou ``PATIO_GO2RTC``), as câmeras são lidas pelo
+go2rtc, como nos contêineres da caixa.
 
+- **`AbrirACamera`**: De uma câmera da configuração: o endereço que a fonte abre e como abrir.
 - **`principal`**: Ponto de entrada do comando ``caixa``.
 - **`main`**: O comando ``caixa`` de verdade: registro no terminal e o FFmpeg com RTSP por TCP.
 - **`baixar_com_paciencia`**: Baixa a configuração; se a nuvem não responde, tenta de novo, esperando 1 s, 2 s, 4 s... até 5 min.
@@ -179,6 +187,19 @@ Fila de envio da caixa ([[7.4 A caixa de borda|SDD 7.4]], [[D-24]]): nenhuma pas
 - **`Nuvem`** (classe): O lado da nuvem que a caixa usa: fotos e passagens, com a chave da caixa.
 - **`Remetente`** (classe): Esvazia a fila, na ordem, esperando mais a cada falha seguida.
 
+### `borda.go2rtc`
+
+`borda/src/borda/go2rtc.py`
+
+O go2rtc da caixa ([[7.4 A caixa de borda|SDD 7.4]], [[D-66]]): recebe cada câmera uma vez só e a repassa ao agente.
+
+O agente cadastra cada câmera de placa pela API do go2rtc (``PATCH /api/streams``, que guarda a
+câmera só na memória: o ``PUT`` gravaria o endereço, com a senha, no arquivo do go2rtc) e lê o
+vídeo de ``rtsp://<go2rtc>:8554/camera-<id>``. A cada vez que a câmera é reaberta, o cadastro é
+refeito: o go2rtc que reinicia esquece as câmeras.
+
+- **`Go2rtc`** (classe): A API do go2rtc, vista do agente.
+
 ### `borda.rastreio`
 
 `borda/src/borda/rastreio.py`
@@ -240,8 +261,10 @@ A saúde da caixa ([[7.4 A caixa de borda|SDD 7.4]], [[D-65]]): a cada minuto, a
 - `borda/tests/test_borda_caixa.py`: O programa da caixa ([[7.4 A caixa de borda|SDD 7.4]]): ativa, baixa a configuração, lê as câmeras e guarda passagens.
 - `borda/tests/test_borda_captura.py`: Captura ([[4.2 O caminho de cada câmera, dentro da caixa|SDD 4.2]]): os quadros chegam por uma fonte, à taxa configurada (padrão 5 por segundo).
 - `borda/tests/test_borda_composicao.py`: Composição na caixa ([[4.3 Composições e o que a câmera não vê|SDD 4.3]], [[D-23]]): junta cavalo (frente) e reboque (trás) de cada faixa.
+- `borda/tests/test_borda_conteiner.py`: A caixa em contêineres ([[7.4 A caixa de borda|SDD 7.4]], [[D-66]]): o que os arquivos da imagem, do compose e da instalação do Ubuntu prometem. A CI monta as imagens de verdade ("imagens da caixa").
 - `borda/tests/test_borda_envio.py`: Fila de envio da caixa ([[7.4 A caixa de borda|SDD 7.4]], [[D-24]]): nenhuma passagem se perde se a internet cair.
 - `borda/tests/test_borda_formato.py`: Formato da placa lida ([[4.2 O caminho de cada câmera, dentro da caixa|SDD 4.2]]): corrige por posição, nunca inventa caractere.
+- `borda/tests/test_borda_go2rtc.py`: O go2rtc da caixa ([[7.4 A caixa de borda|SDD 7.4]], [[D-66]]): o agente cadastra cada câmera e lê o vídeo de lá.
 - `borda/tests/test_borda_pacote.py`: O pacote borda usa o mesmo contrato de passagem que o resto do sistema ([[3.2 O contrato entre borda e nuvem - a Passagem|SDD 3.2]]).
 - `borda/tests/test_borda_rastreio.py`: Rastreamento ([[4.2 O caminho de cada câmera, dentro da caixa|SDD 4.2]], [[D-25]]): uma leitura por veículo, com um vídeo sintético feito aqui.
 - `borda/tests/test_borda_saude.py`: A saúde da caixa ([[7.4 A caixa de borda|SDD 7.4]], [[D-65]]): as câmeras, a máquina e o envio a cada minuto.

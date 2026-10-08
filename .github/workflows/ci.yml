@@ -1,10 +1,11 @@
 # CI do projeto (T03 do plano do mês 1; SDD seções 6.1 e 7.3).
-# Quatro verificações independentes, em paralelo:
+# Cinco verificações independentes, em paralelo:
 #   1. verificar: estilo, formato, tipos e testes (o mesmo `uv run tarefas check` de quem desenvolve),
 #      com o PostgreSQL de teste dos testes da nuvem
 #   2. licencas: toda dependência precisa de licença permissiva (regra do SDD 6.1)
 #   3. vulnerabilidades: nenhuma dependência com falha de segurança conhecida
 #   4. ambiente: `tarefas up` constrói a API e sobe o ambiente local; migrações e /saude (T04, T07)
+#   5. imagens-da-caixa: as imagens do agente e do go2rtc montam e sobem (T55, SDD D-66)
 name: ci
 
 on:
@@ -135,3 +136,29 @@ jobs:
           http://localhost:18000/entrar)" = 303
       - name: tarefas down
         run: uv run tarefas down
+
+  imagens-da-caixa:
+    name: imagens da caixa
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: A imagem do agente
+        run: docker build -f borda/Dockerfile -t patio-caixa:local .
+      - name: O agente abre as bibliotecas da caixa, sem root
+        run: |
+          docker run --rm patio-caixa:local python -c "import cv2, onnxruntime, psutil, borda.caixa"
+          test "$(docker run --rm patio-caixa:local id -u)" = 10001
+          docker run --rm patio-caixa:local caixa rodar --help
+      - name: A imagem do go2rtc (montada do código, sem FFmpeg)
+        run: docker build -f infra/caixa/go2rtc.Dockerfile -t patio-go2rtc:local infra/caixa
+      - name: O go2rtc recebe uma câmera pela API, só na memória
+        run: |
+          docker run -d --name go2rtc --read-only -p 127.0.0.1:1984:1984 patio-go2rtc:local
+          curl --retry 15 --retry-connrefused --retry-delay 1 -fsS -X PATCH \
+            "http://127.0.0.1:1984/api/streams?name=camera-1&src=rtsp://10.0.0.1:554/1"
+          curl -fsS http://127.0.0.1:1984/api/streams | grep -q '"camera-1"'
+          docker logs go2rtc
+          docker rm -f go2rtc
+      - name: O compose da caixa
+        run: docker compose -f infra/caixa/compose.yml config -q

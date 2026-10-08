@@ -39,3 +39,15 @@ Material de divulgação que cite um recurso que use o OpenSSL precisa trazer es
 | `libgfortran` | NumPy e OpenCV (Linux) | GPL 3.0 com a exceção de runtime do GCC | sem modificação ([[D-27]]) |
 
 O que foi conferido em cada roda está em [[Validação - fatos técnicos da stack|docs/validacao/fatos-tecnicos-stack.md]].
+
+## As imagens da caixa ([[D-66]])
+
+| Componente | Imagem | Licença | Como é usado |
+|---|---|---|---|
+| Python 3.12 e o Debian da `python:3.12-slim` | o agente | PSF e as do Debian | sem modificação; programas à parte do nosso |
+| go2rtc v1.9.14 (Alexey Khit) | o go2rtc | MIT | sem modificação, montado por nós a partir do código, sem FFmpeg |
+| os módulos Go do go2rtc e a biblioteca do Go | o go2rtc | MIT, BSD, ISC, Apache-2.0 e EDL-1.0 (BSD-3) | sem modificação, dentro do binário |
+
+A imagem do go2rtc leva, em `/licencas`, a licença do Go e a de cada módulo que entrou no
+binário; a do agente leva a de cada pacote Python, dentro do pacote instalado. O paho.mqtt.golang
+tem licença dupla (EPL-2.0 ou EDL-1.0): usamos a EDL-1.0.

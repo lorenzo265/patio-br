@@ -113,6 +113,26 @@ sem partes GPL.
 
 A lista e o texto das licenças vêm na própria roda, em `cv2/LICENSE-3RD-PARTY.txt`.
 
+## O go2rtc da caixa (verificado em 2026-10-06, SDD [[D-66]])
+
+O go2rtc v1.9.14 (MIT, de Alexey Khit), pelo proxy de módulos do Go (`proxy.golang.org`):
+
+- **A imagem oficial** (`docker/Dockerfile` do próprio go2rtc) instala o `ffmpeg` do Alpine,
+  montado com x264 e x265 (GPL). Por isso montamos a nossa: só o binário, com
+  `CGO_ENABLED=0 go install`, o mesmo jeito do `build.yml` deles (`-trimpath -ldflags "-s -w"`).
+  O RTSP só repassa o vídeo e não precisa do FFmpeg.
+- **As dependências** do `go.mod` da v1.9.14, conferidas no arquivo de licença de cada módulo:
+  MIT (pion, go-astits, go-astikit, expr, zerolog, crc8, crc16, go-isatty, go-colorable, yaml.v3,
+  testify, kr/pretty), BSD (golang.org/x, google/uuid, miekg/dns, gorilla/websocket,
+  wlynxg/anet, go-difflib), ISC (go-spew), Apache-2.0 (tadglines/go-pkgs) e o paho.mqtt.golang,
+  com licença dupla, EPL-2.0 ou EDL-1.0, à escolha: usamos a EDL-1.0, que é a BSD-3.
+- **A API das câmeras:** `PUT /api/streams?name=&src=` cria a câmera e **grava o endereço, com
+  a senha, no arquivo de configuração** do go2rtc (`app.PatchConfig`); sem arquivo, responde 400.
+  `PATCH /api/streams?name=&src=` cria ou troca a câmera só na memória e responde 200
+  (`internal/streams/api.go` e `streams.go`). Usamos o `PATCH`.
+- **A tela e a API** (porta 1984) deixam passar sem senha os pedidos da própria máquina, mesmo com
+  usuário e senha configurados (documentação da API do go2rtc).
+
 ## WhatsApp e SMS para o mês 4 (verificados em 2026-10-06)
 
 Fontes abertas uma a uma, para o plano do mês 4 ([[Plano do mês 4|docs/planos/2027-01-plano-mes-4.md]]).

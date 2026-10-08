@@ -26,6 +26,9 @@ nuvem casa cada passagem com o agendamento.
 - **A saúde da caixa** vai a cada minuto, fora da fila: as versões, a máquina, cada câmera e a
   fila ([[D-65]]). A administração vê a **frota de borda**, com o histórico de 7 dias; a
   portaria mostra "site sem conexão desde HH:MM" depois de 3 minutos sem saúde.
+- **A caixa em contêineres** ([[D-66]]): o agente e o go2rtc (montado por nós, sem FFmpeg) no
+  compose de `infra/caixa/`; a configuração fica guardada no disco cifrado (destravado pelo TPM),
+  e a caixa começa sem a nuvem. A preparação está no [[Guia de preparação da caixa de borda]].
 - **O leitor fica atrás de uma interface única**, com um motor comercial de reserva ([[D-07]],
   [[4.5 Interface única e dois motores]]). O **v0** usa pesos de terceiros e serve só para
   avaliação interna ([[D-26]]); o produto usará pesos treinados por nós ([[D-05]]).
@@ -41,7 +44,7 @@ nuvem casa cada passagem com o agendamento.
   [[4. Leitor de placas]] e subseções, [[7.4 A caixa de borda]], [[6.4 Simulador de portaria]].
 - Decisões: [[D-03]], [[D-05]], [[D-06]], [[D-07]], [[D-13]], [[D-14]], [[D-17]], [[D-21]],
   [[D-23]], [[D-24]], [[D-25]], [[D-26]], [[D-29]], [[D-30]], [[D-39]], [[D-40]], [[D-44]],
-  [[D-65]].
+  [[D-65]], [[D-66]].
 - Código: [[borda]], [[borda.leitor]], [[contratos]], [[ml]], [[simulador]].
 - Tarefas: [[T13]] a [[T20]] (mês 1); [[T21]] a [[T26]] (mês 2, esperam as placas); [[T54]] a
   [[T56]] (mês 4).
