@@ -38,6 +38,7 @@ As migrações do Alembic, em ordem, de `nuvem/migracoes/versions/`. Modelo novo
 | `0023` | alertas ([[D-68]]) | 2026-10-06 |
 | `0024` | prova ([[D-69]]) | 2026-10-06 |
 | `0025` | guarda ([[D-70]]) | 2026-10-06 |
+| `0026` | treino ([[D-71]]) | 2026-10-06 |
 
 ---
 

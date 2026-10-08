@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block titulo %}Base de treino · patio-br{% endblock %}
+{% block cabeca %}
+<style>body { max-width: 60rem; } .recorte { height: 60px; }</style>
+{% endblock %}
+{% block conteudo %}
+<h1>Base de treino</h1>
+<p>A conferência do porteiro vira rótulo só na empresa com a cláusula do contrato, e só desde a data dela. Revogar apaga os rótulos e os recortes da empresa.</p>
+{% if erro %}<p class="erro" role="alert">{{ erro }}</p>{% endif %}
+<h2>Cláusulas</h2>
+<table>
+  <tr><th>Empresa</th><th>Cláusula</th><th></th></tr>
+  {% for empresa in empresas %}
+  <tr>
+    <td>{{ empresa.nome }}</td>
+    <td>{% if empresa.clausula %}cláusula de {{ empresa.clausula }}{% else %}sem cláusula{% endif %}</td>
+    <td>
+      <form method="post" action="/administracao/treino/autorizacoes">
+        <input type="hidden" name="_csrf" value="{{ csrf }}">
+        <input type="hidden" name="empresa" value="{{ empresa.id }}">
+        <label>Data da cláusula <input type="date" name="clausula_em" required></label>
+        <button type="submit">Registrar</button>
+      </form>
+      {% if empresa.clausula %}
+      <form method="post" action="/administracao/treino/autorizacoes/{{ empresa.id }}/revogar">
+        <input type="hidden" name="_csrf" value="{{ csrf }}">
+        <button type="submit">Revogar e apagar os rótulos</button>
+      </form>
+      {% endif %}
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+<h2>Rotulagem</h2>
+<p>{{ contagem.a_revisar }} a revisar · {{ contagem.aceito }} aceitos · {{ contagem.corrigido }} corrigidos · {{ contagem.descartado }} descartados · {{ contagem.regua }} na régua (nunca entram no treino).</p>
+{% for rotulo in pendentes %}
+<form method="post" action="/administracao/treino/rotulos/{{ rotulo.id }}">
+  <input type="hidden" name="_csrf" value="{{ csrf }}">
+  <img class="recorte" src="/administracao/treino/rotulos/{{ rotulo.id }}/recorte" alt="recorte do rótulo {{ rotulo.id }}">
+  <label>Placa <input name="placa" value="{{ rotulo.placa }}" autocomplete="off"></label>
+  <span>{{ "régua" if rotulo.conjunto == "regua" else "treino" }}</span>
+  <button type="submit" name="acao" value="aceitar">Aceitar</button>
+  <button type="submit" name="acao" value="corrigir">Corrigir</button>
+  <button type="submit" name="acao" value="descartar">Descartar</button>
+</form>
+{% else %}
+<p>Nenhum rótulo a revisar.</p>
+{% endfor %}
+<p>A pasta para o ambiente de treino sai do comando <code>uv run tarefas treino</code>.</p>
+<p><a href="/">Início</a></p>
+{% endblock %}

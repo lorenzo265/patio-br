@@ -2,10 +2,11 @@
 
 Executa as tarefas da fila (o casamento das passagens; o envio das mensagens e o aviso do
 WhatsApp, D-63; o resumo das fotos, D-69), confere o "não veio" e os alertas, prepara as
-mensagens, sela a prova e grava a âncora do dia (D-69), apaga as fotos vencidas (D-70) e, nos
-ambientes que têm, avança o dia de demonstração (D-49) e apaga as empresas dos links de
-demonstração vencidos (D-54), até receber o sinal de parar (SIGTERM do Docker, ou Ctrl+C). Lê a
-configuração do ambiente, como a API.
+mensagens, sela a prova e grava a âncora do dia (D-69), apaga as fotos vencidas (D-70),
+transforma as conferências autorizadas em rótulos (D-71) e, nos ambientes que têm, avança o dia
+de demonstração (D-49) e apaga as empresas dos links de demonstração vencidos (D-54), até
+receber o sinal de parar (SIGTERM do Docker, ou Ctrl+C). Lê a configuração do ambiente, como a
+API.
 """
 
 import logging
@@ -25,6 +26,7 @@ from nuvem.demonstracao import link as links_de_demonstracao
 from nuvem.mensagens import sms, whatsapp
 from nuvem.mensagens.canais import Canais
 from nuvem.prova.ancoras import guarda_da_configuracao
+from nuvem.treino.guarda import guarda_do_treino_da_configuracao
 
 _registro = logging.getLogger("nuvem.worker")
 
@@ -69,6 +71,7 @@ def main() -> None:
             armazenamento=armazenamento,
             ancoras=guarda_da_configuracao(configuracao),
             dias_das_fotos=configuracao.guarda_fotos_dias,
+            base_de_treino=guarda_do_treino_da_configuracao(configuracao),
         )
     finally:
         motor.dispose()

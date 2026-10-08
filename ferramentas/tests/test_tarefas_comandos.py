@@ -20,6 +20,7 @@ from tarefas.comandos import (
     etapas_do_modelos,
     etapas_do_semente,
     etapas_do_test,
+    etapas_do_treino,
     etapas_do_up,
     executar_etapas,
     executar_processo,
@@ -197,6 +198,13 @@ def test_demonstracao_cria_a_empresa_de_demonstracao_da_nuvem() -> None:
     (etapa,) = etapas_do_demonstracao()
 
     assert etapa.argumentos[2:] == ("nuvem.demonstracao",)
+
+
+def test_treino_monta_a_pasta_da_base_de_treino_em_dados() -> None:
+    (etapa,) = etapas_do_treino()
+
+    # Em dados/, que o Git ignora: os recortes são de placas reais (regra 3).
+    assert etapa.argumentos[2:] == ("nuvem.treino", "--destino", "dados/treino")
 
 
 def test_demo_sobe_migra_semeia_e_roda_o_simulador_com_as_amostras() -> None:

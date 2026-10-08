@@ -97,6 +97,11 @@ def etapas_do_demonstracao() -> list[Etapa]:
     return [Etapa("empresa de demonstração", _ferramenta("nuvem.demonstracao"))]
 
 
+def etapas_do_treino() -> list[Etapa]:
+    """Monta a pasta da base de treino em ``dados/treino`` (D-71)."""
+    return [Etapa("base de treino", _ferramenta("nuvem.treino", "--destino", "dados/treino"))]
+
+
 def etapas_do_conhecimento() -> list[Etapa]:
     """Devolve a etapa que gera o vault do Obsidian (``knowledge/``) de docs/ e do código."""
     return [Etapa("vault do Obsidian", _ferramenta("tarefas.conhecimento"))]
@@ -178,6 +183,7 @@ _SEM_ARGUMENTOS: dict[str, Callable[[], list[Etapa]]] = {
     "migrar": etapas_do_migrar,
     "semente": etapas_do_semente,
     "demonstracao": etapas_do_demonstracao,
+    "treino": etapas_do_treino,
     "conhecimento": etapas_do_conhecimento,
     "modelos": etapas_do_modelos,
     "demo": etapas_do_demo,
@@ -199,6 +205,10 @@ def _interpretador() -> argparse.ArgumentParser:
     comandos.add_parser(
         "demonstracao",
         help="cria a empresa de demonstração (um mês de histórico) no banco de desenvolvimento",
+    )
+    comandos.add_parser(
+        "treino",
+        help="monta a pasta da base de treino (os rótulos revisados) em dados/treino",
     )
     comandos.add_parser(
         "conhecimento",

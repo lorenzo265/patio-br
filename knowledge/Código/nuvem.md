@@ -26,6 +26,7 @@ Aplicação da nuvem: API, painel e módulos do produto ([[3.3 Módulos da nuvem
 - [[nuvem.patio]]: Pátio e docas ([[2.2 A jornada de um caminhão (modo A)|SDD 2.2]], passos 4 e 5): a fila, a chamada para a doca, o início e o fim.
 - [[nuvem.portaria]]: Portaria ([[3.3 Módulos da nuvem no MVP|SDD 3.3]]): recebe as passagens da borda; no mês 2, casa com o agendamento.
 - [[nuvem.prova]]: A prova da visita ([[5.5 Garantias|SDD 5.5]], [[D-69]]): a cadeia de resumos, a âncora do dia e a conferência.
+- [[nuvem.treino]]: A base de treino ([[4.6 Dados de treino|SDD 4.6]] e [[8.3 LGPD|8.3]], [[D-71]]): a conferência do porteiro vira rótulo, com o contrato.
 - [[nuvem.web]]: Telas do painel ([[6.2 Telas do MVP|SDD 6.2]]): páginas feitas no servidor, com Jinja.
 
 ## Módulos
@@ -247,6 +248,7 @@ Fila de tarefas no PostgreSQL e o laço do worker ([[6.1 Stack|SDD 6.1]], [[D-16
 - **Prova** ([[D-69]]): a passagem com fotos vira também a tarefa "resumir as fotos"; a cada minuto,
   o worker sela o que chegou; a cada 10 minutos, grava a âncora dos dias que terminaram.
 - **Guarda** ([[D-70]]): a cada hora, apaga as fotos vencidas pelo prazo de guarda.
+- **Treino** ([[D-71]]): a cada hora, as conferências autorizadas viram rótulos a revisar.
 
 O worker roda em outro processo (``python -m nuvem.worker``).
 
@@ -298,10 +300,11 @@ O worker da nuvem ([[6.1 Stack|SDD 6.1]] e [[D-38]]): ``python -m nuvem.worker``
 
 Executa as tarefas da fila (o casamento das passagens; o envio das mensagens e o aviso do
 WhatsApp, [[D-63]]; o resumo das fotos, [[D-69]]), confere o "não veio" e os alertas, prepara as
-mensagens, sela a prova e grava a âncora do dia ([[D-69]]), apaga as fotos vencidas ([[D-70]]) e, nos
-ambientes que têm, avança o dia de demonstração ([[D-49]]) e apaga as empresas dos links de
-demonstração vencidos ([[D-54]]), até receber o sinal de parar (SIGTERM do Docker, ou Ctrl+C). Lê a
-configuração do ambiente, como a API.
+mensagens, sela a prova e grava a âncora do dia ([[D-69]]), apaga as fotos vencidas ([[D-70]]),
+transforma as conferências autorizadas em rótulos ([[D-71]]) e, nos ambientes que têm, avança o dia
+de demonstração ([[D-49]]) e apaga as empresas dos links de demonstração vencidos ([[D-54]]), até
+receber o sinal de parar (SIGTERM do Docker, ou Ctrl+C). Lê a configuração do ambiente, como a
+API.
 
 - **`main`**: Sobe o worker e roda até o sinal de parar.
 

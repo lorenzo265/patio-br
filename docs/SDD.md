@@ -1,7 +1,7 @@
 # SDD — patio-br (nome provisório)
 
 **Documento de desenho do software (SDD) do MVP do piloto**
-Versão 0.51 · 2026-10-06 · Situação: aprovado como base; itens em aberto na seção 12
+Versão 0.52 · 2026-10-06 · Situação: aprovado como base; itens em aberto na seção 12
 
 ---
 
@@ -267,7 +267,7 @@ Um módulo só usa outro pelas funções de serviço dele, nunca acessando as ta
 | `extrato` | indicadores e extrato mensal em R$ | Analytics / ROI |
 | `prova` | trilha de eventos que não se edita: a cadeia de resumos de cada visita, a âncora do dia e a página da prova (D-69) | Chain of custody |
 | `frota` | saúde e versão das caixas de borda e câmeras | gestão de dispositivos |
-| `treino` | correções do porteiro viram imagens rotuladas | (interno) |
+| `treino` | correções do porteiro viram imagens rotuladas, com a autorização do contrato, a revisão na rotulagem, a régua fixa e a exportação (D-71) | (interno) |
 | `api_publica` | API e webhooks para integrações | integrações WMS/TMS |
 
 ### 3.4 Conectores de agendamento
@@ -502,7 +502,8 @@ acadêmico (`docs/validacao/fontes-de-placas.md`). Por isso:
 | `AtualizacaoCaixa` | caixa, de qual versão, para qual, começou em, terminou em, o resultado (deu certo, voltou ou falhou), o motivo — contada pela caixa (D-67) |
 | `LinkTransportadora` | site, nome (a transportadora), resumo do código, criado por (gestor), criado em, vence em, revogado em, limite de envios, envios feitos; o agendamento feito pelo link aponta para ele |
 | `LinkDemonstracao` | nome (a empresa visitada), resumo do código, criado por (administração), criado em, vence em (7 dias), revogado em, a empresa de demonstração (nasce na primeira entrada), última entrada, apagada em; fica fora das empresas, como a administração (D-52 e D-54) |
-| `Rotulo` | recorte, placa correta, origem (conferência do porteiro ou rotulagem), revisado |
+| `Rotulo` | recorte (a cópia na base de treino e o resumo), placa correta, origem (conferência do porteiro ou rotulagem), a situação (a revisar, aceito, corrigido ou descartado), quem revisou e quando, o conjunto (treino ou régua, gravado ao nascer e que não muda) (D-71) |
+| `AutorizacaoDeTreino` | empresa, a data da cláusula do contrato, quem registrou e quando, revogada em — uma ativa por empresa (D-71) |
 
 Toda tabela de dados do cliente tem `empresa_id`. Toda consulta filtra por empresa.
 
@@ -704,7 +705,7 @@ modificação (D-50), do mesmo jeito: os arquivos em `estatico/`, com a licença
 | Link de demonstração | quem visita | a página do link (para quem é e o botão "Entrar na demonstração"); dentro, uma faixa no topo troca o papel: gestor, porteiro, líder de pátio ou motorista (D-54) |
 | Celular do motorista | demonstração | as mensagens que o motorista receberia, numa tela em forma de celular; o canal de demonstração não envia nada (D-45) |
 | Recebimento e estoque | demonstração | telas "em breve", com dados de exemplo, para mostrar a visão (D-43 e D-45) |
-| Administração | nós | empresas, sites, câmeras, usuários, parâmetros, rotulagem, links de demonstração; **frota de borda**: cada caixa com o site, as versões, o último contato, as câmeras, a fila, a máquina e o relógio, e o histórico dos últimos 7 dias, hora a hora (D-65); **versões da caixa**: cadastrar, escolher para todas, um site ou uma caixa, e as atualizações de cada caixa (D-67); **alertas da frota e da fila**, com o sino (D-68); **o pedido do titular**: tudo o que existe de uma placa ou de um celular numa empresa (D-70) |
+| Administração | nós | empresas, sites, câmeras, usuários, parâmetros, links de demonstração; **base de treino**: a cláusula do contrato de cada empresa e a **rotulagem** (aceitar, corrigir ou descartar cada rótulo, com o recorte na tela) (D-71); **frota de borda**: cada caixa com o site, as versões, o último contato, as câmeras, a fila, a máquina e o relógio, e o histórico dos últimos 7 dias, hora a hora (D-65); **versões da caixa**: cadastrar, escolher para todas, um site ou uma caixa, e as atualizações de cada caixa (D-67); **alertas da frota e da fila**, com o sino (D-68); **o pedido do titular**: tudo o que existe de uma placa ou de um celular numa empresa (D-70) |
 
 ### 6.3 Repositório
 
@@ -1118,7 +1119,10 @@ Serve para desenvolver sem câmera, para os testes de ponta a ponta e para simul
   de impacto (RIPD) entregue ao cliente.
 - **Base de treino:** só recortes de placa e a região de gravação (D-39), nunca rostos;
   cláusula contratual autorizando o uso para melhorar o serviço. Sem ela, a conferência do
-  porteiro (D-42) não vira rótulo.
+  porteiro (D-42) não vira rótulo. Com ela (D-71), a administração registra a data da cláusula;
+  só as conferências feitas desde essa data viram rótulos, e o recorte é copiado para a base de
+  treino, que tem guarda própria (fora dos 90 dias das fotos). Se o cliente revoga ou o contrato
+  acaba, a administração revoga, e os rótulos e os recortes daquela empresa se apagam.
 - **Portos e recintos alfandegados** (fora do foco do MVP): exigem credenciamento prévio do
   motorista; nesses casos o sistema se integra ao credenciamento, não o substitui.
 
@@ -1258,6 +1262,7 @@ do cuidado de cargas (D-43).
 | D-68 | **Os alertas por dentro** (T57): cada alerta abre uma vez e fecha sozinho quando a situação passa (um aberto por tipo e coisa); o worker confere a cada minuto, e o tique da demonstração também; a câmera parada e o relógio só contam com a caixa em contato; a autorização do WhatsApp para os alertas é por um código de uso único, de 10 minutos, que a tela do gestor e a da administração mostram; a mensagem é um modelo novo, `patio_alerta`, mandado pela fila de tarefas | o alerta que se repete a cada minuto é ignorado; com o código, ninguém liga o próprio celular aos alertas de outra pessoa (o número do usuário não está no cadastro); a Meta só deixa a empresa começar a conversa com um modelo aprovado; sem a caixa em contato, a câmera e o relógio dela não dizem nada de novo | um alerta novo a cada conferência; a autorização pelo id do usuário na mensagem ("ALERTAS U<id>"), que qualquer um poderia mandar; o celular no cadastro do usuário |
 | D-69 | **A prova da visita por dentro** (T58): cada registro da visita (passagem, foto, evento, conferência da placa e cada situação das mensagens ao motorista) vira um elo, selado depois de gravado: o worker sela a cada minuto o que chegou nos últimos 7 dias, e a página da prova sela a visita ao abrir; o resumo de cada foto é feito pela nuvem logo que a passagem chega, por uma tarefa da fila; a saúde da caixa naquela hora vai no retrato da passagem; uma vez por dia (UTC), a âncora vai para um balde S3 só dela, com Object Lock no modo de conformidade por 5 anos, e tem só o número de cada visita e o último resumo; a conferência refaz os resumos, compara cada elo com o registro de origem, relê as fotos e confere as âncoras, e aponta o primeiro elo quebrado; o arquivo da prova traz os elos e a regra do resumo, para qualquer um conferir sem nós; sem o balde das âncoras (a demonstração), a âncora vai para o armazenamento das fotos, sem trava, e a página diz isso | selar depois, e não dentro de cada gravação, não mexe no caminho da portaria e pega também o que chega atrasado; a caixa manda a foto direto para o armazenamento, e o endereço de envio serve por 15 minutos, então o resumo feito logo depois fecha essa janela; a saúde da caixa só fica 7 dias; a cadeia sozinha não basta, porque quem mexe no banco poderia refazer todos os resumos; o Object Lock pede versões no balde inteiro, e as fotos precisam se apagar aos 90 dias (seção 8.3); 5 anos é a guarda da trilha de prova; olhar só os últimos 7 dias deixa pequena a procura de cada minuto, e o histórico inventado da demonstração, gravado com datas passadas, fica quase todo de fora | o resumo dentro de cada gravação (mexe em toda a portaria e perde o que chega por outro caminho); a âncora num serviço de carimbo do tempo (pago e com conta nova); a âncora no mesmo balde das fotos; a caixa mandar o resumo da foto (a prova dependeria da caixa) |
 | D-70 | **A guarda e o pedido do titular por dentro** (T59): os prazos ficam como parâmetros até o `[ABERTO-04]` (fotos 90 dias, `PATIO_GUARDA_FOTOS_DIAS`); a cada hora, o worker apaga o arquivo das fotos das passagens vencidas, menos as de visita com exceção aberta ou em disputa, e grava a foto apagada, que entra na cadeia (a conferência aceita a foto que sumiu se ela foi apagada pela guarda); a disputa é uma marca só de acréscimo, à parte dos eventos, que o gestor põe e tira na página da prova; o apagar das visitas e da trilha (5 anos) fica para antes de 2031; a guarda do registro de erros (30 dias) é a do CloudWatch; o pedido do titular é uma tela da administração, por empresa, com a placa ou o celular no corpo do pedido | a foto é o dado mais sensível que guardamos e o que mais pesa no armazenamento; a prova de uma disputa não pode sumir no meio dela; o resumo prova a foto que existiu sem guardar a foto; a visita encerrada não aceita evento novo, e a disputa quase sempre vem depois de o caminhão sair; nenhum dado do piloto chega a 5 anos antes de 2031; o endereço do pedido fica no registro de acesso, e a placa e o celular não podem ir para lá | apagar a passagem inteira (perde a prova do horário); a disputa como evento da visita (só serve com a visita aberta); o pedido do titular como comando de terminal (precisaria da senha do banco de produção) |
+| D-71 | **A base de treino por dentro** (T60): a administração registra a data da cláusula do contrato de cada empresa (a empresa de demonstração não entra); a cada hora, o worker transforma as conferências do porteiro feitas desde aquela data em rótulos a revisar e copia o recorte para a base de treino (uma pasta à parte no armazenamento, fora da guarda das fotos); 1 em cada 10 rótulos vai para a régua, pelo resumo da passagem e da foto, e o conjunto fica gravado e não muda; a tela de rotulagem aceita, corrige ou descarta, e só os aceitos e os corrigidos vão para o treino; o comando `tarefas treino` monta a pasta para o ambiente de treino (D-40): os recortes e um CSV por conjunto; revogar a autorização apaga os rótulos e os recortes daquela empresa | o recorte precisa durar mais que os 90 dias da foto, e a cópia só existe com o contrato; o sorteio pelo resumo é repetível e não depende da ordem em que as conferências chegam; a régua não pode receber nada do treino (seção 4.7); a pasta é o que o ambiente de treino lê, sem acesso ao banco | guardar só a referência à foto (some aos 90 dias); escolher a régua à mão (lento e enviesado); mandar direto para o Label Studio (fica para o `[ABERTO-18]`) |
 
 ---
 
@@ -1378,3 +1383,4 @@ do cuidado de cargas (D-43).
 | 0.49 | 2026-10-06 | os alertas por dentro (T57): abre uma vez e fecha sozinho, os tipos e os tempos, o worker a cada minuto, o sino em todas as telas, o WhatsApp dos graves com o código de uso único e a administração (D-68); as entidades `Alerta`, `AvisoDeAlerta` e `AlertasNoWhatsApp` (seções 5.1, 6.1, 6.2, 7.5, 8.1 e 11) |
 | 0.50 | 2026-10-06 | a prova da visita por dentro (T58): a cadeia de resumos de cada visita, o resumo das fotos, a âncora do dia num balde travado, a conferência e a página da prova (D-69); as entidades `FotoRecebida`, `EloDaProva` e `AncoraDoDia` (seções 3.3, 5.1, 5.5, 6.1, 6.2, 11 e 13) |
 | 0.51 | 2026-10-06 | a guarda e o pedido do titular por dentro (T59): os prazos como parâmetros, a foto vencida apagada pelo worker com o resumo e o registro na prova, a marca de disputa, e o levantamento de uma placa ou de um celular pela administração (D-70); as entidades `FotoApagada` e `MarcaDeDisputa` (seções 5.1, 5.5, 6.1, 6.2, 8.3 e 11) |
+| 0.52 | 2026-10-06 | a base de treino por dentro (T60): a autorização do contrato, o rótulo que nasce da conferência com a cópia do recorte, a régua sorteada pelo resumo, a rotulagem, a exportação e o apagar ao revogar (D-71); a entidade `AutorizacaoDeTreino` (seções 3.3, 5.1, 6.2, 8.3 e 11) |
