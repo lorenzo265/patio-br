@@ -77,7 +77,8 @@ código que outro site não tem como saber: o HMAC do código da sessão com um 
 - **No HTMX:** o cabeçalho ``X-CSRF-Token`` (o ``hx-headers`` do ``<body>``).
 - **Ficam de fora** só as rotas em que o cookie não decide quem pede (``ISENTAS``): o login
   (que recusa o envio vindo de outro site), o link da transportadora, o link de demonstração, a
-  API da caixa (pela chave) e o webhook do WhatsApp (pela assinatura, [[D-63]]).
+  API da caixa (pela chave), o webhook do WhatsApp (pela assinatura, [[D-63]]) e o retorno do SMS
+  (pelo segredo no endereço, [[D-64]]).
 
 - **`ISENTAS`**: O login e o webhook, exatos; os outros (com a ``/`` no fim), pelo começo do caminho.
 - **`CodigoCsrfRecusadoError`** (classe): O pedido muda alguma coisa, tem a sessão, e não trouxe o código certo (403).
@@ -294,6 +295,7 @@ cookie, recusa o envio que o navegador marca como vindo de outro site (``Sec-Fet
 - `nuvem/tests/test_nuvem_web_portaria_excecoes.py`: Exceções na tela da portaria ([[T34]]): o porteiro vê, com a foto e os candidatos; resolver é no mês 3.
 - `nuvem/tests/test_nuvem_web_portaria_resolucao.py`: Resolver a exceção e registrar a chegada à mão pela tela da portaria ([[T41]], [[5.2 Estados da visita|SDD 5.2]] e [[D-46]]).
 - `nuvem/tests/test_nuvem_web_portaria_resultado.py`: O resultado do casamento na lista de passagens da portaria ([[T35]], [[6.2 Telas do MVP|SDD 6.2]]).
+- `nuvem/tests/test_nuvem_web_sms.py`: O retorno do SMS ([[7.5 WhatsApp e SMS|SDD 7.5]], [[D-64]]): ``/api/sms/<segredo>``, e o segredo fora do registro.
 - `nuvem/tests/test_nuvem_web_whatsapp.py`: O webhook do WhatsApp e o QR da portaria ([[7.5 WhatsApp e SMS|SDD 7.5]], [[D-58]] e [[D-63]]).
 
 ---

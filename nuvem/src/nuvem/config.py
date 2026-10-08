@@ -27,6 +27,8 @@ from nuvem.cifra import Cifra
 PREFIXO = "PATIO_"
 
 Ambiente = Literal["local", "demonstracao", "homologacao", "producao"]
+TAMANHO_DO_SEGREDO = 32
+"""O menor segredo de webhook que vai no endereço (ex.: ``secrets.token_urlsafe(32)``)."""
 
 
 class Configuracao(BaseSettings):
@@ -124,6 +126,19 @@ class Configuracao(BaseSettings):
     whatsapp_versao: str = "v25.0"
     """A versão da API da Meta (de 02/2026)."""
 
+    sms_token: SecretStr | None = None
+    """O token da API da Zenvia, que manda os SMS (D-59 e D-64)."""
+    sms_remetente: str | None = None
+    """Quem manda o SMS, na conta da Zenvia."""
+    sms_segredo_do_webhook: SecretStr | None = None
+    """O segredo do endereço do retorno da Zenvia (``/api/sms/<segredo>``): ela não assina os
+    avisos, e só ela conhece o endereço."""
+
+    @property
+    def tem_sms(self) -> bool:
+        """Se os SMS saem de verdade (D-64)."""
+        return self.sms_token is not None
+
     @property
     def tem_whatsapp(self) -> bool:
         """Se as mensagens ao motorista saem de verdade (D-63); sem, ficam na demonstração."""
@@ -183,6 +198,25 @@ class Configuracao(BaseSettings):
         if any(partes) and self.ambiente == "demonstracao":
             raise ValueError("whatsapp: a demonstração nunca manda mensagem (D-45)")
         return self
+
+    @model_validator(mode="after")
+    def _sms_completo(self) -> Self:
+        partes = (self.sms_token, self.sms_remetente, self.sms_segredo_do_webhook)
+        if any(partes) and not all(partes):
+            raise ValueError("sms: o token, o remetente e o segredo do webhook vão juntos")
+        if any(partes) and self.ambiente == "demonstracao":
+            raise ValueError("sms: a demonstração nunca manda mensagem (D-45)")
+        return self
+
+    @field_validator("sms_segredo_do_webhook")
+    @classmethod
+    def _segredo_longo(cls, segredo: SecretStr | None) -> SecretStr | None:
+        if segredo is not None and len(segredo.get_secret_value()) < TAMANHO_DO_SEGREDO:
+            raise ValueError(
+                f"sms_segredo_do_webhook: no mínimo {TAMANHO_DO_SEGREDO} caracteres (ele vai "
+                "no endereço e protege o retorno)"
+            )
+        return segredo
 
     @field_validator("whatsapp_numero")
     @classmethod

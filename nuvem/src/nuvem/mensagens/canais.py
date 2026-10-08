@@ -7,10 +7,11 @@ falhou. O canal de demonstração não manda nada, e não é um canal de envio.
 """
 
 from dataclasses import dataclass
+from datetime import datetime
 from typing import TYPE_CHECKING, Protocol
 
 if TYPE_CHECKING:
-    from nuvem.mensagens.modelos import Mensagem
+    from nuvem.mensagens.modelos import Mensagem, SituacaoDaMensagem
 
 
 class EnvioFalhouError(Exception):
@@ -25,6 +26,18 @@ class EnvioRecusadoError(Exception):
         super().__init__(f"{codigo}: {texto}")
         self.codigo = codigo
         self.texto = texto
+
+
+@dataclass(frozen=True)
+class Situacao:
+    """A situação de uma mensagem nossa, como o canal avisou depois do envio."""
+
+    id_no_canal: str
+    situacao: "SituacaoDaMensagem"
+    momento: datetime
+    erro: str | None
+    categoria: str | None = None
+    """A categoria de cobrança (ex.: ``utility``), quando o canal diz."""
 
 
 @dataclass(frozen=True)

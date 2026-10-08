@@ -23,7 +23,12 @@ Depois do check-in: a fila, a chamada para a doca, a carga ou descarga e os avis
   gravada (WhatsApp para o celular que autorizou a empresa, SMS para os outros) e sai por uma
   tarefa da fila; o webhook da Meta (`/api/whatsapp`) confere a assinatura e guarda o aviso
   numa tarefa, e o worker atualiza a situação (enviada, entregue, lida, falhou) e trata as
-  mensagens do motorista. O SMS sai na [[T53]] ([[7.5 WhatsApp e SMS]], [[N1]], [[N19]]).
+  mensagens do motorista ([[7.5 WhatsApp e SMS]], [[N1]], [[N19]]).
+- **O SMS** ([[T53]], [[D-64]]): pela Zenvia ([[D-59]]), com um texto curto, sem acento e de no
+  máximo 160 caracteres; o da confirmação leva o link do WhatsApp. A mensagem do WhatsApp que
+  falha de vez ganha uma cópia pelo SMS. O retorno da Zenvia chega em `/api/sms/<segredo>`.
+- **Motorista não avisado:** quando o último aviso falhou em todas as tentativas, o quadro do
+  pátio mostra "motorista não avisado" no caminhão ([[D-64]]).
 - **O motorista começa a conversa** ([[D-58]], que fechou o [[ABERTO-22]]): a política da Meta
   pede a autorização de quem recebe, e o número vem da transportadora. O primeiro aviso vai por
   SMS (Zenvia, [[D-59]]), com um link que abre o WhatsApp com a mensagem pronta; a mensagem do
@@ -36,6 +41,6 @@ Depois do check-in: a fila, a chamada para a doca, a carga ou descarga e os avis
 
 - SDD: [[2.2 A jornada de um caminhão (modo A)]], [[5.2 Estados da visita]],
   [[7.5 WhatsApp e SMS]].
-- Decisões: [[D-12]], [[D-47]], [[D-58]], [[D-59]], [[D-62]], [[D-63]].
+- Decisões: [[D-12]], [[D-47]], [[D-58]], [[D-59]], [[D-62]], [[D-63]], [[D-64]].
 - Código: [[nuvem.patio]], [[nuvem.mensagens]], [[nuvem.web]].
 - Tarefas: [[T42]], [[T43]], [[T52]], [[T53]], [[T57]].

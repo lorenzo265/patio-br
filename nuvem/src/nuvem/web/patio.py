@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 from nuvem.banco import obter_sessao
 from nuvem.cadastro import servico as cadastro
 from nuvem.cadastro.acesso import Acesso, exigir_papel
+from nuvem.mensagens import servico as mensagens
 from nuvem.patio import servico as patio
 from nuvem.patio.servico import CaminhaoNoPatio, DocaOcupadaError
 from nuvem.portaria import visitas
@@ -54,10 +55,18 @@ def quadro(
     """A fila, as docas e os liberados (o pedaço da tela que o HTMX troca)."""
     atual = patio.quadro(sessao, acesso, site, agora=momento)
     fuso = ZoneInfo(cadastro.obter_site(sessao, acesso, site).fuso)
+    no_patio = [*atual.fila, *(d.caminhao for d in atual.docas if d.caminhao)]
+    # O motorista que não recebeu o último aviso (D-64): o líder avisa de outro jeito.
+    nao_avisados = mensagens.nao_avisados(
+        sessao, acesso, [c.agendamento_id for c in no_patio if c.agendamento_id is not None]
+    )
     contexto = {
-        "fila": [_caminhao(c, fuso) for c in atual.fila],
+        "fila": [_caminhao(c, fuso, nao_avisados) for c in atual.fila],
         "docas": [
-            {"nome": d.nome, "caminhao": _caminhao(d.caminhao, fuso) if d.caminhao else None}
+            {
+                "nome": d.nome,
+                "caminhao": _caminhao(d.caminhao, fuso, nao_avisados) if d.caminhao else None,
+            }
             for d in atual.docas
         ],
         "liberados": [_caminhao(c, fuso) for c in atual.liberados],
@@ -169,8 +178,11 @@ def _chamar(
     return tela(request, "patio_chamar.html", contexto, codigo)
 
 
-def _caminhao(caminhao: CaminhaoNoPatio, fuso: ZoneInfo) -> dict[str, Any]:
+def _caminhao(
+    caminhao: CaminhaoNoPatio, fuso: ZoneInfo, nao_avisados: set[int] | None = None
+) -> dict[str, Any]:
     return {
+        "nao_avisado": caminhao.agendamento_id in (nao_avisados or set()),
         "visita_id": caminhao.visita_id,
         "estado": caminhao.estado,
         "situacao": ESTADO_NA_TELA.get(caminhao.estado, caminhao.estado),

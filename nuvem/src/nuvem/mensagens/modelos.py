@@ -38,12 +38,14 @@ class Mensagem(Base):
         do_pai_na_mesma_empresa("site"),
         do_pai_na_mesma_empresa("agendamento"),
         do_pai_na_mesma_empresa("evento"),
-        # Cada evento avisa uma vez só; cada celular do agendamento é confirmado uma vez só.
-        UniqueConstraint("evento_id"),
+        # Cada evento avisa uma vez só por canal (o WhatsApp e a reserva pelo SMS, D-64); cada
+        # celular do agendamento é confirmado uma vez só por canal.
+        UniqueConstraint("evento_id", "canal"),
         Index(
             "uq_mensagem_confirmacao",
             "agendamento_id",
             "para",
+            "canal",
             unique=True,
             postgresql_where=text("modelo = 'confirmacao'"),
         ),

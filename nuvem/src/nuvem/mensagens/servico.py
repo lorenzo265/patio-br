@@ -6,9 +6,10 @@
   sair. Cada evento avisa uma vez só, no celular que o agendamento tem na hora.
 - **Só o recente:** o worker olha os eventos dos últimos 30 minutos (aviso mais velho chegaria
   tarde) e os agendamentos criados ou mudados no último dia.
-- **O canal** (D-63): sem o WhatsApp configurado, o de demonstração, que só guarda; com ele, o
-  WhatsApp para o celular que autorizou a empresa, e o SMS para os outros. A mensagem que sai
-  vira a tarefa "enviar mensagem".
+- **O canal** (D-63): sem o WhatsApp e sem o SMS configurados, o de demonstração, que só guarda;
+  com eles, o WhatsApp para o celular que autorizou a empresa, e o SMS para os outros, com o
+  texto curto do SMS (D-64). A mensagem que sai vira a tarefa "enviar mensagem".
+- **A reserva** (D-64): a mensagem do WhatsApp que falha de vez ganha uma cópia pelo SMS.
 - **O aviso da Meta** (``tratar_aviso``): a situação de cada mensagem (enviada, entregue, lida,
   falhou) e as mensagens que o motorista mandou: a autorização ("AVISOS ...") e o "SAIR".
 
@@ -18,6 +19,7 @@ lê passa o ``Acesso``.
 """
 
 import logging
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any
@@ -33,12 +35,13 @@ from nuvem.agendamento.modelos import Agendamento
 from nuvem.cadastro import servico as cadastro
 from nuvem.cadastro.acesso import Acesso
 from nuvem.cadastro.servico import HorarioDoSite
-from nuvem.mensagens import whatsapp
+from nuvem.mensagens import sms, whatsapp
 from nuvem.mensagens.canais import (
     Canais,
     CanalDeEnvio,
     EnvioFalhouError,
     EnvioRecusadoError,
+    Situacao,
 )
 from nuvem.mensagens.modelos import (
     AutorizacaoWhatsApp,
@@ -146,8 +149,9 @@ def preparar(sessao: Session, *, agora: datetime, canais: Canais | None = None) 
 def _escolher_os_canais(
     sessao: Session, novas: list[dict[str, Any]], canais: Canais | None
 ) -> None:
-    # O WhatsApp só para o celular que autorizou aquela empresa (D-58); os outros, por SMS.
-    if canais is None or canais.whatsapp is None:
+    # O WhatsApp só para o celular que autorizou aquela empresa (D-58); os outros, por SMS, com o
+    # texto do SMS (D-64).
+    if canais is None or (canais.whatsapp is None and canais.sms is None):
         for nova in novas:
             nova["canal"] = SEM_ENVIO
         return
@@ -162,7 +166,20 @@ def _escolher_os_canais(
     }
     for nova in novas:
         par = (nova["empresa_id"], nova["para"])
-        nova["canal"] = "whatsapp" if par in autorizados else "sms"
+        if canais.whatsapp is not None and par in autorizados:
+            nova["canal"] = "whatsapp"
+        else:
+            nova["canal"] = "sms"
+            nova["texto"] = _texto_do_sms(nova, canais)
+
+
+def _texto_do_sms(mensagem: dict[str, Any], canais: Canais) -> str:
+    return sms.texto_do_sms(
+        mensagem["modelo"],
+        mensagem["variaveis"],
+        agendamento_id=mensagem["agendamento_id"],
+        numero_do_whatsapp=canais.whatsapp.numero if canais.whatsapp else None,
+    )
 
 
 def _canal_de_envio(canais: Canais, canal: Canal) -> CanalDeEnvio | None:
@@ -312,6 +329,7 @@ def enviar(sessao: Session, canais: Canais, mensagem_id: int, *, agora: datetime
         mensagem.situacao = "falhou"
         mensagem.falhou_em = agora
         mensagem.erro = str(erro)[:300]
+        _reserva_pelo_sms(sessao, canais, mensagem, agora)
     else:
         mensagem.situacao = "enviada"
         mensagem.id_no_canal = envio.id_no_canal
@@ -333,20 +351,59 @@ def tratar_aviso(
     """
     situacoes, recebidas = whatsapp.ler_aviso(aviso)
     for situacao in situacoes:
-        _atualizar(sessao, situacao)
+        mensagem = _atualizar(sessao, "whatsapp", situacao)
+        if mensagem is not None and mensagem.situacao == "falhou":
+            _reserva_pelo_sms(sessao, canais, mensagem, agora)
     for recebida in recebidas:
         _tratar_recebida(sessao, canais, recebida, agora)
     sessao.flush()
 
 
-def _atualizar(sessao: Session, situacao: whatsapp.Situacao) -> None:
+def tratar_aviso_do_sms(sessao: Session, evento: dict[str, Any]) -> None:
+    """Trata um retorno da Zenvia (a tarefa "aviso do SMS"; sem ``commit``): a entrega do SMS.
+
+    O SMS que falha não ganha outra cópia: o motorista fica sem aviso, e o pátio mostra isso.
+    """
+    situacao = sms.ler_aviso_do_sms(evento)
+    if situacao is not None:
+        _atualizar(sessao, "sms", situacao)
+        sessao.flush()
+
+
+def _reserva_pelo_sms(sessao: Session, canais: Canais, mensagem: Mensagem, agora: datetime) -> None:
+    # A cópia do aviso pelo SMS (D-64), uma só por aviso: o banco recusa a segunda.
+    if mensagem.canal != "whatsapp" or canais.sms is None:
+        return
+    copia = {
+        "empresa_id": mensagem.empresa_id,
+        "site_id": mensagem.site_id,
+        "agendamento_id": mensagem.agendamento_id,
+        "evento_id": mensagem.evento_id,
+        "modelo": mensagem.modelo,
+        "canal": "sms",
+        "para": mensagem.para,
+        "variaveis": mensagem.variaveis or [],
+        "situacao": "guardada",
+        "criada_em": agora,
+    }
+    copia["texto"] = _texto_do_sms(copia, canais)
+    nova = sessao.scalar(
+        insert(Mensagem).values(copia).on_conflict_do_nothing().returning(Mensagem.id)
+    )
+    if nova is not None:
+        tarefas_de_fundo.enfileirar(
+            sessao, "enviar_mensagem", {"mensagem_id": nova}, chave=str(nova), agora=agora
+        )
+
+
+def _atualizar(sessao: Session, canal: Canal, situacao: Situacao) -> Mensagem | None:
     mensagem = sessao.scalar(
         select(Mensagem).where(
-            Mensagem.canal == "whatsapp", Mensagem.id_no_canal == situacao.id_no_canal
+            Mensagem.canal == canal, Mensagem.id_no_canal == situacao.id_no_canal
         )
     )
     if mensagem is None:
-        return
+        return None
     coluna = QUANDO_DA_SITUACAO[situacao.situacao]
     if getattr(mensagem, coluna) is None:
         setattr(mensagem, coluna, situacao.momento)
@@ -359,6 +416,7 @@ def _atualizar(sessao: Session, situacao: whatsapp.Situacao) -> None:
         mensagem.situacao = situacao.situacao
     if situacao.categoria:
         mensagem.cobranca = situacao.categoria[:30]
+    return mensagem
 
 
 def _tratar_recebida(
@@ -500,3 +558,35 @@ def conversas(
         .limit(limite)
     )
     return [Conversa(mensagem.agendamento_id, mensagem, quantas) for mensagem, quantas in linhas]
+
+
+def nao_avisados(sessao: Session, acesso: Acesso, agendamento_ids: Sequence[int]) -> set[int]:
+    """Os agendamentos, entre estes, cujo motorista não recebeu o último aviso (D-64).
+
+    O último aviso é o da mensagem mais nova; ele não chegou quando todas as tentativas dele (o
+    WhatsApp e a reserva pelo SMS) falharam. A que ainda não saiu não conta.
+    """
+    if not agendamento_ids:
+        return set()
+    linhas = sessao.execute(
+        select(Mensagem.agendamento_id, Mensagem.evento_id, Mensagem.modelo, Mensagem.situacao)
+        .where(
+            Mensagem.empresa_id == acesso.empresa_id,
+            Mensagem.agendamento_id.in_(agendamento_ids),
+            Mensagem.site_id.in_(acesso.sites),
+        )
+        .order_by(Mensagem.criada_em, Mensagem.id)
+    )
+    tentativas: dict[int, tuple[tuple[int | None, str], list[str]]] = {}
+    for agendamento_id, evento_id, modelo, situacao in linhas:
+        aviso = (evento_id, modelo)
+        ultimo = tentativas.get(agendamento_id)
+        if ultimo is None or ultimo[0] != aviso:
+            tentativas[agendamento_id] = (aviso, [situacao])
+        else:
+            ultimo[1].append(situacao)
+    return {
+        agendamento_id
+        for agendamento_id, (_, situacoes) in tentativas.items()
+        if all(situacao == "falhou" for situacao in situacoes)
+    }

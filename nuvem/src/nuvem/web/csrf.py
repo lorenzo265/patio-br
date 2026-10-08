@@ -9,7 +9,8 @@ código que outro site não tem como saber: o HMAC do código da sessão com um 
 - **No HTMX:** o cabeçalho ``X-CSRF-Token`` (o ``hx-headers`` do ``<body>``).
 - **Ficam de fora** só as rotas em que o cookie não decide quem pede (``ISENTAS``): o login
   (que recusa o envio vindo de outro site), o link da transportadora, o link de demonstração, a
-  API da caixa (pela chave) e o webhook do WhatsApp (pela assinatura, D-63).
+  API da caixa (pela chave), o webhook do WhatsApp (pela assinatura, D-63) e o retorno do SMS
+  (pelo segredo no endereço, D-64).
 """
 
 import hashlib
@@ -21,7 +22,14 @@ from nuvem.cadastro.acesso import COOKIE_DA_SESSAO
 
 CAMPO = "_csrf"
 CABECALHO = "X-CSRF-Token"
-ISENTAS = ("/entrar", "/agendar/", "/demonstracao/link/", "/api/borda/", "/api/whatsapp")
+ISENTAS = (
+    "/entrar",
+    "/agendar/",
+    "/demonstracao/link/",
+    "/api/borda/",
+    "/api/whatsapp",
+    "/api/sms/",
+)
 """O login e o webhook, exatos; os outros (com a ``/`` no fim), pelo começo do caminho."""
 _SEGUROS = frozenset({"GET", "HEAD", "OPTIONS"})
 _FORMULARIOS = ("application/x-www-form-urlencoded", "multipart/form-data")

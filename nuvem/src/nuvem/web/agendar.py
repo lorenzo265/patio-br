@@ -150,8 +150,9 @@ def _janela(agendamento: Agendamento, site: HorarioDoSite) -> dict[str, str]:
 
 # --- O registro de acesso não guarda o código (D-34) ------------------------------------------
 
-_CODIGO_NO_CAMINHO = re.compile(r"^/(agendar|demonstracao/link)/[^/?#]+")
-"""O link da transportadora e o de demonstração (D-54) levam o código no endereço."""
+_CODIGO_NO_CAMINHO = re.compile(r"^/(agendar|demonstracao/link|api/sms)/[^/?#]+")
+"""O link da transportadora, o de demonstração (D-54) e o retorno do SMS (D-64) levam o código
+no endereço."""
 
 
 class EsconderCodigoDoLink(logging.Filter):
