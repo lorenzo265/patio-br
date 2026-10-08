@@ -1,0 +1,41 @@
+# A imagem do agente da caixa, publicada no registro do GitHub (SDD 7.4, D-67).
+# Roda só quando alguém cria uma etiqueta caixa-v<versão> (ex.: caixa-v0.2.0). No fim, o resumo
+# da imagem aparece no resumo do trabalho: é ele que a administração cadastra em "Versões da
+# caixa", e a caixa baixa a imagem por ele.
+name: imagens publicadas
+
+on:
+  push:
+    tags: ["caixa-v*"]
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publicar:
+    name: publicar a imagem do agente
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Montar e publicar
+        env:
+          ETIQUETA: ${{ github.ref_name }}
+          DONO: ${{ github.repository_owner }}
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ATOR: ${{ github.actor }}
+        run: |
+          versao="${ETIQUETA#caixa-v}"
+          imagem="ghcr.io/$(echo "$DONO" | tr '[:upper:]' '[:lower:]')/patio-caixa"
+          echo "$TOKEN" | docker login ghcr.io -u "$ATOR" --password-stdin
+          docker build -f borda/Dockerfile -t "$imagem:$versao" .
+          docker push "$imagem:$versao"
+          resumo="$(docker inspect --format '{{index .RepoDigests 0}}' "$imagem:$versao" | cut -d@ -f2)"
+          {
+            echo "### A versão $versao da caixa"
+            echo
+            echo "- Nome: \`$versao\`"
+            echo "- Imagem: \`$imagem\`"
+            echo "- Resumo: \`$resumo\`"
+          } >> "$GITHUB_STEP_SUMMARY"

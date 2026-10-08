@@ -16,6 +16,7 @@ Os arquivos Jinja de `nuvem/src/nuvem/web/telas/`, a função que mostra cada um
 | `administracao_caixa.html` | `nuvem.web.frota.tela_da_caixa` | `base.html` |  |
 | `administracao_demonstracao.html` | `nuvem.web.demonstracao._tela_dos_links` | `base.html` |  |
 | `administracao_frota.html` | `nuvem.web.frota.tela_da_frota` | `base.html` |  |
+| `administracao_versoes.html` | `nuvem.web.frota._tela_das_versoes` | `base.html` |  |
 | `agendamentos.html` | `nuvem.web.agendamentos._tela` | `base.html` |  |
 | `agendar.html` | `nuvem.web.agendar._formulario` | `base.html` |  |
 | `agendar_aviso.html` | `nuvem.web.agendar._aviso` | `base.html` |  |

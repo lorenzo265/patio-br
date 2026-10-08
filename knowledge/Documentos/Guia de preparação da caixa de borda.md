@@ -26,6 +26,7 @@ o acesso é só pelo Tailscale.
   - o **resumo da senha** do usuário `patio` (`mkpasswd -m sha-512` na sua máquina);
   - a **chave pública SSH** de quem instala;
   - uma **chave de autorização do Tailscale** de uso único, com a etiqueta `tag:caixa`.
+  - a **credencial do registro do GitHub** (`ghcr.io`) que só baixa imagens, para o atualizador.
 - Um **código de ativação** do site, gerado pela administração (vale 24 horas).
 
 ## 1. O pendrive da instalação
@@ -94,7 +95,37 @@ docker compose up -d
 docker compose logs -f agente
 ```
 
-## 5. Conferir
+## 5. O atualizador
+
+O atualizador troca a versão do agente sozinho e volta para a anterior se der errado ([[7.4 A caixa de borda|SDD 7.4]],
+[[D-67]]). Ele roda no Ubuntu da caixa, fora dos contêineres, a cada 5 minutos:
+
+```bash
+scp borda/src/borda/atualizador.py patio@caixa-<site>:/opt/patio/
+scp infra/caixa/patio-atualizador.service infra/caixa/patio-atualizador.timer patio@caixa-<site>:/tmp/
+```
+
+Na caixa:
+
+```bash
+sudo mv /tmp/patio-atualizador.* /etc/systemd/system/
+# A credencial do registro do GitHub que só baixa imagens (do cofre de senhas da equipe):
+sudo docker login ghcr.io -u <conta> --password-stdin
+sudo systemctl enable --now patio-atualizador.timer
+```
+
+Para ver o que ele fez: `journalctl -u patio-atualizador`. Cada troca também aparece na frota de
+borda.
+
+### Uma versão nova
+
+1. Crie a etiqueta `caixa-v0.2.0` no GitHub. O workflow "imagens publicadas" monta a imagem do
+   agente, publica no `ghcr.io` e mostra o resumo (`sha256:…`).
+2. Na administração, em "Versões da caixa", cadastre a versão com o nome e o resumo.
+3. Escolha a versão para **uma caixa** e espere a atualização dar certo na frota.
+4. Só então escolha para o site ou para todas as caixas.
+
+## 6. Conferir
 
 - **As câmeras:** na sua máquina, abra um túnel até a tela do go2rtc. Ela só responde na
   própria caixa:

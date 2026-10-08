@@ -18,6 +18,9 @@ Os endereços da API e das telas, lidos dos decoradores (`@roteador.get(...)`) c
 | `/administracao/demonstracao` | POST | `gerar_link` | [[nuvem.web]] | Gera um link para uma empresa visitada e mostra o endereço, uma vez só. |
 | `/administracao/demonstracao/{link_id}/revogar` | POST | `revogar_link` | [[nuvem.web]] | Revoga o link: ele deixa de valer, e as pessoas da empresa dele saem na hora. |
 | `/administracao/frota` | GET | `tela_da_frota` | [[nuvem.web]] | Todas as caixas, das mais novas para as mais antigas. |
+| `/administracao/frota/versoes` | GET | `tela_das_versoes` | [[nuvem.web]] | As versões da caixa, o formulário de cadastrar e o de escolher. |
+| `/administracao/frota/versoes` | POST | `cadastrar_versao` | [[nuvem.web]] | Cadastra uma versão pelo resumo da imagem. |
+| `/administracao/frota/versoes/{versao_id}/escolher` | POST | `escolher_versao` | [[nuvem.web]] | Escolhe a versão para uma caixa, um site ou todas as caixas. |
 | `/administracao/frota/{caixa_id}` | GET | `tela_da_caixa` | [[nuvem.web]] | Uma caixa: a última saúde e os últimos 7 dias, hora a hora (404 se não existir). |
 | `/agendamentos` | GET | `tela_de_agendamentos` | [[nuvem.web]] | A lista do dia (ou da semana) de um site do gestor, com a planilha e os links. |
 | `/agendamentos/links` | POST | `gerar_link` | [[nuvem.web]] | Gera um link para uma transportadora e mostra o endereço, uma vez só. |
@@ -35,15 +38,20 @@ Os endereços da API e das telas, lidos dos decoradores (`@roteador.get(...)`) c
 | `/api/admin/sites` | GET | `listar_sites_para_administracao` | [[nuvem.cadastro]] | Todos os sites, de todas as empresas (só a administração). |
 | `/api/admin/sites/{site_id}/codigos-de-ativacao` | POST | `gerar_codigo` | [[nuvem.frota]] | Gera um código de ativação para o site (vale 24 horas, uma vez). |
 | `/api/admin/usuarios/{usuario_id}/duas-etapas/zerar` | POST | `zerar_duas_etapas` | [[nuvem.cadastro]] | Zera a verificação em duas etapas de um usuário e fecha as sessões dele ([[D-60]]). |
+| `/api/admin/versoes` | GET | `listar_versoes` | [[nuvem.frota]] | As versões, das mais novas para as mais antigas, com as caixas em que deram certo. |
+| `/api/admin/versoes` | POST | `cadastrar_versao` | [[nuvem.frota]] | Cadastra uma versão do agente pelo resumo da imagem (422 se fora do formato ou repetida). |
+| `/api/admin/versoes/{versao_id}/escolher` | POST | `escolher_versao` | [[nuvem.frota]] | Escolhe a versão para uma caixa, um site ou todas (409 se ainda não deu certo numa caixa). |
 | `/api/agendamentos` | GET | `listar` | [[nuvem.agendamento]] | Os agendamentos de um site cuja janela toca o período ``[de, ate)`` (até 31 dias). |
 | `/api/agendamentos/planilha` | POST | `subir_planilha` | [[nuvem.agendamento]] | Importa a planilha (CSV ou XLSX) num site do gestor; devolve o relatório por linha. |
 | `/api/agendamentos/{agendamento_id}` | GET | `obter` | [[nuvem.agendamento]] | Um agendamento de um site que o usuário vê (404 para qualquer outro). |
 | `/api/borda/ativar` | POST | `ativar` | [[nuvem.frota]] | Troca o código de ativação pela chave da caixa (401 se o código não vale). |
+| `/api/borda/atualizacoes` | POST | `contar_atualizacao` | [[nuvem.frota]] | A troca de versão que a caixa fez ([[D-67]]); 422 se o resumo não é de uma versão. |
 | `/api/borda/configuracao` | GET | `configuracao` | [[nuvem.frota]] | As faixas e câmeras do site da caixa, com a senha das câmeras. |
 | `/api/borda/fotos/endereco` | POST | `endereco_de_foto` | [[nuvem.portaria]] | Devolve o endereço temporário para a caixa enviar uma foto. |
 | `/api/borda/fotos/envio/{codigo}` | PUT | `receber_foto` | [[nuvem.portaria]] | Recebe a foto no armazenamento local (o endereço já autoriza; não leva a chave). |
 | `/api/borda/passagens` | POST | `receber_passagem` | [[nuvem.portaria]] | Recebe uma passagem da caixa: 201 se nova, 200 se repetida. |
 | `/api/borda/saude` | POST | `receber_saude` | [[nuvem.frota]] | A saúde da caixa, a cada minuto ([[D-65]]): 403 se é de outra caixa ou de outro site. |
+| `/api/borda/versao` | GET | `versao_da_caixa` | [[nuvem.frota]] | A versão que vale para a caixa ([[D-67]]); 204 se nenhuma foi escolhida. |
 | `/api/cadastro/sites` | GET | `listar_sites` | [[nuvem.cadastro]] | Os sites que o usuário vê. |
 | `/api/cadastro/sites/{site_id}` | GET | `obter_site` | [[nuvem.cadastro]] | Um site que o usuário vê (404 para qualquer outro). |
 | `/api/cadastro/sites/{site_id}/cameras` | GET | `listar_cameras` | [[nuvem.cadastro]] | As câmeras de um site que o gestor vê (404 para qualquer outro site). |

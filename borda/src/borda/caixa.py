@@ -327,7 +327,9 @@ def _rodar_com(
     envio = threading.Thread(target=remetente.rodar, name="envio", daemon=True)
     envio.start()
     pulso = threading.Thread(
-        target=Pulso(saude_de_agora, nuvem, parar=parar).rodar, name="saude", daemon=True
+        target=Pulso(saude_de_agora, nuvem, parar=parar, arquivo=pasta / "saude.json").rodar,
+        name="saude",
+        daemon=True,
     )
     pulso.start()
     _registro.info(

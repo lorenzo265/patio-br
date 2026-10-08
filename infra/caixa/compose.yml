@@ -14,6 +14,9 @@ services:
     environment:
       # O agente cadastra as câmeras no go2rtc e lê o vídeo de lá.
       PATIO_GO2RTC: http://go2rtc:1984
+      # O nome da versão, que o agente conta na saúde. O atualizador grava a imagem e o nome no
+      # .env desta pasta (D-67).
+      PATIO_VERSAO: ${VERSAO_DO_AGENTE:-local}
     volumes:
       # A chave, a configuração e a fila: sobrevivem à troca da imagem.
       - dados:/caixa/dados

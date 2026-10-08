@@ -1,7 +1,7 @@
 # SDD — patio-br (nome provisório)
 
 **Documento de desenho do software (SDD) do MVP do piloto**
-Versão 0.47 · 2026-10-06 · Situação: aprovado como base; itens em aberto na seção 12
+Versão 0.48 · 2026-10-06 · Situação: aprovado como base; itens em aberto na seção 12
 
 ---
 
@@ -489,6 +489,9 @@ acadêmico (`docs/validacao/fontes-de-placas.md`). Por isso:
 | `CaixaBorda` | site, versão do programa e do leitor, último contato (quando chegou a última saúde), a última saúde, a diferença do relógio, chave de acesso (só o resumo), ativada em, revogada em (D-65) |
 | `SaudeCaixa` | caixa, recebida em, a hora da caixa, a diferença do relógio, CPU, temperatura, memória, disco, câmeras no ar e câmeras abertas, passagens na fila, a saúde como chegou — o histórico curto: a nuvem apaga o que passa de 7 dias (D-65) |
 | `CodigoAtivacao` | site, resumo do código, criado por (administração), vence em, usado em |
+| `VersaoCaixa` | nome (ex.: `0.2.0`), a imagem do agente pelo resumo, cadastrada em, por (administração) — da plataforma, fora das empresas (D-67) |
+| `EscolhaDeVersao` | a versão, o alcance (todas as caixas, um site ou uma caixa), escolhida em, por (administração) — **só se acrescenta**: em cada alcance vale a última (D-67) |
+| `AtualizacaoCaixa` | caixa, de qual versão, para qual, começou em, terminou em, o resultado (deu certo, voltou ou falhou), o motivo — contada pela caixa (D-67) |
 | `LinkTransportadora` | site, nome (a transportadora), resumo do código, criado por (gestor), criado em, vence em, revogado em, limite de envios, envios feitos; o agendamento feito pelo link aponta para ele |
 | `LinkDemonstracao` | nome (a empresa visitada), resumo do código, criado por (administração), criado em, vence em (7 dias), revogado em, a empresa de demonstração (nasce na primeira entrada), última entrada, apagada em; fica fora das empresas, como a administração (D-52 e D-54) |
 | `Rotulo` | recorte, placa correta, origem (conferência do porteiro ou rotulagem), revisado |
@@ -678,7 +681,7 @@ modificação (D-50), do mesmo jeito: os arquivos em `estatico/`, com a licença
 | Link de demonstração | quem visita | a página do link (para quem é e o botão "Entrar na demonstração"); dentro, uma faixa no topo troca o papel: gestor, porteiro, líder de pátio ou motorista (D-54) |
 | Celular do motorista | demonstração | as mensagens que o motorista receberia, numa tela em forma de celular; o canal de demonstração não envia nada (D-45) |
 | Recebimento e estoque | demonstração | telas "em breve", com dados de exemplo, para mostrar a visão (D-43 e D-45) |
-| Administração | nós | empresas, sites, câmeras, usuários, parâmetros, rotulagem, links de demonstração; **frota de borda**: cada caixa com o site, as versões, o último contato, as câmeras, a fila, a máquina e o relógio, e o histórico dos últimos 7 dias, hora a hora (D-65) |
+| Administração | nós | empresas, sites, câmeras, usuários, parâmetros, rotulagem, links de demonstração; **frota de borda**: cada caixa com o site, as versões, o último contato, as câmeras, a fila, a máquina e o relógio, e o histórico dos últimos 7 dias, hora a hora (D-65); **versões da caixa**: cadastrar, escolher para todas, um site ou uma caixa, e as atualizações de cada caixa (D-67) |
 
 ### 6.3 Repositório
 
@@ -819,8 +822,33 @@ Serve para desenvolver sem câmera, para os testes de ponta a ponta e para simul
     tempo do alerta, `[ABERTO-09]`); a caixa que nunca mandou saúde não conta como sem contato;
   - telas: a "Frota de borda" da administração (seção 6.2) e, na portaria, "site sem conexão
     desde HH:MM" (com o dia, se não for hoje; seção 8.1); os alertas vêm com a T57.
-- **Atualização:** a caixa pergunta à nuvem qual versão rodar, baixa e reinicia; se o teste de
-  saúde falhar, volta para a anterior. (Atualizador próprio: o Watchtower não é mais mantido.)
+- **Atualização** (atualizador próprio, porque o Watchtower não é mais mantido: D-14 e D-67):
+  - **as versões:** a administração cadastra cada versão: o nome (ex.: `0.2.0`) e a imagem do
+    agente pelo resumo (`ghcr.io/<conta>/patio-caixa@sha256:…`). Depois escolhe qual vale: para
+    todas as caixas, para um site ou para uma caixa. A escolha mais específica vence (a da caixa,
+    depois a do site, depois a de todas), e em cada alcance vale a última;
+  - **a ordem:** uma versão só pode ser escolhida para um site ou para todas depois de dar certo
+    numa caixa;
+  - **o atualizador** é um programa à parte do agente (`borda/atualizador.py`, só com a biblioteca
+    padrão do Python). Roda no próprio Ubuntu da caixa, a cada 5 minutos (um timer do systemd),
+    com a chave da caixa:
+    1. pergunta à nuvem a versão da caixa (`GET /api/borda/versao`); se é a que já roda, ou uma
+       que já falhou nesta caixa, não faz nada;
+    2. baixa a imagem pelo resumo (`docker compose pull`; o Docker confere o resumo), com a
+       credencial do registro, guardada na preparação, que só baixa imagens;
+    3. troca o agente: grava a imagem e o nome da versão no `.env` do compose e sobe o agente de
+       novo (`docker compose up -d agente`). A chave, a configuração e a fila ficam no volume e
+       não se perdem;
+    4. espera a saúde por até 5 minutos. O agente novo tem de estar no ar, com todas as câmeras
+       de placa no ar, e a nuvem tem de aceitar a saúde dele. Para isso, o agente grava a última
+       saúde, e se a nuvem a aceitou, em `dados/caixa/saude.json`;
+    5. se a saúde não vem, volta para a imagem anterior;
+    6. conta o resultado à nuvem (`POST /api/borda/atualizacoes`): de qual versão, para qual,
+       quando começou e terminou, o resultado (deu certo, voltou ou falhou) e o motivo. A frota
+       mostra;
+  - **a versão que roda:** o agente conta a versão em cada saúde. Ela é o nome que o compose
+    passa ao agente (`PATIO_VERSAO`) ou, fora dos contêineres, a versão do pacote;
+  - **o registro privado** é o do GitHub (`ghcr.io`), com uma credencial que só baixa imagens.
 - **Acesso remoto:** Tailscale Standard (US$ 8/mês; o plano gratuito é só para uso não comercial).
 - **Rede:** a caixa **só faz conexões de saída**. Nenhuma porta aberta na rede do cliente.
   Câmeras num switch separado.
@@ -1152,6 +1180,7 @@ do cuidado de cargas (D-43).
 | D-64 | **O SMS por dentro** (T53): o texto do SMS é outro, curto, sem acento e de no máximo 160 caracteres, e o da confirmação leva o link do WhatsApp; a mensagem do WhatsApp que falha de vez ganha uma cópia pelo SMS; o retorno da Zenvia chega num endereço com um segredo (`/api/sms/<segredo>`), escondido no registro de acesso; o "motorista não avisado" é o agendamento cujo último aviso falhou em todas as tentativas, e aparece no quadro do pátio. A mensagem passa a ser única por aviso e canal (o WhatsApp e a reserva pelo SMS) | o SMS com acento cai para 70 caracteres por pedaço e custa o dobro; a Zenvia não assina os avisos dela, e o segredo no endereço é o que ela aceita; quem chama o caminhão para a doca precisa saber que o motorista não recebeu o aviso | o mesmo texto do WhatsApp no SMS; conferir o aviso da Zenvia pelo endereço de origem; mostrar o "não avisado" só na tela de mensagens |
 | D-65 | **A saúde da caixa por dentro** (T54): o formato `Saude` no pacote `contratos/`, como a passagem, mandado a cada minuto e fora da fila; o último contato é a hora da nuvem em que a última saúde chegou; o histórico de 7 dias fica numa tabela à parte e se apaga ao receber; a caixa está sem contato depois de 3 minutos sem saúde, e a que nunca mandou saúde não conta; a portaria mostra "site sem conexão desde HH:MM"; a máquina é medida com o psutil (BSD-3) | a saúde velha não ajuda ninguém, e guardá-la na fila atrasaria as passagens; com o último contato pela hora da nuvem, um relógio errado na caixa não esconde a queda; o site da demonstração tem caixa sem programa rodando, e não pode aparecer como fora do ar; 7 dias bastam para ver o que aconteceu, e o histórico pequeno não pesa no banco | a saúde na fila da caixa; o último contato pela hora da caixa ou por qualquer chamada dela; ler a máquina direto do `/proc`, que só serve no Linux |
 | D-66 | **A caixa em contêineres por dentro** (T55): a imagem do agente é nossa, sem root, e os pesos vêm por volume só de leitura; o go2rtc é montado por nós a partir do código (v1.9.14), sem FFmpeg; o agente cadastra as câmeras no go2rtc pela API e lê o vídeo de lá; a configuração fica guardada no disco, e a caixa começa com ela quando a nuvem não responde; o disco é cifrado na preparação e destravado pelo TPM, com a senha de recuperação guardada por nós; o relógio vem do NTP.br; o OpenVINO entra com o leitor próprio, e o v0 roda no ONNX Runtime | a imagem oficial do go2rtc traz um FFmpeg do Alpine montado com partes GPL (x264 e x265), e a D-27 não deixa; o proxy de módulos do Go confere o resumo de cada módulo, e não é preciso copiar um resumo à mão; a caixa precisa trabalhar sem a nuvem desde o começo, e as senhas das câmeras no disco pedem o disco cifrado; sem o TPM, a caixa pediria a senha ao ligar e não voltaria sozinha depois de uma queda de energia | a imagem oficial do go2rtc; o binário do go2rtc baixado do GitHub com o resumo copiado à mão; a configuração só na memória (a caixa parada sem a nuvem); o disco cifrado com senha digitada ao ligar |
+| D-67 | **A atualização da caixa por dentro** (T56): a administração cadastra cada versão pelo resumo da imagem e a escolhe para todas as caixas, um site ou uma caixa (vence a escolha mais específica); a versão só vai para um site ou para todas depois de dar certo numa caixa; o atualizador é um programa à parte, só com a biblioteca padrão do Python, que roda no Ubuntu da caixa a cada 5 minutos e troca o agente pelo compose; a saúde do agente novo é a gravada por ele no volume, com as câmeras no ar e aceita pela nuvem, em até 5 minutos; senão, volta para a anterior; a versão que falhou não é tentada de novo na mesma caixa; o registro é o do GitHub, com uma credencial que só baixa | fora dos contêineres, uma imagem ruim do agente não leva junto o atualizador, que é quem volta atrás; pelo compose, a caixa continua sendo descrita por um arquivo só; a saúde que a nuvem aceitou prova a caixa inteira (o agente, as câmeras e a internet); o registro do GitHub já está na conta do projeto e não pede um token novo a cada 12 horas, como o da AWS | o atualizador num contêiner com o socket do Docker; trocar o agente pela API do Docker, fora do compose; o registro da AWS (ECR) |
 
 ---
 
@@ -1210,6 +1239,7 @@ do cuidado de cargas (D-43).
 | **Contêiner (Docker)** | um programa empacotado com tudo de que precisa para rodar (a **imagem**), isolado do resto da máquina; o **compose** é o arquivo que diz quais contêineres sobem juntos |
 | **TPM** | um chip de segurança da placa-mãe que guarda a chave do disco cifrado e só a entrega à própria máquina, sem ninguém digitar senha |
 | **Disco cifrado (LUKS)** | o disco gravado embaralhado: quem tira o disco da caixa não consegue ler nada sem a chave |
+| **Registro de imagens** | o lugar na internet de onde a caixa baixa as imagens dos contêineres; cada imagem tem um resumo, que o Docker confere ao baixar |
 
 ---
 
@@ -1264,3 +1294,4 @@ do cuidado de cargas (D-43).
 | 0.45 | 2026-10-06 | o SMS por dentro (T53): o texto curto e sem acento, com o link do WhatsApp na confirmação, a reserva pelo SMS quando o WhatsApp falha, o retorno da Zenvia num endereço com segredo e o "motorista não avisado" no pátio (D-64; seções 5.1, 6.1, 6.2, 7.5, 8.2 e 11) |
 | 0.46 | 2026-10-06 | a saúde da caixa por dentro (T54): o formato `Saude` no contrato, o último contato, a diferença do relógio, o histórico de 7 dias, a frota de borda na administração e o "site sem conexão" na portaria (D-65); a entidade `SaudeCaixa`; o psutil na stack (seções 3.2, 5.1, 6.1, 6.2, 7.4, 8.1 e 11) |
 | 0.47 | 2026-10-06 | a caixa em contêineres (T55): o agente e o go2rtc no compose, o go2rtc montado sem FFmpeg, a configuração guardada no disco, o disco cifrado com o TPM e a preparação do Ubuntu (D-66; seções 6.1, 7.4, 8.2, 11 e 13) |
+| 0.48 | 2026-10-06 | a atualização da caixa por dentro (T56): as versões pelo resumo da imagem, a escolha por alcance, a ordem (uma caixa antes das outras), o atualizador à parte com a volta automática e as atualizações na frota (D-67); as entidades `VersaoCaixa`, `EscolhaDeVersao` e `AtualizacaoCaixa` (seções 5.1, 6.2, 7.4, 11 e 13) |

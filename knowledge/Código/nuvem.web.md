@@ -183,12 +183,17 @@ A frota de borda da administração ([[6.2 Telas do MVP|SDD 6.2]], [[D-65]]): ca
 
 - ``/administracao/frota``: cada caixa não revogada, com a empresa, o site, as versões, o último
   contato, as câmeras, a fila, a máquina e o relógio.
-- ``/administracao/frota/<caixa>``: a última saúde, câmera a câmera, e os últimos 7 dias, hora a
-  hora (quantas saúdes chegaram em cada hora mostra quando a caixa sumiu).
+- ``/administracao/frota/<caixa>``: a última saúde, câmera a câmera, os últimos 7 dias, hora a
+  hora (quantas saúdes chegaram em cada hora mostra quando a caixa sumiu), e as atualizações.
+- ``/administracao/frota/versoes``: as versões da caixa: cadastrar e escolher para uma caixa, um
+  site ou todas ([[D-67]]).
 
 As horas aparecem no fuso do site da caixa.
 
 - **`tela_da_frota`**: Todas as caixas, das mais novas para as mais antigas.
+- **`tela_das_versoes`**: As versões da caixa, o formulário de cadastrar e o de escolher.
+- **`cadastrar_versao`**: Cadastra uma versão pelo resumo da imagem.
+- **`escolher_versao`**: Escolhe a versão para uma caixa, um site ou todas as caixas.
 - **`tela_da_caixa`**: Uma caixa: a última saúde e os últimos 7 dias, hora a hora (404 se não existir).
 
 ### `nuvem.web.mensagens`
@@ -315,6 +320,7 @@ cookie, recusa o envio que o navegador marca como vindo de outro site (``Sec-Fet
 - `nuvem/tests/test_nuvem_web_portaria_resolucao.py`: Resolver a exceção e registrar a chegada à mão pela tela da portaria ([[T41]], [[5.2 Estados da visita|SDD 5.2]] e [[D-46]]).
 - `nuvem/tests/test_nuvem_web_portaria_resultado.py`: O resultado do casamento na lista de passagens da portaria ([[T35]], [[6.2 Telas do MVP|SDD 6.2]]).
 - `nuvem/tests/test_nuvem_web_sms.py`: O retorno do SMS ([[7.5 WhatsApp e SMS|SDD 7.5]], [[D-64]]): ``/api/sms/<segredo>``, e o segredo fora do registro.
+- `nuvem/tests/test_nuvem_web_versoes.py`: As versões da caixa nas telas da administração ([[6.2 Telas do MVP|SDD 6.2]], [[D-67]]).
 - `nuvem/tests/test_nuvem_web_whatsapp.py`: O webhook do WhatsApp e o QR da portaria ([[7.5 WhatsApp e SMS|SDD 7.5]], [[D-58]] e [[D-63]]).
 
 ---

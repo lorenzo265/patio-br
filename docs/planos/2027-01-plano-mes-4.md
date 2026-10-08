@@ -402,6 +402,17 @@ terceiros dentro.
 - **A ordem:** a versão nova vai primeiro para uma caixa só e, depois, para as outras.
 - **Cada atualização** (de qual versão, para qual, o resultado) aparece na frota.
 
+*Detalhado na execução (D-67):*
+- o atualizador roda no Ubuntu da caixa, fora dos contêineres (um timer do systemd a cada 5
+  minutos), só com a biblioteca padrão do Python, e troca o agente pelo compose. Assim, uma
+  imagem ruim do agente não leva junto quem volta atrás;
+- a saúde do agente novo é a que ele grava no volume (`saude.json`): no ar, com as câmeras no ar
+  e aceita pela nuvem;
+- a versão que falhou ou voltou não é tentada de novo na mesma caixa, até a administração
+  escolher outra;
+- o registro é o do GitHub (`ghcr.io`): um workflow novo monta e publica a imagem do agente
+  quando uma etiqueta `caixa-v*` é criada, e mostra o resumo para cadastrar a versão.
+
 **Commit:** `feat(borda): atualização com volta automática`
 
 #### T57. Alertas

@@ -322,3 +322,49 @@ def test_a_caixa_ja_desligada_manda_uma_saude_e_para() -> None:
     Pulso(_saude, _nuvem(falsa), parar=parar).rodar()
 
     assert len(falsa.pedidos) == 1
+
+
+# --- O que o atualizador lê (D-67) ----------------------------------------------------------
+
+
+def test_a_versao_do_programa_vem_do_compose(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("PATIO_VERSAO", "0.2.0")
+
+    assert _saude().versao_programa == "0.2.0"
+
+
+def test_fora_dos_conteineres_a_versao_e_a_do_pacote(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("PATIO_VERSAO", "")
+
+    assert _saude().versao_programa == version("patio-borda")
+
+
+@pytest.mark.integracao  # grava no disco
+@pytest.mark.parametrize(("codigo", "aceita"), [(204, True), (503, False)])
+def test_o_pulso_grava_a_ultima_saude_para_o_atualizador(
+    tmp_path: Path, codigo: int, aceita: bool
+) -> None:
+    arquivo = tmp_path / "saude.json"
+    parar = threading.Event()
+    parar.set()
+
+    Pulso(_saude, _nuvem(NuvemDaSaude([codigo])), parar=parar, arquivo=arquivo).rodar()
+
+    gravada = json.loads(arquivo.read_text(encoding="utf-8"))
+    assert gravada["aceita"] is aceita
+    assert Saude.model_validate(gravada["saude"]) == _saude()
+    assert datetime.fromisoformat(gravada["gravada_em"]).tzinfo is not None
+
+
+@pytest.mark.integracao
+def test_sem_saude_montada_nada_e_gravado(tmp_path: Path) -> None:
+    arquivo = tmp_path / "saude.json"
+    parar = threading.Event()
+    parar.set()
+
+    def quebrar() -> Saude:
+        raise RuntimeError("o psutil falhou")
+
+    Pulso(quebrar, _nuvem(NuvemDaSaude()), parar=parar, arquivo=arquivo).rodar()
+
+    assert not arquivo.exists()
