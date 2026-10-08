@@ -79,9 +79,10 @@ Uso::
 
 - ``ativar`` troca o código (gerado pela administração para o site) pela chave da caixa e a
   guarda em ``dados/caixa/caixa.json``, que só o dono lê.
-- ``rodar`` baixa a configuração, abre as câmeras de placa por RTSP, roda o agente e o remetente
-  da fila (``dados/caixa/fila.sqlite``) até receber o sinal de término (ou Ctrl+C). Os modelos
-  do leitor v0 ficam em ``modelos/v0`` (``uv run tarefas modelos``).
+- ``rodar`` baixa a configuração, abre as câmeras de placa por RTSP, roda o agente, o remetente
+  da fila (``dados/caixa/fila.sqlite``) e o pulso da saúde (a cada minuto, [[D-65]]) até receber o
+  sinal de término (ou Ctrl+C). Os modelos do leitor v0 ficam em ``modelos/v0``
+  (``uv run tarefas modelos``).
 
 A configuração vale até o programa reiniciar. Sem a nuvem no ar, a caixa espera para começar:
 a configuração não fica no disco, porque traz as senhas das câmeras.
@@ -168,7 +169,9 @@ Fila de envio da caixa ([[7.4 A caixa de borda|SDD 7.4]], [[D-24]]): nenhuma pas
 - **`ESPERA_MAXIMA`** = `300.0`: 5 minutos: o máximo entre duas tentativas, com a internet fora.
 - **`RECUSA_DA_PASSAGEM`** = `frozenset({403, 409, 422})`: Respostas que não mudam se a mesma passagem for de novo (outro site, id de outra caixa, campo que não confere).
 - **`RECUSA_DA_FOTO`** = `frozenset({409, 413, 415})`: Outra foto no mesmo ref, grande demais, não é JPEG.
+- **`RECUSA_DA_SAUDE`** = `frozenset({403, 422})`: A saúde de outra caixa, ou fora do formato: a próxima vai do mesmo jeito.
 - **`PassagemNaFila`** (classe): A próxima passagem a enviar, com as fotos que ainda não foram.
+- **`ContagemDaFila`** (classe): O tamanho da fila, para a saúde da caixa ([[D-65]]).
 - **`PassagemRecusada`** (classe): Uma passagem que a nuvem recusou de vez, guardada para o suporte ver.
 - **`FilaDeEnvio`** (classe): As passagens que ainda não chegaram à nuvem, num arquivo SQLite.
 - **`Resultado`** (classe): O que a nuvem respondeu, do ponto de vista da fila.
@@ -205,6 +208,31 @@ parte da do seguinte, e a sobreposição basta para seguir o veículo.
 - **`Rastreador`** (classe): Segue os veículos de uma câmera e entrega uma leitura por veículo.
 - **`iou`**: A sobreposição de duas regiões: a área em comum dividida pela área das duas juntas.
 
+### `borda.saude`
+
+`borda/src/borda/saude.py`
+
+A saúde da caixa ([[7.4 A caixa de borda|SDD 7.4]], [[D-65]]): a cada minuto, a caixa conta à nuvem como está.
+
+- **As câmeras:** ``FonteMedida`` anota cada quadro que chega ao agente (depois da amostragem);
+  ``MedidorDasCameras`` diz se cada câmera está no ar (mandou quadro nos últimos 10 s), os
+  quadros por segundo dos últimos 10 s e a hora do último quadro.
+- **A máquina:** o psutil (BSD-3) mede a CPU (a média desde a medida anterior), a memória, o
+  disco da pasta da fila e a temperatura do sensor mais quente.
+- **O pulso:** manda uma saúde logo ao começar e outra a cada minuto. A saúde não entra na
+  fila: a que não chega fica registrada e não vai de novo.
+
+- **`INTERVALO`** = `60.0`: Segundos entre duas saúdes.
+- **`JANELA_DOS_QUADROS`** = `timedelta(seconds=10)`: Os quadros por segundo são os desta janela; a câmera sem quadro nela saiu do ar.
+- **`MAXIMO_DE_QUADROS_GUARDADOS`** = `1000`: Por câmera: o bastante para 100 quadros por segundo na janela.
+- **`MedidorDasCameras`** (classe): Os quadros que chegam de cada câmera, contados para a saúde.
+- **`FonteMedida`** (classe): Uma fonte cujos quadros são anotados no medidor, um a um, quando passam.
+- **`Maquina`** (classe): A máquina da caixa num momento.
+- **`medir_a_maquina`**: A CPU (desde a medida anterior), a temperatura, a memória e o disco da ``pasta``.
+- **`temperatura_mais_quente`**: A temperatura do sensor mais quente, em °C; ``None`` sem sensor.
+- **`montar_saude`**: A saúde da caixa em ``agora``, no formato do contrato.
+- **`Pulso`** (classe): Manda a saúde logo ao começar e, depois, a cada minuto, até a caixa desligar.
+
 ## Testes
 
 - `borda/tests/test_borda_agente.py`: Agente da caixa ([[7.4 A caixa de borda|SDD 7.4]]): junta rastreamento, composição e fila numa passagem por veículo.
@@ -216,6 +244,7 @@ parte da do seguinte, e a sobreposição basta para seguir o veículo.
 - `borda/tests/test_borda_formato.py`: Formato da placa lida ([[4.2 O caminho de cada câmera, dentro da caixa|SDD 4.2]]): corrige por posição, nunca inventa caractere.
 - `borda/tests/test_borda_pacote.py`: O pacote borda usa o mesmo contrato de passagem que o resto do sistema ([[3.2 O contrato entre borda e nuvem - a Passagem|SDD 3.2]]).
 - `borda/tests/test_borda_rastreio.py`: Rastreamento ([[4.2 O caminho de cada câmera, dentro da caixa|SDD 4.2]], [[D-25]]): uma leitura por veículo, com um vídeo sintético feito aqui.
+- `borda/tests/test_borda_saude.py`: A saúde da caixa ([[7.4 A caixa de borda|SDD 7.4]], [[D-65]]): as câmeras, a máquina e o envio a cada minuto.
 - `borda/tests/test_borda_votacao.py`: Votação entre os quadros de um mesmo veículo ([[4.2 O caminho de cada câmera, dentro da caixa|SDD 4.2]]).
 
 ---

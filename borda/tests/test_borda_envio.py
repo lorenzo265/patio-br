@@ -11,7 +11,7 @@ from uuid import uuid4
 import httpx
 import pytest
 
-from borda.envio import ESPERA_MAXIMA, FilaDeEnvio, Nuvem, Remetente
+from borda.envio import ESPERA_MAXIMA, ContagemDaFila, FilaDeEnvio, Nuvem, Remetente
 from contratos.passagem import Passagem
 
 pytestmark = pytest.mark.integracao  # a fila fica num arquivo SQLite
@@ -348,3 +348,16 @@ def test_passagem_volta_da_fila_igual_ao_que_entrou(fila: FilaDeEnvio) -> None:
 
     assert proxima is not None
     assert (proxima.passagem, proxima.fotos) == (passagem, {"p/1.jpg": JPEG})
+
+
+def test_a_contagem_da_fila_para_a_saude(fila: FilaDeEnvio) -> None:
+    assert fila.contagem() == ContagemDaFila(passagens=0, fotos=0, recusadas=0)
+    recusada = _passagem(0, fotos=("r/1.jpg",))
+    fila.guardar(recusada, {"r/1.jpg": JPEG})
+    refs = ("a/1.jpg", "a/2.jpg", "a/3.jpg")
+    fila.guardar(_passagem(60, fotos=refs), dict.fromkeys(refs, JPEG))
+    fila.guardar(_passagem(120))
+
+    fila.recusar(recusada.id, 422, "faixa de outro site")
+
+    assert fila.contagem() == ContagemDaFila(passagens=2, fotos=3, recusadas=1)

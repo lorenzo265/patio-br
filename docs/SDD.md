@@ -1,7 +1,7 @@
 # SDD — patio-br (nome provisório)
 
 **Documento de desenho do software (SDD) do MVP do piloto**
-Versão 0.45 · 2026-10-06 · Situação: aprovado como base; itens em aberto na seção 12
+Versão 0.46 · 2026-10-06 · Situação: aprovado como base; itens em aberto na seção 12
 
 ---
 
@@ -181,8 +181,9 @@ internet instável.
 
 ### 3.2 O contrato entre borda e nuvem: a Passagem
 
-A passagem é o único formato que a borda envia. Ela fica no pacote `contratos/`, usado pelos
-dois lados. Mudou o formato → muda a versão do contrato.
+A passagem é o formato principal que a borda envia; o outro é a saúde da caixa (no fim desta
+seção). Os dois ficam no pacote `contratos/`, usado pelos dois lados. Mudou o formato → muda a
+versão do contrato.
 
 ```json
 {
@@ -235,6 +236,20 @@ dois lados. Mudou o formato → muda a versão do contrato.
 - Rostos nas fotos de contexto são borrados na caixa, antes de enviar.
 - A passagem traz **só o que a caixa viu**. A placa que nenhuma câmera viu (o reboque do meio
   de um bitrem) é completada pela nuvem e fica na visita (seção 4.3).
+
+**A saúde da caixa** (D-65): a cada minuto, a caixa manda `POST /api/borda/saude`, com a chave
+dela e o formato `Saude` (versão 1) do pacote `contratos/`:
+
+- a caixa e o site (os mesmos ids da passagem) e a hora da caixa;
+- a versão do programa e a do leitor;
+- o uso da CPU, da memória e do disco (em %) e a temperatura (em °C, quando a máquina diz);
+- cada câmera de placa aberta: se está no ar (mandou quadro nos últimos 10 s), os quadros por
+  segundo (dos últimos 10 s) e a hora do último quadro;
+- a fila: as passagens e as fotos esperando o envio, e as passagens recusadas de vez.
+
+A nuvem responde **204**; `caixa_id` ou `site_id` que não são os da chave → **403**; campo
+desconhecido ou fora do formato → **422**. A saúde **não entra na fila**: sem internet, a caixa
+não guarda saúde velha, e quando a conexão volta, o tamanho da fila mostra o atraso.
 
 ### 3.3 Módulos da nuvem no MVP
 
@@ -471,7 +486,8 @@ acadêmico (`docs/validacao/fontes-de-placas.md`). Por isso:
 | `ParametrosSite` | custo mensal de um ponto de portaria, postos antes/depois, valor da estadia (R$/t·h), franquia (h), custo hora-doca (opcional); a tolerância de janela e as horas para o alerta continuam fixas no código até o `[ABERTO-09]` |
 | `LinhaDeBase` | site, origem (exemplo, na demonstração; modo sombra, no piloto), período, as mesmas medidas do extrato (D-48) |
 | `Extrato` | site, mês, números calculados (as medidas, a economia, os parâmetros e a linha de base usados), versão da regra de cálculo, quando foi gerado |
-| `CaixaBorda` | site, versão instalada, último contato, saúde, chave de acesso (só o resumo), ativada em, revogada em |
+| `CaixaBorda` | site, versão do programa e do leitor, último contato (quando chegou a última saúde), a última saúde, a diferença do relógio, chave de acesso (só o resumo), ativada em, revogada em (D-65) |
+| `SaudeCaixa` | caixa, recebida em, a hora da caixa, a diferença do relógio, CPU, temperatura, memória, disco, câmeras no ar e câmeras abertas, passagens na fila, a saúde como chegou — o histórico curto: a nuvem apaga o que passa de 7 dias (D-65) |
 | `CodigoAtivacao` | site, resumo do código, criado por (administração), vence em, usado em |
 | `LinkTransportadora` | site, nome (a transportadora), resumo do código, criado por (gestor), criado em, vence em, revogado em, limite de envios, envios feitos; o agendamento feito pelo link aponta para ele |
 | `LinkDemonstracao` | nome (a empresa visitada), resumo do código, criado por (administração), criado em, vence em (7 dias), revogado em, a empresa de demonstração (nasce na primeira entrada), última entrada, apagada em; fica fora das empresas, como a administração (D-52 e D-54) |
@@ -614,7 +630,7 @@ Como cada conta é feita (versão 1 da regra, D-48):
 | Banco | PostgreSQL 16; fila de tarefas no próprio PostgreSQL, numa tabela nossa (D-38) |
 | Painel | páginas no servidor (Jinja) + **HTMX**; atualização ao vivo por SSE; instalável como **PWA** |
 | Gráficos | biblioteca JavaScript pequena, só onde houver gráfico |
-| Borda | OpenCV sem interface gráfica, com FFmpeg LGPL (D-27 e D-29), go2rtc, OpenVINO, rastreador próprio (D-25), SQLite (fila local), httpx |
+| Borda | OpenCV sem interface gráfica, com FFmpeg LGPL (D-27 e D-29), go2rtc, OpenVINO, rastreador próprio (D-25), SQLite (fila local), httpx; psutil (BSD-3) para a saúde da máquina (D-65) |
 | Treino | PyTorch, Label Studio, exportação ONNX → OpenVINO |
 | Qualidade | ruff, mypy, pytest; checagem de licenças e vulnerabilidades das dependências |
 
@@ -654,7 +670,7 @@ modificação (D-50), do mesmo jeito: os arquivos em `estatico/`, com a licença
 
 | Tela | Quem | Conteúdo |
 |---|---|---|
-| Portaria | porteiro | chegadas ao vivo com foto e o resultado do casamento (check-in, exceção, saída); **conferência da placa**: o recorte ao lado da leitura, para confirmar ou corrigir (D-42); **fila de exceções** em cartões (foto, candidatos, "é este" / "corrigir"); saídas; registro manual |
+| Portaria | porteiro | chegadas ao vivo com foto e o resultado do casamento (check-in, exceção, saída); **conferência da placa**: o recorte ao lado da leitura, para confirmar ou corrigir (D-42); **fila de exceções** em cartões (foto, candidatos, "é este" / "corrigir"); saídas; registro manual; "site sem conexão desde HH:MM" quando a caixa some (D-65) |
 | Pátio e docas | líder | fila por tempo de espera; docas livres/ocupadas; chamar / iniciar / finalizar; alerta perto de 5h; "motorista não avisado" (D-64) |
 | Gestor | gestor | painel: o dia e o mês até agora (espera média, visitas acima de 5h, % de check-in automático, uso de docas), comparados com a linha de base, com gráficos simples; extrato do mês em R$ (na tela, para imprimir ou salvar em PDF, e em planilha) |
 | Agendamentos | gestor | lista do dia ou da semana, no fuso do site, com o cancelamento; importar planilha com modelo e relatório de erros por linha; gerar e revogar links da transportadora (o endereço aparece uma vez só, ao gerar) |
@@ -662,7 +678,7 @@ modificação (D-50), do mesmo jeito: os arquivos em `estatico/`, com a licença
 | Link de demonstração | quem visita | a página do link (para quem é e o botão "Entrar na demonstração"); dentro, uma faixa no topo troca o papel: gestor, porteiro, líder de pátio ou motorista (D-54) |
 | Celular do motorista | demonstração | as mensagens que o motorista receberia, numa tela em forma de celular; o canal de demonstração não envia nada (D-45) |
 | Recebimento e estoque | demonstração | telas "em breve", com dados de exemplo, para mostrar a visão (D-43 e D-45) |
-| Administração | nós | empresas, sites, câmeras, caixas (saúde), usuários, parâmetros, rotulagem, links de demonstração |
+| Administração | nós | empresas, sites, câmeras, usuários, parâmetros, rotulagem, links de demonstração; **frota de borda**: cada caixa com o site, as versões, o último contato, as câmeras, a fila, a máquina e o relógio, e o histórico dos últimos 7 dias, hora a hora (D-65) |
 
 ### 6.3 Repositório
 
@@ -770,8 +786,22 @@ Serve para desenvolver sem câmera, para os testes de ponta a ponta e para simul
     quadros que não cabem na espera são descartados, com registro;
   - a configuração vale até o programa reiniciar. Por enquanto, sem a nuvem no ar a caixa não
     começa: a configuração não fica no disco, porque traz as senhas das câmeras.
-- **Saúde:** a cada minuto envia CPU, temperatura, disco, câmeras no ar, quadros por segundo e
-  passagens pendentes → tela "Frota de borda" e alertas.
+- **Saúde** (D-65): a cada minuto, e logo ao começar, a caixa manda a saúde (seção 3.2): as
+  versões, a máquina, cada câmera de placa e a fila. Por dentro:
+  - a CPU é a média desde a saúde anterior; a temperatura é a do sensor mais quente (sem
+    sensor, vai vazia); o disco é o da pasta da fila;
+  - cada câmera de placa conta os quadros que chegam ao agente (depois da amostragem): está no
+    ar se mandou quadro nos últimos 10 s, e os quadros por segundo são os dos últimos 10 s;
+  - a saúde que não chega não é guardada nem reenviada: a próxima vai daqui a um minuto;
+  - na nuvem, a `CaixaBorda` guarda o último contato (a hora da nuvem em que a saúde chegou), as
+    versões, a última saúde e a **diferença do relógio** (a hora da caixa menos a da nuvem, em
+    segundos; o atraso da rede entra na conta, e é pequeno);
+  - cada saúde entra também no histórico (`SaudeCaixa`); ao receber, a nuvem apaga a saúde da
+    mesma caixa com mais de 7 dias;
+  - a caixa está **sem contato** quando a última saúde chegou há 3 minutos ou mais (o mesmo
+    tempo do alerta, `[ABERTO-09]`); a caixa que nunca mandou saúde não conta como sem contato;
+  - telas: a "Frota de borda" da administração (seção 6.2) e, na portaria, "site sem conexão
+    desde HH:MM" (com o dia, se não for hoje; seção 8.1); os alertas vêm com a T57.
 - **Atualização:** a caixa pergunta à nuvem qual versão rodar, baixa e reinicia; se o teste de
   saúde falhar, volta para a anterior. (Atualizador próprio: o Watchtower não é mais mantido.)
 - **Acesso remoto:** Tailscale Standard (US$ 8/mês; o plano gratuito é só para uso não comercial).
@@ -857,7 +887,7 @@ Serve para desenvolver sem câmera, para os testes de ponta a ponta e para simul
 
 | Falha | Reação |
 |---|---|
-| Internet do site cai | o 4G assume; se tudo cair, a caixa grava com a hora dela e reenvia em ordem; o painel mostra "site sem conexão desde HH:MM" |
+| Internet do site cai | o 4G assume; se tudo cair, a caixa grava com a hora dela e reenvia em ordem; a portaria mostra "site sem conexão desde HH:MM" quando a saúde da caixa não chega há 3 minutos (D-65) |
 | Câmera para | alerta em 60 s; a faixa passa a modo manual (porteiro registra a chegada) |
 | Leitura duvidosa / sem agendamento | fila de exceções; nunca entra errada |
 | Caixa queima | nobreak; alerta; troca por caixa reserva já preparada |
@@ -1096,6 +1126,7 @@ do cuidado de cargas (D-43).
 | D-62 | **Os alertas aparecem sempre no painel**, num sino com os alertas abertos do site, em todas as telas dele. **Por WhatsApp, ao gestor que autorizar, só os graves:** a caixa ou uma câmera fora do ar e a estadia que passou das 5 horas. **Para a administração:** a caixa e a câmera fora do ar e os erros | decisão do Lorenzo em 06/10 (plano do mês 4, F6): quem está no painel vê na hora, e a mensagem fica para o que não pode esperar alguém olhar a tela | o e-mail (precisa de um serviço de e-mail e é lido mais tarde) |
 | D-63 | **O WhatsApp por dentro** (T52): o canal de cada mensagem é escolhido ao gravá-la (WhatsApp se o celular autorizou a empresa, senão SMS); o envio é uma tarefa da fila, e o erro passageiro tenta de novo, o definitivo deixa a mensagem como falhou; o webhook só confere a assinatura e guarda o aviso numa tarefa; a autorização vem da mensagem "AVISOS A<agendamento>" ou "AVISOS S<site>", vale para o celular de quem mandou naquela empresa, e "SAIR" a cancela em todas; o celular do Brasil sem o 9 ganha o 9 | o webhook responde na hora (a Meta repete o aviso que demora) e o worker, que já sabe tentar de novo, faz o trabalho; a mensagem do motorista diz de qual empresa é a autorização, já que o número do WhatsApp é um só para todos os clientes; quem pede para sair não quer aviso de ninguém | tratar o aviso dentro do pedido do webhook; uma autorização que valesse para todas as empresas; "SAIR" só na empresa da última conversa |
 | D-64 | **O SMS por dentro** (T53): o texto do SMS é outro, curto, sem acento e de no máximo 160 caracteres, e o da confirmação leva o link do WhatsApp; a mensagem do WhatsApp que falha de vez ganha uma cópia pelo SMS; o retorno da Zenvia chega num endereço com um segredo (`/api/sms/<segredo>`), escondido no registro de acesso; o "motorista não avisado" é o agendamento cujo último aviso falhou em todas as tentativas, e aparece no quadro do pátio. A mensagem passa a ser única por aviso e canal (o WhatsApp e a reserva pelo SMS) | o SMS com acento cai para 70 caracteres por pedaço e custa o dobro; a Zenvia não assina os avisos dela, e o segredo no endereço é o que ela aceita; quem chama o caminhão para a doca precisa saber que o motorista não recebeu o aviso | o mesmo texto do WhatsApp no SMS; conferir o aviso da Zenvia pelo endereço de origem; mostrar o "não avisado" só na tela de mensagens |
+| D-65 | **A saúde da caixa por dentro** (T54): o formato `Saude` no pacote `contratos/`, como a passagem, mandado a cada minuto e fora da fila; o último contato é a hora da nuvem em que a última saúde chegou; o histórico de 7 dias fica numa tabela à parte e se apaga ao receber; a caixa está sem contato depois de 3 minutos sem saúde, e a que nunca mandou saúde não conta; a portaria mostra "site sem conexão desde HH:MM"; a máquina é medida com o psutil (BSD-3) | a saúde velha não ajuda ninguém, e guardá-la na fila atrasaria as passagens; com o último contato pela hora da nuvem, um relógio errado na caixa não esconde a queda; o site da demonstração tem caixa sem programa rodando, e não pode aparecer como fora do ar; 7 dias bastam para ver o que aconteceu, e o histórico pequeno não pesa no banco | a saúde na fila da caixa; o último contato pela hora da caixa ou por qualquer chamada dela; ler a máquina direto do `/proc`, que só serve no Linux |
 
 ---
 
@@ -1203,3 +1234,4 @@ do cuidado de cargas (D-43).
 | 0.43 | 2026-10-06 | verificação em duas etapas (T51): a sessão pela metade, a tolerância de um intervalo, o código que não vale duas vezes, ligar com o QR, os códigos de recuperação e como zerar; a entidade `CodigoRecuperacao`; o segno na stack (seções 5.1, 6.1 e 8.2) |
 | 0.44 | 2026-10-06 | o WhatsApp por dentro (T52): o canal escolhido ao gravar a mensagem, o envio pela fila, o webhook com a assinatura, a autorização por empresa e o "SAIR" (D-63); as entidades `AutorizacaoWhatsApp` e `MensagemRecebida` e a `Mensagem` com a situação do envio (seções 5.1, 6.1, 7.5, 8.2 e 11) |
 | 0.45 | 2026-10-06 | o SMS por dentro (T53): o texto curto e sem acento, com o link do WhatsApp na confirmação, a reserva pelo SMS quando o WhatsApp falha, o retorno da Zenvia num endereço com segredo e o "motorista não avisado" no pátio (D-64; seções 5.1, 6.1, 6.2, 7.5, 8.2 e 11) |
+| 0.46 | 2026-10-06 | a saúde da caixa por dentro (T54): o formato `Saude` no contrato, o último contato, a diferença do relógio, o histórico de 7 dias, a frota de borda na administração e o "site sem conexão" na portaria (D-65); a entidade `SaudeCaixa`; o psutil na stack (seções 3.2, 5.1, 6.1, 6.2, 7.4, 8.1 e 11) |

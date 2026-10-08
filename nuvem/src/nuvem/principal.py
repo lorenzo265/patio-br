@@ -43,6 +43,7 @@ from nuvem.web import demonstracao as tela_da_demonstracao
 from nuvem.web import duas_etapas as telas_das_duas_etapas
 from nuvem.web import em_breve as telas_em_breve
 from nuvem.web import extrato as tela_do_extrato
+from nuvem.web import frota as tela_da_frota
 from nuvem.web import mensagens as tela_das_mensagens
 from nuvem.web import patio as tela_do_patio
 from nuvem.web import portaria as tela_da_portaria
@@ -126,6 +127,7 @@ def criar_app(configuracao: Configuracao | None = None, senhas: Senhas | None = 
     app.include_router(telas_em_breve.roteador)
     app.include_router(tela_da_demonstracao.roteador)
     app.include_router(tela_da_demonstracao.roteador_da_administracao)
+    app.include_router(tela_da_frota.roteador)
     app.include_router(tela_do_link.roteador)
     app.include_router(tela_de_agendamentos.roteador)
     tela_do_link.esconder_codigo_no_registro_de_acesso()

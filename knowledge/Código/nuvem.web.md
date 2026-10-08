@@ -175,6 +175,22 @@ Só o gestor vê. A linha de base de exemplo (a da demonstração) aparece marca
 - **`extrato_do_mes`**: O extrato em R$ de um mês (o atual, se nenhum for pedido).
 - **`planilha`**: O extrato de um mês em planilha.
 
+### `nuvem.web.frota`
+
+`nuvem/src/nuvem/web/frota.py`
+
+A frota de borda da administração ([[6.2 Telas do MVP|SDD 6.2]], [[D-65]]): cada caixa, como está, e o histórico.
+
+- ``/administracao/frota``: cada caixa não revogada, com a empresa, o site, as versões, o último
+  contato, as câmeras, a fila, a máquina e o relógio.
+- ``/administracao/frota/<caixa>``: a última saúde, câmera a câmera, e os últimos 7 dias, hora a
+  hora (quantas saúdes chegaram em cada hora mostra quando a caixa sumiu).
+
+As horas aparecem no fuso do site da caixa.
+
+- **`tela_da_frota`**: Todas as caixas, das mais novas para as mais antigas.
+- **`tela_da_caixa`**: Uma caixa: a última saúde e os últimos 7 dias, hora a hora (404 se não existir).
+
 ### `nuvem.web.mensagens`
 
 `nuvem/src/nuvem/web/mensagens.py`
@@ -220,7 +236,8 @@ Tela crua da portaria ([[T12]], [[T34]] e [[T38]]): as últimas passagens e as e
 
 A página traz o HTMX, que busca as listas (``/portaria/passagens`` e ``/portaria/excecoes``) ao
 abrir e a cada 2 segundos. A atualização empurrada pelo servidor (SSE) e a resolução das
-exceções vêm com a tela definitiva, no mês 3.
+exceções vêm com a tela definitiva, no mês 3. A conexão da caixa (``/portaria/conexao``) é
+conferida a cada 30 segundos: "site sem conexão desde HH:MM" ([[D-65]]).
 
 A conferência da placa ([[D-42]]) tem página própria (``/portaria/conferir/<passagem>``), fora das
 listas que se atualizam: a atualização não apaga o que o porteiro digita.
@@ -228,6 +245,7 @@ listas que se atualizam: a atualização não apaga o que o porteiro digita.
 - **`CACHE_DA_FOTO`** = `'private, max-age=86400, immutable'`: A foto de uma passagem nunca muda ([[5.5 Garantias|SDD 5.5]]): o navegador pode guardá-la.
 - **`tela_da_portaria`**: A tela da portaria de um site do usuário (o primeiro, se nenhum for pedido).
 - **`lista_de_passagens`**: A lista das últimas passagens (o pedaço da tela que o HTMX troca).
+- **`conexao`**: O aviso "site sem conexão desde HH:MM", quando a caixa sumiu (vazio, se não sumiu).
 - **`tela_de_conferir`**: Os recortes de placa de uma passagem, para o porteiro confirmar ou corrigir ([[D-42]]).
 - **`conferir`**: Grava a placa certa de um recorte e volta para a página da conferência.
 - **`lista_de_excecoes`**: As exceções abertas do site, da chegada mais antiga para a mais nova (só ver).
@@ -287,6 +305,7 @@ cookie, recusa o envio que o navegador marca como vindo de outro site (``Sec-Fet
 - `nuvem/tests/test_nuvem_web_duas_etapas.py`: As telas da verificação em duas etapas ([[8.2 Segurança|SDD 8.2]], [[D-60]]) e o zerar da administração.
 - `nuvem/tests/test_nuvem_web_em_breve.py`: As telas "em breve" do recebimento e do estoque em 3D ([[T46]], [[D-43]] e [[D-45]]), e os arquivos de terceiros que o painel serve.
 - `nuvem/tests/test_nuvem_web_extrato.py`: O painel do gestor e o extrato na tela ([[T44]], [[6.2 Telas do MVP|SDD 6.2]] e [[D-48]]).
+- `nuvem/tests/test_nuvem_web_frota.py`: As telas da saúde da caixa ([[6.2 Telas do MVP|SDD 6.2]] e [[8.1 Falhas|8.1]], [[D-65]]): a frota de borda da administração e o "site sem conexão" da portaria.
 - `nuvem/tests/test_nuvem_web_login.py`: Telas de entrar, sair e trocar de porteiro: cookie seguro e respostas certas.
 - `nuvem/tests/test_nuvem_web_mensagens.py`: A tela do celular do motorista ([[T43]], [[6.2 Telas do MVP|SDD 6.2]] e [[D-47]]): as mensagens que ele receberia.
 - `nuvem/tests/test_nuvem_web_patio.py`: A tela do pátio e das docas ([[T42]], [[6.2 Telas do MVP|SDD 6.2]]): o líder vê a fila e as docas e move os caminhões.

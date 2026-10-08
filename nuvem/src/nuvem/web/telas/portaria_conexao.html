@@ -1,0 +1,3 @@
+{% if desde %}
+<p role="alert" class="erro">Site sem conexão desde {{ desde }}. As passagens desse tempo chegam quando a conexão voltar; enquanto isso, <a href="/portaria/chegada-manual?site={{ site_id }}">registre as chegadas à mão</a>.</p>
+{% endif %}

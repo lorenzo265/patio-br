@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block titulo %}Frota de borda · patio-br{% endblock %}
+{% block cabeca %}
+<style>body { max-width: 72rem; } .sem-contato { color: #a00000; font-weight: bold; }</style>
+{% endblock %}
+{% block conteudo %}
+<h1>Frota de borda</h1>
+<p>Cada caixa manda a saúde a cada minuto. Sem saúde há 3 minutos, ela está sem contato. As horas estão no fuso do site.</p>
+{% if caixas %}
+<table>
+  <tr><th>Caixa</th><th>Situação</th><th>Versões</th><th>Câmeras</th><th>Fila</th><th>Máquina</th><th>Relógio</th></tr>
+  {% for caixa in caixas %}
+  <tr>
+    <td><a href="/administracao/frota/{{ caixa.id }}">Caixa {{ caixa.id }}</a><br>{{ caixa.empresa }}<br>{{ caixa.site }}</td>
+    <td{% if caixa.sem_contato %} class="sem-contato"{% endif %}>{{ caixa.situacao }}{% if caixa.ultimo_contato and not caixa.sem_contato %}<br>último contato {{ caixa.ultimo_contato }}{% endif %}</td>
+    <td>{{ caixa.versoes }}</td>
+    <td>
+      {% for camera in caixa.cameras %}
+      {{ camera.nome }}: {% if camera.no_ar %}no ar, {{ camera.quadros_por_segundo }} quadros/s{% else %}<span class="sem-contato">parada</span>{% endif %}<br>
+      {% endfor %}
+    </td>
+    <td>{{ caixa.fila }}</td>
+    <td>{{ caixa.maquina }}</td>
+    <td>{{ caixa.relogio }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% else %}
+<p>Nenhuma caixa ativada.</p>
+{% endif %}
+<p><a href="/">Início</a></p>
+{% endblock %}

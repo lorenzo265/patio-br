@@ -1,0 +1,189 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "FilaDaCaixa": {
+      "additionalProperties": false,
+      "description": "O que espera o envio na caixa.",
+      "properties": {
+        "passagens": {
+          "description": "As passagens esperando o envio.",
+          "minimum": 0,
+          "title": "Passagens",
+          "type": "integer"
+        },
+        "fotos": {
+          "description": "As fotos esperando o envio.",
+          "minimum": 0,
+          "title": "Fotos",
+          "type": "integer"
+        },
+        "recusadas": {
+          "description": "As passagens que a nuvem recusou de vez, guardadas à parte na caixa.",
+          "minimum": 0,
+          "title": "Recusadas",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "passagens",
+        "fotos",
+        "recusadas"
+      ],
+      "title": "FilaDaCaixa",
+      "type": "object"
+    },
+    "SaudeDaCamera": {
+      "additionalProperties": false,
+      "description": "Uma câmera de placa aberta pela caixa.",
+      "properties": {
+        "camera_id": {
+          "description": "A câmera, pelo id da nuvem (o mesmo da configuração).",
+          "maxLength": 100,
+          "minLength": 1,
+          "title": "Camera Id",
+          "type": "string"
+        },
+        "no_ar": {
+          "description": "Se mandou quadro nos últimos 10 segundos.",
+          "title": "No Ar",
+          "type": "boolean"
+        },
+        "quadros_por_segundo": {
+          "description": "Os quadros que chegaram ao agente nos últimos 10 segundos, por segundo.",
+          "minimum": 0,
+          "title": "Quadros Por Segundo",
+          "type": "number"
+        },
+        "ultimo_quadro": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Quando chegou o último quadro, no relógio da caixa; vazio se nunca chegou.",
+          "title": "Ultimo Quadro"
+        }
+      },
+      "required": [
+        "camera_id",
+        "no_ar",
+        "quadros_por_segundo",
+        "ultimo_quadro"
+      ],
+      "title": "SaudeDaCamera",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "A saúde da caixa num momento: as versões, a máquina, as câmeras e a fila.",
+  "properties": {
+    "versao_contrato": {
+      "const": 1,
+      "description": "Versão deste formato.",
+      "title": "Versao Contrato",
+      "type": "integer"
+    },
+    "caixa_id": {
+      "description": "A caixa, pelo id da nuvem (o mesmo das passagens).",
+      "maxLength": 100,
+      "minLength": 1,
+      "title": "Caixa Id",
+      "type": "string"
+    },
+    "site_id": {
+      "description": "O site da caixa.",
+      "maxLength": 100,
+      "minLength": 1,
+      "title": "Site Id",
+      "type": "string"
+    },
+    "momento": {
+      "description": "A hora da caixa, com fuso: a nuvem mede a diferença do relógio.",
+      "format": "date-time",
+      "title": "Momento",
+      "type": "string"
+    },
+    "versao_programa": {
+      "description": "A versão do programa da caixa.",
+      "maxLength": 100,
+      "minLength": 1,
+      "title": "Versao Programa",
+      "type": "string"
+    },
+    "versao_leitor": {
+      "description": "A versão do leitor de placas.",
+      "maxLength": 100,
+      "minLength": 1,
+      "title": "Versao Leitor",
+      "type": "string"
+    },
+    "cpu": {
+      "description": "O uso da CPU, em %, desde a saúde anterior.",
+      "maximum": 100,
+      "minimum": 0,
+      "title": "Cpu",
+      "type": "number"
+    },
+    "temperatura": {
+      "anyOf": [
+        {
+          "maximum": 150.0,
+          "minimum": -60.0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "A temperatura do sensor mais quente, em °C; vazia se a máquina não diz.",
+      "title": "Temperatura"
+    },
+    "memoria": {
+      "description": "O uso da memória, em %.",
+      "maximum": 100,
+      "minimum": 0,
+      "title": "Memoria",
+      "type": "number"
+    },
+    "disco": {
+      "description": "O uso do disco da fila, em %.",
+      "maximum": 100,
+      "minimum": 0,
+      "title": "Disco",
+      "type": "number"
+    },
+    "cameras": {
+      "description": "As câmeras de placa abertas pela caixa.",
+      "items": {
+        "$ref": "#/$defs/SaudeDaCamera"
+      },
+      "maxItems": 64,
+      "title": "Cameras",
+      "type": "array"
+    },
+    "fila": {
+      "$ref": "#/$defs/FilaDaCaixa",
+      "description": "O que espera o envio."
+    }
+  },
+  "required": [
+    "versao_contrato",
+    "caixa_id",
+    "site_id",
+    "momento",
+    "versao_programa",
+    "versao_leitor",
+    "cpu",
+    "temperatura",
+    "memoria",
+    "disco",
+    "cameras",
+    "fila"
+  ],
+  "title": "Saude",
+  "type": "object"
+}
