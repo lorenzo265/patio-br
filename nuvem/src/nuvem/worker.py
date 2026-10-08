@@ -2,9 +2,10 @@
 
 Executa as tarefas da fila (o casamento das passagens; o envio das mensagens e o aviso do
 WhatsApp, D-63; o resumo das fotos, D-69), confere o "não veio" e os alertas, prepara as
-mensagens, sela a prova e grava a âncora do dia (D-69) e, nos ambientes que têm, avança o dia de
-demonstração (D-49) e apaga as empresas dos links de demonstração vencidos (D-54), até receber o
-sinal de parar (SIGTERM do Docker, ou Ctrl+C). Lê a configuração do ambiente, como a API.
+mensagens, sela a prova e grava a âncora do dia (D-69), apaga as fotos vencidas (D-70) e, nos
+ambientes que têm, avança o dia de demonstração (D-49) e apaga as empresas dos links de
+demonstração vencidos (D-54), até receber o sinal de parar (SIGTERM do Docker, ou Ctrl+C). Lê a
+configuração do ambiente, como a API.
 """
 
 import logging
@@ -67,6 +68,7 @@ def main() -> None:
             canais=canais,
             armazenamento=armazenamento,
             ancoras=guarda_da_configuracao(configuracao),
+            dias_das_fotos=configuracao.guarda_fotos_dias,
         )
     finally:
         motor.dispose()

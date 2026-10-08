@@ -113,6 +113,9 @@ class Configuracao(BaseSettings):
     fotos_s3_chave: SecretStr | None = None
     fotos_s3_segredo: SecretStr | None = None
 
+    guarda_fotos_dias: int = Field(default=90, ge=1)
+    """Quantos dias a foto da passagem fica guardada (D-70; o padrão até o ``[ABERTO-04]``)."""
+
     ancoras_s3_balde: str | None = None
     """O balde das âncoras da prova, com o Object Lock ligado (D-69), no mesmo S3 das fotos.
 

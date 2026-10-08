@@ -1,7 +1,7 @@
 # SDD — patio-br (nome provisório)
 
 **Documento de desenho do software (SDD) do MVP do piloto**
-Versão 0.50 · 2026-10-06 · Situação: aprovado como base; itens em aberto na seção 12
+Versão 0.51 · 2026-10-06 · Situação: aprovado como base; itens em aberto na seção 12
 
 ---
 
@@ -487,6 +487,8 @@ acadêmico (`docs/validacao/fontes-de-placas.md`). Por isso:
 | `AlertasNoWhatsApp` | quem (usuário ou administração), o resumo do código de uso único, pedido em, vence em, o celular e quando autorizou, o texto (a prova), revogada em — uma ativa por pessoa (D-68) |
 | `FotoRecebida` | passagem, o número da foto, o `ref`, o resumo (SHA-256) e o tamanho da foto, quando foi resumida — **só se acrescenta** (D-69) |
 | `EloDaProva` | visita, a ordem, o tipo (passagem, foto, evento, conferência ou mensagem), sobre o quê, o retrato do registro, o resumo do elo anterior, o resumo deste, selado em — **só se acrescenta** (D-69) |
+| `FotoApagada` | passagem, o número da foto, o `ref`, por quê (o prazo de guarda), quando — **só se acrescenta**; o resumo da foto continua em `FotoRecebida` (D-70) |
+| `MarcaDeDisputa` | visita, marcar ou desmarcar, o motivo, quem, quando — **só se acrescenta**; vale a última (D-70) |
 | `AncoraDoDia` | o dia, onde está o arquivo, o resumo do arquivo, quantas visitas, se está travado, gravada em — da plataforma, uma por dia (D-69) |
 | `MensagemRecebida` | de (o celular), texto, id no WhatsApp, recebida em, a empresa (quando o texto diz), o que se fez (autorizou, saiu ou ignorada) — da plataforma, como a fila de tarefas (D-63) |
 | `ParametrosSite` | custo mensal de um ponto de portaria, postos antes/depois, valor da estadia (R$/t·h), franquia (h), custo hora-doca (opcional); a tolerância de janela e as horas para o alerta continuam fixas no código até o `[ABERTO-09]` |
@@ -621,9 +623,12 @@ Como cada conta é feita (versão 1 da regra, D-48):
   O banco recusa alterar ou apagar um evento da visita ou uma mudança de agendamento. A única
   exceção é a empresa de demonstração vencida, apagada inteira (D-54): o banco só deixa apagar
   linha de prova de uma empresa que nasceu de um link de demonstração, e só quando a transação
-  avisa qual empresa está apagando.
+  avisa qual empresa está apagando. A outra exceção é a **foto vencida pelo prazo de guarda**
+  (seção 8.3, D-70): o arquivo da foto se apaga, mas o resumo dela e o registro de quando e por
+  que foi apagada ficam na prova.
 - **Cadeia de prova** (D-69): cada registro da visita (a passagem, cada foto, cada evento, cada
-  conferência da placa e cada situação de mensagem ao motorista) ganha um **elo**: o retrato do
+  conferência da placa, cada situação de mensagem ao motorista, cada marca de disputa e cada
+  foto apagada pela guarda) ganha um **elo**: o retrato do
   registro e um resumo SHA-256 que inclui o resumo do elo anterior da mesma visita. Mudar
   qualquer coisa no meio quebra a cadeia dali em diante. Uma vez por dia, o último resumo de cada
   visita que mudou vai para um arquivo travado contra apagar e mudar (a **âncora**), fora do
@@ -659,7 +664,8 @@ pegam a mesma. Tarefa com erro volta para a fila esperando cada vez mais (10 s, 
 até 10 min), até 8 tentativas; depois, fica como falhou, com o erro, para o suporte. A cada 5
 minutos, o worker confere o "não veio" (seção 5.2), um worker de cada vez; a cada minuto, os
 alertas (seção 8.1, D-68) e sela a prova do que chegou (seção 5.5, D-69); uma vez por dia, grava
-a âncora do dia anterior.
+a âncora do dia anterior; a cada hora, apaga as fotos vencidas pelo prazo de guarda (seção 8.3,
+D-70).
 
 **Sem worker, na demonstração na Vercel** (D-51 e D-56): com `PATIO_TIQUE`, cada tela que se
 atualiza sozinha (portaria, pátio, mensagens e o dia de demonstração) roda antes um
@@ -692,13 +698,13 @@ modificação (D-50), do mesmo jeito: os arquivos em `estatico/`, com a licença
 | Pátio e docas | líder | fila por tempo de espera; docas livres/ocupadas; chamar / iniciar / finalizar; alerta perto de 5h; "motorista não avisado" (D-64) |
 | Gestor | gestor | painel: o dia e o mês até agora (espera média, visitas acima de 5h, % de check-in automático, uso de docas), comparados com a linha de base, com gráficos simples; extrato do mês em R$ (na tela, para imprimir ou salvar em PDF, e em planilha) |
 | Agendamentos | gestor | lista do dia ou da semana, no fuso do site, com o cancelamento; importar planilha com modelo e relatório de erros por linha; gerar e revogar links da transportadora (o endereço aparece uma vez só, ao gerar) |
-| Prova da visita | gestor | a busca pela placa; a página de cada visita, para imprimir ou salvar em PDF, com as passagens (a hora da caixa, a faixa, a câmera, as placas lidas, a confiança e os recortes), os eventos, as conferências da placa, as mensagens ao motorista e a saúde da caixa naquela hora, mais o resultado da conferência da cadeia e das âncoras; o arquivo da prova para baixar (D-69) |
+| Prova da visita | gestor | a busca pela placa; a página de cada visita, para imprimir ou salvar em PDF, com as passagens (a hora da caixa, a faixa, a câmera, as placas lidas, a confiança e os recortes), os eventos, as conferências da placa, as mensagens ao motorista e a saúde da caixa naquela hora, mais o resultado da conferência da cadeia e das âncoras; o arquivo da prova para baixar (D-69); marcar e desmarcar a disputa, que segura as fotos da visita (D-70) |
 | Alertas | quem é do cliente | o sino em todas as telas, com os alertas abertos dos sites; a tela `/alertas` com os abertos e os das últimas 24 horas; o link para receber os graves pelo WhatsApp (só o gestor, D-68) |
 | Link da transportadora | transportadora | formulário curto para celular: placas, motorista, celular, janela, toneladas, NF-e opcional |
 | Link de demonstração | quem visita | a página do link (para quem é e o botão "Entrar na demonstração"); dentro, uma faixa no topo troca o papel: gestor, porteiro, líder de pátio ou motorista (D-54) |
 | Celular do motorista | demonstração | as mensagens que o motorista receberia, numa tela em forma de celular; o canal de demonstração não envia nada (D-45) |
 | Recebimento e estoque | demonstração | telas "em breve", com dados de exemplo, para mostrar a visão (D-43 e D-45) |
-| Administração | nós | empresas, sites, câmeras, usuários, parâmetros, rotulagem, links de demonstração; **frota de borda**: cada caixa com o site, as versões, o último contato, as câmeras, a fila, a máquina e o relógio, e o histórico dos últimos 7 dias, hora a hora (D-65); **versões da caixa**: cadastrar, escolher para todas, um site ou uma caixa, e as atualizações de cada caixa (D-67); **alertas da frota e da fila**, com o sino (D-68) |
+| Administração | nós | empresas, sites, câmeras, usuários, parâmetros, rotulagem, links de demonstração; **frota de borda**: cada caixa com o site, as versões, o último contato, as câmeras, a fila, a máquina e o relógio, e o histórico dos últimos 7 dias, hora a hora (D-65); **versões da caixa**: cadastrar, escolher para todas, um site ou uma caixa, e as atualizações de cada caixa (D-67); **alertas da frota e da fila**, com o sino (D-68); **o pedido do titular**: tudo o que existe de uma placa ou de um celular numa empresa (D-70) |
 
 ### 6.3 Repositório
 
@@ -1093,7 +1099,21 @@ Serve para desenvolver sem câmera, para os testes de ponta a ponta e para simul
 - **Minimização:** sem reconhecimento facial; fotos guardadas são recortes de placa e veículo;
   rostos borrados na caixa nas fotos de contexto.
 - **Guarda** (padrão a validar com advogado — `[ABERTO-04]`): fotos 90 dias (exceto as ligadas a
-  exceção ou disputa); visitas e trilha de prova 5 anos.
+  exceção ou disputa); visitas e trilha de prova 5 anos; o registro de erros (o CloudWatch, D-61)
+  30 dias. Os prazos são parâmetros, e não números no código (D-70):
+  - **as fotos:** a cada hora, o worker apaga as fotos das passagens que chegaram há mais de 90
+    dias (`PATIO_GUARDA_FOTOS_DIAS`), menos as de uma visita com exceção aberta ou marcada "em
+    disputa" pelo gestor. A prova guarda o resumo da foto e mostra "foto apagada pelo prazo de
+    guarda em DD/MM";
+  - **a disputa:** o gestor marca e desmarca na página da prova, com o motivo; a marca só se
+    acrescenta e entra na cadeia. Uma visita encerrada não recebe evento, por isso a marca é um
+    registro à parte;
+  - **as visitas e a trilha de prova:** o apagar delas entra antes de o primeiro dado do piloto
+    completar 5 anos;
+  - **o pedido do titular:** a administração levanta, numa empresa, tudo o que existe de uma placa
+    ou de um celular (visitas, passagens e fotos, conferências, agendamentos, mensagens e
+    autorizações), na tela e num arquivo, e o cliente (o controlador) responde ao titular. A placa
+    e o celular vão no corpo do pedido, e não no endereço: não ficam no registro de acesso.
 - **Transparência:** placa de aviso na portaria com o contato do encarregado; modelo de relatório
   de impacto (RIPD) entregue ao cliente.
 - **Base de treino:** só recortes de placa e a região de gravação (D-39), nunca rostos;
@@ -1237,6 +1257,7 @@ do cuidado de cargas (D-43).
 | D-67 | **A atualização da caixa por dentro** (T56): a administração cadastra cada versão pelo resumo da imagem e a escolhe para todas as caixas, um site ou uma caixa (vence a escolha mais específica); a versão só vai para um site ou para todas depois de dar certo numa caixa; o atualizador é um programa à parte, só com a biblioteca padrão do Python, que roda no Ubuntu da caixa a cada 5 minutos e troca o agente pelo compose; a saúde do agente novo é a gravada por ele no volume, com as câmeras no ar e aceita pela nuvem, em até 5 minutos; senão, volta para a anterior; a versão que falhou não é tentada de novo na mesma caixa; o registro é o do GitHub, com uma credencial que só baixa | fora dos contêineres, uma imagem ruim do agente não leva junto o atualizador, que é quem volta atrás; pelo compose, a caixa continua sendo descrita por um arquivo só; a saúde que a nuvem aceitou prova a caixa inteira (o agente, as câmeras e a internet); o registro do GitHub já está na conta do projeto e não pede um token novo a cada 12 horas, como o da AWS | o atualizador num contêiner com o socket do Docker; trocar o agente pela API do Docker, fora do compose; o registro da AWS (ECR) |
 | D-68 | **Os alertas por dentro** (T57): cada alerta abre uma vez e fecha sozinho quando a situação passa (um aberto por tipo e coisa); o worker confere a cada minuto, e o tique da demonstração também; a câmera parada e o relógio só contam com a caixa em contato; a autorização do WhatsApp para os alertas é por um código de uso único, de 10 minutos, que a tela do gestor e a da administração mostram; a mensagem é um modelo novo, `patio_alerta`, mandado pela fila de tarefas | o alerta que se repete a cada minuto é ignorado; com o código, ninguém liga o próprio celular aos alertas de outra pessoa (o número do usuário não está no cadastro); a Meta só deixa a empresa começar a conversa com um modelo aprovado; sem a caixa em contato, a câmera e o relógio dela não dizem nada de novo | um alerta novo a cada conferência; a autorização pelo id do usuário na mensagem ("ALERTAS U<id>"), que qualquer um poderia mandar; o celular no cadastro do usuário |
 | D-69 | **A prova da visita por dentro** (T58): cada registro da visita (passagem, foto, evento, conferência da placa e cada situação das mensagens ao motorista) vira um elo, selado depois de gravado: o worker sela a cada minuto o que chegou nos últimos 7 dias, e a página da prova sela a visita ao abrir; o resumo de cada foto é feito pela nuvem logo que a passagem chega, por uma tarefa da fila; a saúde da caixa naquela hora vai no retrato da passagem; uma vez por dia (UTC), a âncora vai para um balde S3 só dela, com Object Lock no modo de conformidade por 5 anos, e tem só o número de cada visita e o último resumo; a conferência refaz os resumos, compara cada elo com o registro de origem, relê as fotos e confere as âncoras, e aponta o primeiro elo quebrado; o arquivo da prova traz os elos e a regra do resumo, para qualquer um conferir sem nós; sem o balde das âncoras (a demonstração), a âncora vai para o armazenamento das fotos, sem trava, e a página diz isso | selar depois, e não dentro de cada gravação, não mexe no caminho da portaria e pega também o que chega atrasado; a caixa manda a foto direto para o armazenamento, e o endereço de envio serve por 15 minutos, então o resumo feito logo depois fecha essa janela; a saúde da caixa só fica 7 dias; a cadeia sozinha não basta, porque quem mexe no banco poderia refazer todos os resumos; o Object Lock pede versões no balde inteiro, e as fotos precisam se apagar aos 90 dias (seção 8.3); 5 anos é a guarda da trilha de prova; olhar só os últimos 7 dias deixa pequena a procura de cada minuto, e o histórico inventado da demonstração, gravado com datas passadas, fica quase todo de fora | o resumo dentro de cada gravação (mexe em toda a portaria e perde o que chega por outro caminho); a âncora num serviço de carimbo do tempo (pago e com conta nova); a âncora no mesmo balde das fotos; a caixa mandar o resumo da foto (a prova dependeria da caixa) |
+| D-70 | **A guarda e o pedido do titular por dentro** (T59): os prazos ficam como parâmetros até o `[ABERTO-04]` (fotos 90 dias, `PATIO_GUARDA_FOTOS_DIAS`); a cada hora, o worker apaga o arquivo das fotos das passagens vencidas, menos as de visita com exceção aberta ou em disputa, e grava a foto apagada, que entra na cadeia (a conferência aceita a foto que sumiu se ela foi apagada pela guarda); a disputa é uma marca só de acréscimo, à parte dos eventos, que o gestor põe e tira na página da prova; o apagar das visitas e da trilha (5 anos) fica para antes de 2031; a guarda do registro de erros (30 dias) é a do CloudWatch; o pedido do titular é uma tela da administração, por empresa, com a placa ou o celular no corpo do pedido | a foto é o dado mais sensível que guardamos e o que mais pesa no armazenamento; a prova de uma disputa não pode sumir no meio dela; o resumo prova a foto que existiu sem guardar a foto; a visita encerrada não aceita evento novo, e a disputa quase sempre vem depois de o caminhão sair; nenhum dado do piloto chega a 5 anos antes de 2031; o endereço do pedido fica no registro de acesso, e a placa e o celular não podem ir para lá | apagar a passagem inteira (perde a prova do horário); a disputa como evento da visita (só serve com a visita aberta); o pedido do titular como comando de terminal (precisaria da senha do banco de produção) |
 
 ---
 
@@ -1356,3 +1377,4 @@ do cuidado de cargas (D-43).
 | 0.48 | 2026-10-06 | a atualização da caixa por dentro (T56): as versões pelo resumo da imagem, a escolha por alcance, a ordem (uma caixa antes das outras), o atualizador à parte com a volta automática e as atualizações na frota (D-67); as entidades `VersaoCaixa`, `EscolhaDeVersao` e `AtualizacaoCaixa` (seções 5.1, 6.2, 7.4, 11 e 13) |
 | 0.49 | 2026-10-06 | os alertas por dentro (T57): abre uma vez e fecha sozinho, os tipos e os tempos, o worker a cada minuto, o sino em todas as telas, o WhatsApp dos graves com o código de uso único e a administração (D-68); as entidades `Alerta`, `AvisoDeAlerta` e `AlertasNoWhatsApp` (seções 5.1, 6.1, 6.2, 7.5, 8.1 e 11) |
 | 0.50 | 2026-10-06 | a prova da visita por dentro (T58): a cadeia de resumos de cada visita, o resumo das fotos, a âncora do dia num balde travado, a conferência e a página da prova (D-69); as entidades `FotoRecebida`, `EloDaProva` e `AncoraDoDia` (seções 3.3, 5.1, 5.5, 6.1, 6.2, 11 e 13) |
+| 0.51 | 2026-10-06 | a guarda e o pedido do titular por dentro (T59): os prazos como parâmetros, a foto vencida apagada pelo worker com o resumo e o registro na prova, a marca de disputa, e o levantamento de uma placa ou de um celular pela administração (D-70); as entidades `FotoApagada` e `MarcaDeDisputa` (seções 5.1, 5.5, 6.1, 6.2, 8.3 e 11) |

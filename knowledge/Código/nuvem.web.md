@@ -290,12 +290,15 @@ A prova da visita ([[6.2 Telas do MVP|SDD 6.2]], [[D-69]]), só do gestor.
   falta e confere tudo: a cadeia, cada registro de origem, as fotos e as âncoras.
 - ``/prova/visitas/<visita>.json``: o arquivo da prova, com os elos e a regra do resumo, para
   qualquer um conferir sem nós.
+- ``/prova/visitas/<visita>/disputa``: marcar ou desmarcar a disputa, que segura as fotos da
+  visita além do prazo de guarda ([[D-70]]).
 
 As horas aparecem no fuso do site; as do arquivo, em UTC.
 
 - **`busca`**: As últimas visitas, ou as de uma placa.
 - **`arquivo`**: O arquivo da prova: os elos, a regra do resumo e o resultado da conferência.
 - **`pagina`**: A página da prova de uma visita, para imprimir ou salvar em PDF.
+- **`disputa`**: Marca ou desmarca a visita em disputa e volta à página da prova.
 
 ### `nuvem.web.resolucao`
 
@@ -340,6 +343,21 @@ cookie, recusa o envio que o navegador marca como vindo de outro site (``Sec-Fet
 - **`ir_com_a_sessao`**: Leva a ``destino`` com o cookie da sessão aberta (o código só vai no cookie).
 - **`por_o_cookie`**: Põe na resposta o cookie da sessão aberta (``HttpOnly``, ``SameSite=Lax``).
 
+### `nuvem.web.titular`
+
+`nuvem/src/nuvem/web/titular.py`
+
+O pedido do titular na administração ([[6.2 Telas do MVP|SDD 6.2]] e [[8.3 LGPD|8.3]], [[D-70]]).
+
+- ``GET /administracao/titular``: o formulário (a empresa, e a placa ou o celular).
+- ``POST /administracao/titular``: o levantamento na tela; com ``formato=json``, o arquivo.
+
+A placa e o celular vão no corpo do pedido, e não no endereço: o endereço fica no registro de
+acesso. A resposta não fica guardada no navegador.
+
+- **`formulario`**: O formulário do pedido do titular.
+- **`levantar`**: Tudo o que existe da placa ou do celular na empresa, na tela ou em arquivo.
+
 ## Testes
 
 - `nuvem/tests/test_nuvem_web_agendamentos.py`: Tela de agendamentos ([[6.2 Telas do MVP|SDD 6.2]]): o gestor vê e alimenta os agendamentos dos sites dele.
@@ -353,6 +371,7 @@ cookie, recusa o envio que o navegador marca como vindo de outro site (``Sec-Fet
 - `nuvem/tests/test_nuvem_web_em_breve.py`: As telas "em breve" do recebimento e do estoque em 3D ([[T46]], [[D-43]] e [[D-45]]), e os arquivos de terceiros que o painel serve.
 - `nuvem/tests/test_nuvem_web_extrato.py`: O painel do gestor e o extrato na tela ([[T44]], [[6.2 Telas do MVP|SDD 6.2]] e [[D-48]]).
 - `nuvem/tests/test_nuvem_web_frota.py`: As telas da saúde da caixa ([[6.2 Telas do MVP|SDD 6.2]] e [[8.1 Falhas|8.1]], [[D-65]]): a frota de borda da administração e o "site sem conexão" da portaria.
+- `nuvem/tests/test_nuvem_web_guarda.py`: A disputa na página da prova e o pedido do titular na administração ([[6.2 Telas do MVP|SDD 6.2]], [[D-70]]).
 - `nuvem/tests/test_nuvem_web_login.py`: Telas de entrar, sair e trocar de porteiro: cookie seguro e respostas certas.
 - `nuvem/tests/test_nuvem_web_mensagens.py`: A tela do celular do motorista ([[T43]], [[6.2 Telas do MVP|SDD 6.2]] e [[D-47]]): as mensagens que ele receberia.
 - `nuvem/tests/test_nuvem_web_patio.py`: A tela do pátio e das docas ([[T42]], [[6.2 Telas do MVP|SDD 6.2]]): o líder vê a fila e as docas e move os caminhões.

@@ -56,6 +56,7 @@ Aplicação da nuvem: API, painel e módulos do produto.
 	- [[nuvem.demonstracao]]: A demonstração comercial ([[D-45]] e [[D-49]]): empresas inventadas, o mês de histórico e o dia ao vivo.
 	- [[nuvem.extrato]]: Indicadores e extrato do mês em R$ ([[5.4 Contas do extrato|SDD 5.4]] e [[D-48]]).
 	- [[nuvem.frota]]: Frota de borda ([[3.3 Módulos da nuvem no MVP|SDD 3.3]] e [[7.4 A caixa de borda|7.4]]): as caixas de cada site, a ativação e a chave de cada uma.
+	- [[nuvem.guarda]]: A guarda dos dados ([[8.3 LGPD|SDD 8.3]], [[D-70]]): os prazos, a disputa e o pedido do titular.
 	- [[nuvem.mensagens]]: Mensagens ao motorista ([[2.2 A jornada de um caminhão (modo A)|SDD 2.2]], [[7.5 WhatsApp e SMS|7.5]] e [[D-47]]): a confirmação e os avisos da fila e da doca.
 	- [[nuvem.patio]]: Pátio e docas ([[2.2 A jornada de um caminhão (modo A)|SDD 2.2]], passos 4 e 5): a fila, a chamada para a doca, o início e o fim.
 	- [[nuvem.portaria]]: Portaria ([[3.3 Módulos da nuvem no MVP|SDD 3.3]]): recebe as passagens da borda; no mês 2, casa com o agendamento.

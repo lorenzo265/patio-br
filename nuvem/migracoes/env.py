@@ -18,6 +18,7 @@ from nuvem.config import ConfiguracaoInvalidaError, ler_configuracao
 from nuvem.demonstracao import modelos as _modelos_da_demonstracao  # noqa: F401
 from nuvem.extrato import modelos as _modelos_do_extrato  # noqa: F401
 from nuvem.frota import modelos as _modelos_da_frota  # noqa: F401
+from nuvem.guarda import modelos as _modelos_da_guarda  # noqa: F401
 from nuvem.mensagens import modelos as _modelos_das_mensagens  # noqa: F401
 from nuvem.portaria import modelos as _modelos_da_portaria  # noqa: F401
 from nuvem.prova import modelos as _modelos_da_prova  # noqa: F401

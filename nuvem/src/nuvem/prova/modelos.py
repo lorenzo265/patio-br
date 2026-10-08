@@ -15,7 +15,9 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from nuvem.banco import Base, do_pai_na_mesma_empresa, texto_de_lista
 
-TipoDeElo = Literal["passagem", "foto", "evento", "conferencia", "mensagem"]
+TipoDeElo = Literal[
+    "passagem", "foto", "evento", "conferencia", "mensagem", "disputa", "foto_apagada"
+]
 
 
 class FotoRecebida(Base):

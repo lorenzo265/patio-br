@@ -521,6 +521,13 @@ como parâmetros.
 - **O pedido do titular:** um comando da administração lista tudo o que existe de uma placa ou
   de um celular numa empresa. Com isso, o cliente (o controlador) responde ao titular.
 
+*Detalhado na execução (D-70):* marcar a disputa é um registro só de acréscimo (a
+`MarcaDeDisputa`), e não um evento da visita: a visita encerrada não recebe evento, e a disputa
+quase sempre vem depois de o caminhão sair. O apagar das visitas e da trilha (5 anos) não entra
+agora: nenhum dado do piloto chega a 5 anos antes de 2031. A guarda do registro de erros (30
+dias) é a do CloudWatch, na T49. O pedido do titular é uma tela da administração, e não um
+comando de terminal, que precisaria da senha do banco de produção.
+
 **Commit:** `feat(guarda): prazos de guarda e o pedido do titular`
 
 #### T60. Base de treino

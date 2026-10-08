@@ -21,6 +21,7 @@ Aplicação da nuvem: API, painel e módulos do produto ([[3.3 Módulos da nuvem
 - [[nuvem.demonstracao]]: A demonstração comercial ([[D-45]] e [[D-49]]): empresas inventadas, o mês de histórico e o dia ao vivo.
 - [[nuvem.extrato]]: Indicadores e extrato do mês em R$ ([[5.4 Contas do extrato|SDD 5.4]] e [[D-48]]).
 - [[nuvem.frota]]: Frota de borda ([[3.3 Módulos da nuvem no MVP|SDD 3.3]] e [[7.4 A caixa de borda|7.4]]): as caixas de cada site, a ativação e a chave de cada uma.
+- [[nuvem.guarda]]: A guarda dos dados ([[8.3 LGPD|SDD 8.3]], [[D-70]]): os prazos, a disputa e o pedido do titular.
 - [[nuvem.mensagens]]: Mensagens ao motorista ([[2.2 A jornada de um caminhão (modo A)|SDD 2.2]], [[7.5 WhatsApp e SMS|7.5]] e [[D-47]]): a confirmação e os avisos da fila e da doca.
 - [[nuvem.patio]]: Pátio e docas ([[2.2 A jornada de um caminhão (modo A)|SDD 2.2]], passos 4 e 5): a fila, a chamada para a doca, o início e o fim.
 - [[nuvem.portaria]]: Portaria ([[3.3 Módulos da nuvem no MVP|SDD 3.3]]): recebe as passagens da borda; no mês 2, casa com o agendamento.
@@ -134,12 +135,13 @@ Valor obrigatório ausente impede a nuvem de iniciar: melhor parar na hora do qu
 O cron diário ([[D-56]]): ``GET /api/cron/diaria``, chamado pela Vercel uma vez por dia.
 
 Apaga as empresas dos links de demonstração vencidos ou revogados ([[D-54]]), confere o "não
-veio" ([[5.2 Estados da visita|SDD 5.2]]) e grava a âncora da prova dos dias que terminaram ([[D-69]]), o que o worker faria.
+veio" ([[5.2 Estados da visita|SDD 5.2]]), grava a âncora da prova dos dias que terminaram ([[D-69]]) e apaga as fotos
+vencidas pelo prazo de guarda ([[D-70]]), o que o worker faria.
 Só com o segredo do cron (o ``CRON_SECRET`` da Vercel, que ela manda em ``Authorization: Bearer
 ...``); sem o segredo configurado, a rota não existe. Rodar duas vezes não faz mal: o que já foi
 feito não se faz de novo.
 
-- **`diaria`**: Apaga as empresas de demonstração vencidas, confere o "não veio" e grava as âncoras.
+- **`diaria`**: Apaga as empresas vencidas, confere o "não veio", grava as âncoras e apaga as fotos.
 
 ### `nuvem.erros`
 
@@ -244,6 +246,7 @@ Fila de tarefas no PostgreSQL e o laço do worker ([[6.1 Stack|SDD 6.1]], [[D-16
   automático.
 - **Prova** ([[D-69]]): a passagem com fotos vira também a tarefa "resumir as fotos"; a cada minuto,
   o worker sela o que chegou; a cada 10 minutos, grava a âncora dos dias que terminaram.
+- **Guarda** ([[D-70]]): a cada hora, apaga as fotos vencidas pelo prazo de guarda.
 
 O worker roda em outro processo (``python -m nuvem.worker``).
 
@@ -252,6 +255,7 @@ O worker roda em outro processo (``python -m nuvem.worker``).
 - **`INTERVALO_DOS_ALERTAS`** = `timedelta(minutes=1)`: O worker confere os alertas a cada minuto ([[D-68]]).
 - **`INTERVALO_DE_SELAR`** = `timedelta(minutes=1)`: O worker sela a prova do que chegou a cada minuto ([[D-69]]).
 - **`INTERVALO_DAS_ANCORAS`** = `timedelta(minutes=10)`: E procura dia terminado sem âncora a cada 10 minutos.
+- **`INTERVALO_DA_GUARDA`** = `timedelta(hours=1)`: A cada hora, as fotos vencidas pelo prazo de guarda saem ([[D-70]]).
 - **`JANELAS_OLHADAS`** = `timedelta(days=7)`: O "não veio" olha as janelas que terminaram nos últimos 7 dias (cobre o worker parado).
 - **`TRAVA_DO_NAO_VEIO`** = `7301`: Número da trava do PostgreSQL que deixa um worker de cada vez conferir o "não veio".
 - **`PAUSA`** = `1.0`: Segundos de espera quando a fila está vazia.
@@ -294,9 +298,10 @@ O worker da nuvem ([[6.1 Stack|SDD 6.1]] e [[D-38]]): ``python -m nuvem.worker``
 
 Executa as tarefas da fila (o casamento das passagens; o envio das mensagens e o aviso do
 WhatsApp, [[D-63]]; o resumo das fotos, [[D-69]]), confere o "não veio" e os alertas, prepara as
-mensagens, sela a prova e grava a âncora do dia ([[D-69]]) e, nos ambientes que têm, avança o dia de
-demonstração ([[D-49]]) e apaga as empresas dos links de demonstração vencidos ([[D-54]]), até receber o
-sinal de parar (SIGTERM do Docker, ou Ctrl+C). Lê a configuração do ambiente, como a API.
+mensagens, sela a prova e grava a âncora do dia ([[D-69]]), apaga as fotos vencidas ([[D-70]]) e, nos
+ambientes que têm, avança o dia de demonstração ([[D-49]]) e apaga as empresas dos links de
+demonstração vencidos ([[D-54]]), até receber o sinal de parar (SIGTERM do Docker, ou Ctrl+C). Lê a
+configuração do ambiente, como a API.
 
 - **`main`**: Sobe o worker e roda até o sinal de parar.
 

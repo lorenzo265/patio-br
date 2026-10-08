@@ -21,7 +21,11 @@ O cliente é o controlador dos dados; nós somos o operador ([[8.3 LGPD]]).
 - **Base legal:** câmera e placa por legítimo interesse; WhatsApp só com a autorização do
   motorista ([[8.3 LGPD]], [[D-47]]).
 - **Guarda** (a validar com o advogado, [[ABERTO-04]]): fotos 90 dias, visitas e trilha de prova
-  5 anos. Contrato e acordo de tratamento de dados: [[ABERTO-07]].
+  5 anos. Contrato e acordo de tratamento de dados: [[ABERTO-07]]. Os prazos são parâmetros
+  ([[D-70]], [[T59]]): o worker apaga a foto vencida, menos a de visita com exceção aberta ou em
+  disputa, e a prova guarda o resumo dela; a disputa é marcada pelo gestor na página da prova.
+- **O pedido do titular** ([[D-70]]): a administração levanta tudo o que existe de uma placa ou
+  de um celular numa empresa, e o cliente (o controlador) responde ao titular.
 - **Dado real nunca entra no Git:** vídeos, fotos, placas, nomes e telefones reais ficam em
   `dados/`; pesos em `modelos/`; as duas pastas são ignoradas. Testes e demonstração usam dados
   inventados; os celulares da demonstração usam o DDD 23, que não existe ([[D-49]]).

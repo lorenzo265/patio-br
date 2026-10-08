@@ -25,6 +25,8 @@ Os endereços da API e das telas, lidos dos decoradores (`@roteador.get(...)`) c
 | `/administracao/frota/versoes` | POST | `cadastrar_versao` | [[nuvem.web]] | Cadastra uma versão pelo resumo da imagem. |
 | `/administracao/frota/versoes/{versao_id}/escolher` | POST | `escolher_versao` | [[nuvem.web]] | Escolhe a versão para uma caixa, um site ou todas as caixas. |
 | `/administracao/frota/{caixa_id}` | GET | `tela_da_caixa` | [[nuvem.web]] | Uma caixa: a última saúde e os últimos 7 dias, hora a hora (404 se não existir). |
+| `/administracao/titular` | GET | `formulario` | [[nuvem.web]] | O formulário do pedido do titular. |
+| `/administracao/titular` | POST | `levantar` | [[nuvem.web]] | Tudo o que existe da placa ou do celular na empresa, na tela ou em arquivo. |
 | `/agendamentos` | GET | `tela_de_agendamentos` | [[nuvem.web]] | A lista do dia (ou da semana) de um site do gestor, com a planilha e os links. |
 | `/agendamentos/links` | POST | `gerar_link` | [[nuvem.web]] | Gera um link para uma transportadora e mostra o endereço, uma vez só. |
 | `/agendamentos/links/{link_id}/revogar` | POST | `revogar_link` | [[nuvem.web]] | Revoga um link: ele deixa de valer na hora. |
@@ -61,7 +63,7 @@ Os endereços da API e das telas, lidos dos decoradores (`@roteador.get(...)`) c
 | `/api/cadastro/sites` | GET | `listar_sites` | [[nuvem.cadastro]] | Os sites que o usuário vê. |
 | `/api/cadastro/sites/{site_id}` | GET | `obter_site` | [[nuvem.cadastro]] | Um site que o usuário vê (404 para qualquer outro). |
 | `/api/cadastro/sites/{site_id}/cameras` | GET | `listar_cameras` | [[nuvem.cadastro]] | As câmeras de um site que o gestor vê (404 para qualquer outro site). |
-| `/api/cron/diaria` | GET | `diaria` | [[nuvem]] | Apaga as empresas de demonstração vencidas, confere o "não veio" e grava as âncoras. |
+| `/api/cron/diaria` | GET | `diaria` | [[nuvem]] | Apaga as empresas vencidas, confere o "não veio", grava as âncoras e apaga as fotos. |
 | `/api/sms/{segredo}` | POST | `receber_o_retorno_do_sms` | [[nuvem.mensagens]] | O retorno da Zenvia ([[D-64]]): só com o segredo do endereço, e vira a tarefa "aviso do SMS". |
 | `/api/whatsapp` | GET | `conferir_o_webhook` | [[nuvem.mensagens]] | A conferência da Meta: devolve o desafio se o código for o nosso. |
 | `/api/whatsapp` | POST | `receber_o_aviso` | [[nuvem.mensagens]] | Guarda o aviso assinado numa tarefa e responde logo (a Meta repete o que demora). |
@@ -109,6 +111,7 @@ Os endereços da API e das telas, lidos dos decoradores (`@roteador.get(...)`) c
 | `/prova` | GET | `busca` | [[nuvem.web]] | As últimas visitas, ou as de uma placa. |
 | `/prova/visitas/{visita_id}` | GET | `pagina` | [[nuvem.web]] | A página da prova de uma visita, para imprimir ou salvar em PDF. |
 | `/prova/visitas/{visita_id}.json` | GET | `arquivo` | [[nuvem.web]] | O arquivo da prova: os elos, a regra do resumo e o resultado da conferência. |
+| `/prova/visitas/{visita_id}/disputa` | POST | `disputa` | [[nuvem.web]] | Marca ou desmarca a visita em disputa e volta à página da prova. |
 | `/recebimento` | GET | `recebimento` | [[nuvem.web]] | A conferência de uma nota na doca, com dados de exemplo. |
 | `/sair` | POST | `sair` | [[nuvem.web]] | Fecha a sessão no servidor e apaga o cookie. |
 | `/trocar-porteiro` | GET | `tela_de_trocar_porteiro` | [[nuvem.web]] | Os porteiros que podem assumir o tablet, e o campo do PIN. |

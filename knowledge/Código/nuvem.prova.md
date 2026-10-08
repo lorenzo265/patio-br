@@ -80,7 +80,8 @@ A prova da visita ([[5.5 Garantias|SDD 5.5]], [[D-69]]).
 - **O resumo das fotos:** logo que a passagem chega (as fotos chegam antes dela), a tarefa
   "resumir as fotos" lê cada foto do armazenamento e guarda o SHA-256 (``FotoRecebida``).
 - **Selar:** cada registro da visita (a passagem, cada foto, cada evento, cada conferência da
-  placa e cada situação das mensagens ao motorista) vira um elo da cadeia (``prova.cadeia``),
+  placa, cada situação das mensagens ao motorista, cada marca de disputa e cada foto apagada
+  pela guarda, [[D-70]]) vira um elo da cadeia (``prova.cadeia``),
   com o retrato do registro. O worker sela a cada minuto o que chegou nos últimos 7 dias; a
   página da prova sela a visita que abre. Os novos de uma vez entram na ordem em que chegaram.
 - **Conferir:** refaz a cadeia, compara cada elo com o registro de origem, relê as fotos e

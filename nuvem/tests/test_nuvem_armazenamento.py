@@ -154,3 +154,15 @@ def test_ref_com_pastas_e_ponto_vale() -> None:
 def test_nao_le_ref_invalido(armazenamento: ArmazenamentoLocal) -> None:
     with pytest.raises(RefInvalidoError):
         armazenamento.ler(1, "../../etc/passwd")
+
+
+def test_apagar_uma_foto(armazenamento: ArmazenamentoLocal) -> None:
+    # O prazo de guarda (D-70): a foto vencida sai; a de outra caixa, não.
+    armazenamento.guardar(1, "p/1.jpg", JPEG)
+    armazenamento.guardar(2, "p/1.jpg", JPEG)
+
+    assert armazenamento.apagar(1, "p/1.jpg") is True
+    assert armazenamento.apagar(1, "p/1.jpg") is False
+
+    assert armazenamento.ler(1, "p/1.jpg") is None
+    assert armazenamento.ler(2, "p/1.jpg") == JPEG
