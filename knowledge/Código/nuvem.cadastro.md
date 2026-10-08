@@ -35,6 +35,32 @@ As dependências do FastAPI daqui respondem 401 sem login e 403 com o papel erra
 - **`exigir_papel`**: Cria a dependência que só deixa passar os papéis dados (os outros recebem 403).
 - **`obter_acesso_admin`**: Dependência do FastAPI: só a administração passa (o usuário do cliente recebe 403).
 
+### `nuvem.cadastro.duas_etapas`
+
+`nuvem/src/nuvem/cadastro/duas_etapas.py`
+
+O código do app autenticador da verificação em duas etapas ([[8.2 Segurança|SDD 8.2]], [[D-60]]).
+
+O app do celular e a nuvem guardam o mesmo segredo. A cada 30 segundos, os dois calculam o
+mesmo código de 6 números: o HMAC-SHA1 do segredo com o número do intervalo, cortado como a
+RFC 4226 manda. É o TOTP da RFC 6238, o que todo app autenticador usa. A conta é curta e fica
+aqui, conferida com os exemplos da própria RFC, sem biblioteca a mais.
+
+Aqui fica só a conta, sem banco; o login com a verificação está em ``nuvem.cadastro.login``.
+
+- **`TOLERANCIA`** = `1`: Quantos intervalos antes e depois de agora valem: o relógio do celular erra um pouco.
+- **`EMISSOR`** = `'patio-br'`: O nome que o app mostra ao lado da conta; muda com o nome do produto ([[ABERTO-01]]).
+- **`VALIDADE_DA_SESSAO_PELA_METADE`** = `timedelta(minutes=10)`: Quanto tempo a sessão aberta pela senha espera o código do app (ou a ligação).
+- **`LETRAS_DA_RECUPERACAO`** = `'abcdefghjkmnpqrstuvwxyz23456789'`: Sem 0, o, 1, l e i, que se confundem ao copiar à mão.
+- **`novo_segredo`**: Um segredo novo de 160 bits, em base32 sem ``=``, como os apps recebem.
+- **`passo_de`**: O número do intervalo de 30 segundos em que o momento cai, contado desde 1970.
+- **`codigo_do_passo`**: O código de 6 números do intervalo (RFC 4226, seção 5.3).
+- **`conferir`**: Confere o código digitado.
+- **`endereco_do_app`**: O endereço ``otpauth://`` que o QR leva ao app, com o emissor e a conta (o e-mail).
+- **`qr_em_svg`**: O QR do texto, em SVG, para pôr direto na tela (sem arquivo e sem outro servidor).
+- **`novos_codigos_de_recuperacao`**: Os códigos de recuperação, no formato ``abcd-efgh`` (cerca de 40 bits cada).
+- **`normalizar_recuperacao`**: O código de recuperação como foi gerado, ou ``None`` se não tem o formato.
+
 ### `nuvem.cadastro.login`
 
 `nuvem/src/nuvem/cadastro/login.py`
@@ -43,6 +69,10 @@ Login ([[8.2 Segurança|SDD 8.2]]): senha, sessão no banco ([[D-20]]), limite d
 
 Quem entra é uma **conta**: um usuário do cliente ou alguém da administração ([[D-19]]). As duas
 entram pela mesma tela, com e-mail e senha; o e-mail é único entre as duas tabelas.
+
+Com a verificação em duas etapas ([[D-60]]), a senha certa abre uma **sessão pela metade**, que só
+serve para a tela do código do app (ou, na primeira vez, para ligar a verificação). O código
+certo fecha a sessão pela metade e abre a de sempre.
 
 As funções gravam com ``flush``; o ``commit`` é de quem chama. Atenção: uma recusa também grava
 o erro (para o limite de tentativas), então quem chama faz ``commit`` mesmo quando recebe
@@ -56,11 +86,20 @@ As tentativas de um mesmo alvo passam uma de cada vez: a trava no banco vale at�
 - **`MAXIMO_DE_ERROS_POR_ENDERECO`** = `20`: E no máximo 20 por endereço IP ([[D-55]]): uma rede pode ter várias pessoas.
 - **`LoginRecusadoError`** (classe): E-mail, senha ou PIN não conferem (de propósito, sem dizer qual).
 - **`MuitasTentativasError`** (classe): Erros demais para o mesmo alvo nos últimos 15 minutos: espere e tente de novo.
+- **`SessaoPelaMetade`** (classe): A sessão aberta pela senha que ainda espera a verificação em duas etapas ([[D-60]]).
+- **`Ligacao`** (classe): O que a tela de ligar a verificação mostra: o segredo do app, para a conta do e-mail.
+- **`Ligada`** (classe): A verificação ligada: a sessão de sempre e os códigos de recuperação, mostrados uma vez.
 - **`normalizar_email`**: O e-mail como é guardado e comparado: sem espaços nas pontas, em minúsculas.
 - **`conta_por_email`**: Devolve o usuário ou o administrador com este e-mail, se houver.
 - **`entrar`**: Confere e-mail e senha e abre uma sessão.
+- **`precisa_das_duas_etapas`**: Se a conta é das que a verificação em duas etapas protege: o gestor e a administração.
 - **`sair`**: Fecha a sessão do código (se ela existir).
 - **`conta_da_sessao`**: Devolve quem está na sessão do código, ou ``None`` se ela não vale.
+- **`sessao_pela_metade`**: A sessão pela metade do código, ou ``None`` se não há uma que valha ([[D-60]]).
+- **`preparar_ligacao`**: O segredo do app para ligar a verificação: novo na primeira vez, o mesmo depois.
+- **`ligar`**: Liga a verificação com o primeiro código do app e abre a sessão de sempre.
+- **`confirmar_codigo`**: Confere o código do app (ou um código de recuperação) e abre a sessão de sempre.
+- **`zerar_duas_etapas`**: Desliga a verificação de quem perdeu o celular, e fecha as sessões dele ([[D-60]]).
 - **`porteiros_da_troca`**: Os porteiros que podem assumir o tablet deste usuário, por nome.
 - **`trocar_porteiro`**: Passa a sessão aberta no tablet para o porteiro do turno, que confirma com o PIN.
 - **`abrir_sessao`**: Abre uma sessão para a conta, sem conferir nada: quem chama já sabe quem é.
@@ -78,6 +117,7 @@ empresa B num site da empresa A, mesmo que o código erre ([[5.5 Garantias|SDD 5
 A administração (nós) fica fora das empresas, numa tabela própria (SDD [[D-19]]).
 
 - **`Papel`** = `Literal['porteiro', 'patio', 'gestor']`: Papéis dos usuários do cliente. A administração (nós) não é usuário de cliente ([[D-19]]).
+- **`Falta`** = `Literal['codigo', 'ligar']`: O que falta à sessão pela metade ([[D-60]]): o código do app, ou ligar a verificação.
 - **`FORMATO_CNPJ`** = `'^[0-9A-Z]{12}[0-9]{2}$'`: 14 caracteres: 12 letras ou números (CNPJ alfanumérico, desde julho de 2026) e 2 dígitos.
 - **`Empresa`** (classe): Um cliente.
 - **`Site`** (classe): Um local do cliente com portaria e pátio (ex.: um centro de distribuição).
@@ -85,10 +125,12 @@ A administração (nós) fica fora das empresas, numa tabela própria (SDD [[D-1
 - **`Faixa`** (classe): Uma faixa da portaria, de entrada ou de saída.
 - **`Camera`** (classe): Uma câmera IP da faixa. A senha fica cifrada (ver ``nuvem.cifra``).
 - **`Doca`** (classe): Uma doca de carga e descarga do site.
+- **`ComDuasEtapas`** (classe): A verificação em duas etapas de uma conta ([[8.2 Segurança|SDD 8.2]], [[D-60]]).
 - **`Usuario`** (classe): Uma pessoa do cliente que usa o painel.
 - **`UsuarioSite`** (classe): Os sites que um usuário vê; sempre da mesma empresa do usuário.
 - **`Administrador`** (classe): Uma pessoa da administração da plataforma (nós), fora de qualquer empresa ([[D-19]]).
 - **`SessaoLogin`** (classe): Uma sessão aberta no painel ([[D-20]]): de um usuário do cliente ou da administração.
+- **`CodigoRecuperacao`** (classe): Um código de recuperação da verificação em duas etapas ([[D-60]]): vale uma vez.
 - **`TentativaLogin`** (classe): Um erro de senha ou de PIN, para o limite de tentativas ([[8.2 Segurança|SDD 8.2]]).
 
 ### `nuvem.cadastro.rotas`
@@ -96,7 +138,7 @@ A administração (nós) fica fora das empresas, numa tabela própria (SDD [[D-1
 `nuvem/src/nuvem/cadastro/rotas.py`
 
 Rotas do cadastro: o cliente consulta os sites e as câmeras que vê; a administração, as
-empresas.
+empresas, e zera a verificação em duas etapas de quem perdeu o celular ([[D-60]]).
 
 Sem login, 401; com o papel errado, 403; o que é de outra empresa, 404. Câmera sai sem login
 nem senha.
@@ -110,6 +152,7 @@ nem senha.
 - **`listar_cameras`**: As câmeras de um site que o gestor vê (404 para qualquer outro site).
 - **`listar_empresas`**: Todas as empresas (só a administração).
 - **`listar_sites_para_administracao`**: Todos os sites, de todas as empresas (só a administração).
+- **`zerar_duas_etapas`**: Zera a verificação em duas etapas de um usuário e fecha as sessões dele ([[D-60]]).
 
 ### `nuvem.cadastro.servico`
 
@@ -161,7 +204,9 @@ As funções gravam com ``flush`` (o registro ganha id); o ``commit`` é de quem
 ## Testes
 
 - `nuvem/tests/test_nuvem_cadastro_camera.py`: Câmeras: a senha fica cifrada no banco; o endereço não leva usuário nem senha.
+- `nuvem/tests/test_nuvem_cadastro_duas_etapas.py`: O código do app autenticador ([[8.2 Segurança|SDD 8.2]], [[D-60]]): o TOTP da RFC 6238, sem banco.
 - `nuvem/tests/test_nuvem_cadastro_login.py`: Login ([[8.2 Segurança|SDD 8.2]], [[D-20]]): senha, sessão no banco, limite de tentativas e troca de porteiro.
+- `nuvem/tests/test_nuvem_cadastro_login_duas_etapas.py`: O login com a verificação em duas etapas ([[8.2 Segurança|SDD 8.2]], [[D-60]]): a sessão pela metade, ligar a verificação, o código do app, os códigos de recuperação e zerar.
 - `nuvem/tests/test_nuvem_cadastro_rotas.py`: Rotas do cadastro com login de verdade: só dentro da empresa, só com o papel certo.
 - `nuvem/tests/test_nuvem_cadastro_separacao.py`: Separação por empresa ([[5.5 Garantias|SDD 5.5]]): um cliente nunca vê dado de outro.
 - `nuvem/tests/test_nuvem_cadastro_usuarios.py`: Usuários e administração: senha e PIN só como resumo, regras de tamanho e e-mail único.

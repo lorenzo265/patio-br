@@ -115,6 +115,25 @@ Só existem nos ambientes ``local`` e ``demonstracao`` (fora deles, 404).
 - **`gerar_link`**: Gera um link para uma empresa visitada e mostra o endereço, uma vez só.
 - **`revogar_link`**: Revoga o link: ele deixa de valer, e as pessoas da empresa dele saem na hora.
 
+### `nuvem.web.duas_etapas`
+
+`nuvem/src/nuvem/web/duas_etapas.py`
+
+As telas da verificação em duas etapas ([[8.2 Segurança|SDD 8.2]], [[D-60]]).
+
+Depois da senha certa, a sessão pela metade leva a uma destas telas:
+- **o código** (``/entrar/codigo``): o código do app, ou um código de recuperação;
+- **ligar** (``/entrar/ligar``): na primeira vez, o QR para o app e o segredo em texto; o primeiro
+  código confirma e mostra os códigos de recuperação, uma vez só.
+
+Sem uma sessão pela metade que sirva, as telas levam ao login. As páginas com o segredo ou os
+códigos de recuperação não vão para o cache.
+
+- **`tela_do_codigo`**: Pede o código do app (ou um código de recuperação).
+- **`confirmar_codigo`**: Confere o código; se bater, abre a sessão de sempre e leva ao início.
+- **`tela_de_ligar`**: O QR para o app e o segredo em texto, para quem liga a verificação pela primeira vez.
+- **`ligar`**: Liga a verificação com o primeiro código do app e mostra os códigos de recuperação.
+
 ### `nuvem.web.em_breve`
 
 `nuvem/src/nuvem/web/em_breve.py`
@@ -240,6 +259,7 @@ O login abre uma sessão no banco e põe o código dela num cookie ``HttpOnly`` 
 outro site faça o navegador postar formulários aqui com o cookie. O login, que não usa o
 cookie, recusa o envio que o navegador marca como vindo de outro site (``Sec-Fetch-Site``).
 
+- **`TELA_DO_QUE_FALTA`**: Para onde vai a sessão pela metade ([[D-60]]).
 - **`tela`**: Desenha uma tela do painel.
 - **`endereco_de`**: O endereço IP de quem pede: do cabeçalho de confiança, se configurado ([[D-55]]).
 - **`tela_de_entrar`**: O formulário de e-mail e senha.
@@ -249,6 +269,7 @@ cookie, recusa o envio que o navegador marca como vindo de outro site (``Sec-Fet
 - **`tela_de_trocar_porteiro`**: Os porteiros que podem assumir o tablet, e o campo do PIN.
 - **`trocar_porteiro`**: Passa a sessão para o porteiro escolhido, se o PIN dele conferir.
 - **`ir_com_a_sessao`**: Leva a ``destino`` com o cookie da sessão aberta (o código só vai no cookie).
+- **`por_o_cookie`**: Põe na resposta o cookie da sessão aberta (``HttpOnly``, ``SameSite=Lax``).
 
 ## Testes
 
@@ -258,6 +279,7 @@ cookie, recusa o envio que o navegador marca como vindo de outro site (``Sec-Fet
 - `nuvem/tests/test_nuvem_web_demonstracao.py`: A tela do dia de demonstração ([[T45]], [[D-49]]): começar o dia e acompanhar.
 - `nuvem/tests/test_nuvem_web_demonstracao_link.py`: As telas do link de demonstração ([[T48]], [[D-52]] e [[D-54]]): a administração, a página do link e a faixa que troca de papel.
 - `nuvem/tests/test_nuvem_web_demonstracao_na_internet.py`: A demonstração na Vercel, por dentro ([[T47]] parte 2, [[D-51]] e [[D-56]]): o tique, o cron diário, a API da caixa fechada e as fotos no S3.
+- `nuvem/tests/test_nuvem_web_duas_etapas.py`: As telas da verificação em duas etapas ([[8.2 Segurança|SDD 8.2]], [[D-60]]) e o zerar da administração.
 - `nuvem/tests/test_nuvem_web_em_breve.py`: As telas "em breve" do recebimento e do estoque em 3D ([[T46]], [[D-43]] e [[D-45]]), e os arquivos de terceiros que o painel serve.
 - `nuvem/tests/test_nuvem_web_extrato.py`: O painel do gestor e o extrato na tela ([[T44]], [[6.2 Telas do MVP|SDD 6.2]] e [[D-48]]).
 - `nuvem/tests/test_nuvem_web_login.py`: Telas de entrar, sair e trocar de porteiro: cookie seguro e respostas certas.

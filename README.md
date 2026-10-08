@@ -105,6 +105,16 @@ conta no banco de `PATIO_URL_BANCO`):
 uv run python -m nuvem.administracao --nome "Fulano" --email fulano@exemplo.com
 ```
 
+Na homologação e na produção, o gestor e a administração entram também com o código do app
+autenticador do celular (D-60): na primeira entrada, a tela mostra o QR e, depois, os códigos de
+recuperação. Quem perdeu o celular usa um código de recuperação. Sem nenhum, a administração
+zera a verificação do gestor pela rota `POST /api/admin/usuarios/<id>/duas-etapas/zerar`. A da
+própria administração se zera pelo comando, no servidor:
+
+```bash
+uv run python -m nuvem.administracao --zerar-duas-etapas --email fulano@exemplo.com
+```
+
 O link de demonstração por empresa (D-52 e D-54): entre como a administração
 (`admin@patio-br.example`) e abra "Links de demonstração"; o endereço gerado aparece uma vez só.
 Quem abre o link e aperta "Entrar" ganha uma empresa só dela, com um mês de histórico (na

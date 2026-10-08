@@ -1,7 +1,7 @@
 # SDD — patio-br (nome provisório)
 
 **Documento de desenho do software (SDD) do MVP do piloto**
-Versão 0.42 · 2026-10-06 · Situação: aprovado como base; itens em aberto na seção 12
+Versão 0.43 · 2026-10-06 · Situação: aprovado como base; itens em aberto na seção 12
 
 ---
 
@@ -456,6 +456,7 @@ acadêmico (`docs/validacao/fontes-de-placas.md`). Por isso:
 | `Doca` | site, nome, situação |
 | `Usuario` | empresa, nome, e-mail, papel (porteiro, pátio ou gestor), sites com acesso, senha, PIN (porteiro), ativo, verificação em duas etapas (gestor) |
 | `Administrador` | nome, e-mail, senha, ativo, verificação em duas etapas; é a administração (nós), fora de qualquer empresa (D-19) |
+| `CodigoRecuperacao` | o usuário ou a administração, o resumo argon2 do código, usado em: 10 por pessoa, mostrados uma vez ao ligar a verificação em duas etapas; cada um vale uma vez (D-60) |
 | `Agendamento` | site, janela início/fim, tipo (carga/descarga), placas esperadas (cavalo, reboques), motorista (nome, celular), autorização de WhatsApp, toneladas, chave NF-e (opcional), `origem`, `codigo_externo`, situação (ativo ou cancelado; o andamento da chegada é da visita, D-32) |
 | `MudancaAgendamento` | agendamento, quando, tipo (criado, alterado, cancelado), por onde (a origem do conector ou o painel), quem (usuário, se houver), o que era e o que ficou — **só se acrescenta** |
 | `Veiculo` | placa, tipo (cavalo, reboque, caminhão simples); campo de posição no pátio reservado para o modo B |
@@ -607,7 +608,7 @@ Como cada conta é feita (versão 1 da regra, D-48):
 | Camada | Escolha |
 |---|---|
 | Linguagem | **Python 3.12** em tudo (borda, nuvem, treino) |
-| Backend | FastAPI, SQLAlchemy 2 com o driver pg8000, Alembic (migrações), Pydantic 2; openpyxl (MIT) com defusedxml (PSF) para a planilha; boto3 (Apache-2.0) para as fotos num armazenamento S3 (D-56) |
+| Backend | FastAPI, SQLAlchemy 2 com o driver pg8000, Alembic (migrações), Pydantic 2; openpyxl (MIT) com defusedxml (PSF) para a planilha; boto3 (Apache-2.0) para as fotos num armazenamento S3 (D-56); segno (BSD-3) para o QR da verificação em duas etapas (D-60) |
 | Banco | PostgreSQL 16; fila de tarefas no próprio PostgreSQL, numa tabela nossa (D-38) |
 | Painel | páginas no servidor (Jinja) + **HTMX**; atualização ao vivo por SSE; instalável como **PWA** |
 | Gráficos | biblioteca JavaScript pequena, só onde houver gráfico |
@@ -835,6 +836,26 @@ Serve para desenvolver sem câmera, para os testes de ponta a ponta e para simul
 - Login individual por e-mail e senha; verificação em duas etapas para gestor e administração
   (mês 4), pelo app autenticador do celular, com 10 códigos de recuperação (D-60); troca de
   porteiro por PIN no tablet.
+- **Verificação em duas etapas** (D-60), como funciona:
+  - é obrigatória para o gestor e a administração na homologação e na produção; quem já a
+    ligou responde ao código em qualquer ambiente;
+  - a senha certa abre uma **sessão pela metade**, que vale 10 minutos e só serve para a tela do
+    código (ou, na primeira vez, para ligar a verificação); as outras telas a tratam como quem
+    não entrou;
+  - o código certo fecha a sessão pela metade e abre a de sempre, com um código novo no cookie;
+  - vale o código do intervalo de 30 segundos de agora, o do anterior e o do seguinte (o relógio
+    do celular pode estar um pouco errado); um código já usado não vale de novo;
+  - o limite de erros é o mesmo da senha: 5 a cada 15 minutos por pessoa;
+  - **ligar:** a tela mostra o QR para o app e o segredo em texto, e um código do app confirma;
+    então aparecem os 10 códigos de recuperação, uma vez só;
+  - o segredo do app fica cifrado com a chave da cifra (a nuvem precisa dele para conferir); os
+    códigos de recuperação ficam só como resumo argon2;
+  - **perdeu o celular:** um código de recuperação entra no lugar do código do app; a
+    administração zera a verificação de um usuário, com a hora e quem zerou, e as sessões dele
+    se fecham; a da administração se zera pelo comando
+    `python -m nuvem.administracao --zerar-duas-etapas --email ...`, no servidor;
+  - o cálculo do código é o da RFC 6238 (TOTP com HMAC-SHA1, 6 números, 30 segundos), feito por
+    nós e conferido com os exemplos da própria RFC.
 - Senha e PIN são guardados só como **resumo argon2**, nunca o texto. A senha tem de 10 a 128
   caracteres; o PIN, 6 números.
 - **Sessão no servidor** (D-20): ao entrar, o navegador recebe um cookie com um código aleatório
@@ -1141,3 +1162,4 @@ do cuidado de cargas (D-43).
 | 0.40 | 2026-10-05 | a demonstração na Vercel, por dentro (T47, parte 2): fotos pela API S3 com o boto3, o tique, o cron diário, a API da caixa fechada no ambiente `demonstracao` e o banco pelo pooler do Supabase com SSL (D-56) (seções 6.1 e 11) |
 | 0.41 | 2026-10-06 | plano do mês 4 criado, a versão do piloto (`docs/planos/2027-01-plano-mes-4.md`): o cronograma do mês 4 com a verificação em duas etapas, os prazos de guarda, as placas sintéticas e a API com os webhooks; novo `[ABERTO-22]`, a autorização do motorista para o WhatsApp antes da primeira mensagem (seções 2.2, 7.5, 10 e 12); os fatos do WhatsApp e do SMS conferidos em 06/10 |
 | 0.42 | 2026-10-06 | plano do mês 4 aprovado pelo Lorenzo com as recomendações: a produção e a homologação na AWS (D-57), o motorista começa a conversa no WhatsApp, com o primeiro aviso por SMS (D-58, fecha o `[ABERTO-22]`), o SMS pela Zenvia (D-59), a verificação em duas etapas pelo app autenticador (D-60), os erros avisados pela AWS (D-61) e para quem vão os alertas (D-62) (seções 2.2, 7.1, 7.5, 8.1, 8.2, 11 e 12) |
+| 0.43 | 2026-10-06 | verificação em duas etapas (T51): a sessão pela metade, a tolerância de um intervalo, o código que não vale duas vezes, ligar com o QR, os códigos de recuperação e como zerar; a entidade `CodigoRecuperacao`; o segno na stack (seções 5.1, 6.1 e 8.2) |

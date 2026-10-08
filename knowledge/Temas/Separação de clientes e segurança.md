@@ -1,7 +1,7 @@
 ---
 tipo: "tema"
 escrita: "à mão"
-atualizada: "2026-10-05"
+atualizada: "2026-10-06"
 tags: [tema]
 ---
 
@@ -23,8 +23,8 @@ Uma empresa nunca vê o que é de outra, e quem não tem o papel certo não entr
 - **A administração (nós)** é outra tabela e outro tipo de acesso, e não usa as rotas do cliente
   ([[D-19]]). **A caixa de borda** se identifica pela chave e só lê e grava no site dela
   ([[nuvem.frota]]).
-- **Senha, PIN e código de sessão só como resumo** (argon2 para senha e PIN), nunca o texto, nem
-  em registro de erro ([[8.2 Segurança]]). A sessão fica no banco; o cookie leva só um código
+- **Senha, PIN, código de sessão e código de recuperação só como resumo** (argon2 para senha,
+  PIN e código de recuperação), nunca o texto, nem em registro de erro ([[8.2 Segurança]]). A sessão fica no banco; o cookie leva só um código
   aleatório ([[D-20]]). Limite de 5 erros por e-mail a cada 15 minutos.
 - **Links sem login** guardam só o resumo do código: o da transportadora ([[D-34]]) e o de
   demonstração por empresa, válido por 7 dias ([[D-52]]). A troca de papel sem senha do link de
@@ -40,6 +40,13 @@ Uma empresa nunca vê o que é de outra, e quem não tem o papel certo não entr
   - **limite de login por endereço:** 20 erros a cada 15 minutos por endereço IP, além dos 5 por
     e-mail; atrás de proxy, o endereço vem só do cabeçalho configurado (`PATIO_CABECALHO_DO_IP`);
   - **o comando da administração:** `uv run python -m nuvem.administracao --nome ... --email ...`.
+- **Verificação em duas etapas** ([[T51]], [[D-60]], [[8.2 Segurança]]): na homologação e na
+  produção, o gestor e a administração entram com a senha e o código do app autenticador.
+  - A senha certa abre uma sessão pela metade (10 minutos), que só serve para a tela do código.
+  - Na primeira vez, a tela mostra o QR e, depois do primeiro código, 10 códigos de recuperação,
+    uma vez só (guardados só como resumo argon2); o segredo do app fica cifrado.
+  - Perdeu o celular: um código de recuperação; a administração zera a do gestor pela rota
+    dela, e a própria pelo comando, com `--zerar-duas-etapas`.
 - **Nenhum segredo no repositório:** o `.env` é ignorado; o `.env.exemplo` só tem valores de
   exemplo do ambiente local.
 
@@ -48,7 +55,7 @@ Uma empresa nunca vê o que é de outra, e quem não tem o papel certo não entr
 - Regras: [[CLAUDE - regras do repositório]] (regras 4, 5 e 6), [[5.5 Garantias]],
   [[8.2 Segurança]].
 - Decisões: [[D-19]], [[D-20]], [[D-21]], [[D-22]], [[D-28]], [[D-34]], [[D-52]], [[D-54]],
-  [[D-55]].
+  [[D-55]], [[D-60]].
 - Código: [[nuvem.cadastro]] (acesso, papéis, sessões), [[nuvem.frota]] (chave da caixa),
   [[Tabelas do banco]].
-- Tarefas: [[T08]], [[T09]], [[T10]], [[T28]], [[T47]], [[T48]].
+- Tarefas: [[T08]], [[T09]], [[T10]], [[T28]], [[T47]], [[T48]], [[T51]].

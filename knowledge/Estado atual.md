@@ -20,7 +20,8 @@ tags: [estado]
   "em breve" do recebimento e do estoque, o dia de demonstração e o link de demonstração por
   empresa, com a faixa que troca de papel ([[T48]], [[D-54]]).
 - **A segurança antes da internet** está pronta ([[T47]], parte 1): código anti-CSRF
-  ([[D-55]]), limite de login por endereço e o comando da administração.
+  ([[D-55]]), limite de login por endereço e o comando da administração. A verificação em duas
+  etapas do gestor e da administração também ([[T51]], [[D-60]]).
 - **O código da Vercel e do Supabase** está pronto ([[T47]], parte 2, [[D-56]]): o tique, as
   fotos pela API S3, o cron diário e a entrada da Vercel; o deploy segue o
   [[Guia da demonstração na internet]].
@@ -117,7 +118,7 @@ recomendações ([[D-57]] a [[D-62]]). As tarefas que não precisam de conta com
 | Tarefa | Situação |
 |---|---|
 | [[T49]] produção e homologação na AWS e [[T50]] cópias e alarmes | esperam a conta da AWS ([[N21]]) |
-| [[T51]] verificação em duas etapas | pode começar ([[D-60]]) |
+| [[T51]] verificação em duas etapas | feita ([#53](https://github.com/lorenzo265/patio-br/pull/53)) |
 | [[T52]] WhatsApp e [[T53]] SMS | o código anda com a Meta e a Zenvia imitadas; a conferência de verdade espera as contas ([[N19]], [[N20]]) |
 | [[T54]] saúde e frota, [[T55]] contêineres e [[T56]] atualização da caixa | podem começar; o N150 de verdade é a [[N23]] |
 | [[T57]] alertas | pode começar ([[D-62]]) |

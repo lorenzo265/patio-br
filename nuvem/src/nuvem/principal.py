@@ -38,6 +38,7 @@ from nuvem.web import agendamentos as tela_de_agendamentos
 from nuvem.web import agendar as tela_do_link
 from nuvem.web import csrf
 from nuvem.web import demonstracao as tela_da_demonstracao
+from nuvem.web import duas_etapas as telas_das_duas_etapas
 from nuvem.web import em_breve as telas_em_breve
 from nuvem.web import extrato as tela_do_extrato
 from nuvem.web import mensagens as tela_das_mensagens
@@ -86,6 +87,7 @@ def criar_app(configuracao: Configuracao | None = None, senhas: Senhas | None = 
     )
     app.state.cookie_seguro = configuracao.cookie_seguro
     app.state.tem_demonstracao = configuracao.tem_demonstracao
+    app.state.exige_duas_etapas = configuracao.exige_duas_etapas
     app.state.url_publica = str(configuracao.url_publica) if configuracao.url_publica else None
     app.state.segredo_csrf = csrf.segredo(configuracao.chave_cifra.get_secret_value())
     app.state.cabecalho_do_ip = configuracao.cabecalho_do_ip
@@ -106,6 +108,7 @@ def criar_app(configuracao: Configuracao | None = None, senhas: Senhas | None = 
     app.include_router(cron.roteador)
     app.include_router(agendamento.roteador)
     app.include_router(web.roteador)
+    app.include_router(telas_das_duas_etapas.roteador)
     app.include_router(tela_da_portaria.roteador)
     app.include_router(tela_de_resolucao.roteador)
     app.include_router(tela_do_patio.roteador)

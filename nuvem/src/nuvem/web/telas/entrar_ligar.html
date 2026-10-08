@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block titulo %}Ligar a verificação em duas etapas · patio-br{% endblock %}
+{% block conteudo %}
+<h1>Ligar a verificação em duas etapas</h1>
+<p>Para entrar, além da senha, você vai usar um código do celular, que muda a cada 30 segundos.</p>
+<ol>
+  <li>Instale um app autenticador no celular (por exemplo, o Google Authenticator ou o Microsoft
+    Authenticator).</li>
+  <li>No app, escolha adicionar uma conta e leia este QR:
+    <div>{{ qr }}</div>
+    Se não der para ler, digite este código no app: <code id="segredo">{{ segredo }}</code></li>
+  <li>Digite abaixo o código de 6 números que o app mostra.</li>
+</ol>
+{% if erro %}<p class="erro" role="alert">{{ erro }}</p>{% endif %}
+<form method="post" action="/entrar/ligar">
+  <input type="hidden" name="_csrf" value="{{ csrf }}">
+  <label>Código do app
+    <input type="text" name="codigo" inputmode="numeric" autocomplete="one-time-code" required autofocus>
+  </label>
+  <button type="submit">Ligar e entrar</button>
+</form>
+{% endblock %}
