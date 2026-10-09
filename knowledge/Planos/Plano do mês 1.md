@@ -84,7 +84,7 @@ Ordem sugerida por semana. Estimativas para uma pessoa com IA; a semana 4 tem fo
 ### Semana 4 — demonstração e bancada
 
 - [[T19]] Vídeos de amostra e demonstração do marco
-- [[T20]] Kit de bancada e primeira medição de desempenho
+- ~~[[T20]] Kit de bancada e primeira medição de desempenho~~ → [[T70]] do mês 5
 
 ## 4. Trilha não técnica (comercial e burocracia)
 

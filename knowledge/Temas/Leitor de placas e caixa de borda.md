@@ -1,7 +1,7 @@
 ---
 tipo: "tema"
 escrita: "à mão"
-atualizada: "2026-10-06"
+atualizada: "2026-10-09"
 tags: [tema]
 ---
 
@@ -38,8 +38,10 @@ nuvem casa cada passagem com o agendamento.
 - **Metas:** leitura por placa visível de 97% e composição de 95%; abaixo da confiança, vira
   exceção, nunca entra errada. A **régua fixa** nunca entra no treino ([[4.7 Metas e a régua]]).
 - **O treino** começa com placas sintéticas e bases abertas ([[D-44]]), num ambiente à parte
-  ([[D-40]]), e espera as placas reais ([[ABERTO-18]]). O detector (D-FINE-N ou YOLOX-Tiny) se
-  decide no teste técnico ([[ABERTO-03]]).
+  ([[D-40]]), e espera as placas reais ([[ABERTO-18]]). O [[Plano do mês 5]] leva o treino e o
+  teste técnico ao site do piloto, em modo sombra, com o comercial local para comparar (G1 e
+  G2). O detector (D-FINE-N ou YOLOX-Tiny) se decide no treino e na medição no N150
+  ([[ABERTO-03]], [[T66]] e [[T70]]).
 - **As placas sintéticas** ([[D-72]], [[T39]]): Mercosul e antigas, com as cores e as proporções
   de cada categoria, numa fonte de traços nossa, com as variações do recorte da câmera; a mesma
   semente gera as mesmas placas; `uv run tarefas sinteticas` grava em `dados/sinteticas`.
@@ -56,7 +58,7 @@ nuvem casa cada passagem com o agendamento.
   [[D-23]], [[D-24]], [[D-25]], [[D-26]], [[D-29]], [[D-30]], [[D-39]], [[D-40]], [[D-44]],
   [[D-65]], [[D-66]], [[D-67]].
 - Código: [[borda]], [[borda.leitor]], [[contratos]], [[ml]], [[simulador]].
-- Tarefas: [[T13]] a [[T20]] (mês 1); [[T21]] a [[T26]] (mês 2, esperam as placas); [[T54]] a
-  [[T56]] (mês 4).
+- Tarefas: [[T13]] a [[T20]] (mês 1); [[T21]] a [[T26]] (mês 2, passaram para o mês 5);
+  [[T54]] a [[T56]] (mês 4); [[T65]] a [[T70]] e [[T74]] a [[T76]] (mês 5, o piloto no site).
 - Documentos: [[Guia da demonstração do mês 1]], [[Validação - fatos técnicos da stack]],
   [[Avisos de terceiros da caixa de borda]].

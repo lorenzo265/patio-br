@@ -1,7 +1,7 @@
 ---
 tipo: "tema"
 escrita: "à mão"
-atualizada: "2026-10-05"
+atualizada: "2026-10-09"
 tags: [tema]
 ---
 
@@ -30,8 +30,10 @@ O cliente é o controlador dos dados; nós somos o operador ([[8.3 LGPD]]).
 - **Dado real nunca entra no Git:** vídeos, fotos, placas, nomes e telefones reais ficam em
   `dados/`; pesos em `modelos/`; as duas pastas são ignoradas. Testes e demonstração usam dados
   inventados; os celulares da demonstração usam o DDD 23, que não existe ([[D-49]]).
-- **As placas reais** para a régua e o treino ainda não têm fonte ([[ABERTO-18]]): portões de
-  conhecidos ou fotos na rua, só com o sim do advogado ([[N15]]).
+- **As placas reais** para a régua e o treino ainda não têm fonte ([[ABERTO-18]]). A proposta
+  do [[Plano do mês 5]] (G2) é o próprio site do piloto, com a cláusula do treino e o sim do
+  advogado: a caixa grava só a região de gravação ([[D-39]], [[T65]]). Portões de conhecidos ou
+  fotos na rua ficam como plano B, só com o sim do advogado ([[N15]]).
 
 ## Onde ler
 

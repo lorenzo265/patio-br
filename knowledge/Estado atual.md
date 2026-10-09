@@ -1,13 +1,13 @@
 ---
 tipo: "mapa"
 escrita: "à mão"
-atualizada: "2026-10-06"
+atualizada: "2026-10-09"
 tags: [estado]
 ---
 
 # Estado atual
 
-> [!info] Retrato de 06/10/2026 (SDD 0.42)
+> [!info] Retrato de 09/10/2026 (SDD 0.58)
 > Escrito à mão: o que entrou depois está nos PRs do GitHub e nos planos. Os checklists de "mês
 > pronto" dos planos não foram marcados a cada tarefa; esta nota é a lista do que entrou.
 
@@ -27,15 +27,19 @@ tags: [estado]
   [[Guia da demonstração na internet]].
 - **Falta para a demonstração no ar (mês 3):** o visual próprio ([[T40]], depois da identidade
   visual, [[ABERTO-01]]) e o deploy, que espera as contas da Vercel e do Supabase ([[N17]]).
-- **O [[Plano do mês 4]], a versão do piloto, foi aprovado** em 06/10, com as recomendações
-  ([[D-57]] a [[D-62]]): a produção na AWS, o WhatsApp e o SMS de verdade, os alertas, a caixa
-  em contêineres, a prova encadeada e a verificação em duas etapas.
-- **O leitor próprio espera as placas:** o treino ([[T22]] a [[T26]]) depende das placas reais
-  do [[ABERTO-18]]; o leitor v0, com pesos de terceiros, serve só para avaliação interna
-  ([[D-26]]).
+- **O mês 4, a versão do piloto, está pronto no código** ([[Plano do mês 4]], [[D-57]] a
+  [[D-75]]): a produção na AWS, o WhatsApp e o SMS, os alertas, a caixa em contêineres, a prova
+  encadeada, a guarda, a base de treino e o cadastro do cliente. Subir e conferir de verdade
+  espera as contas ([[N19]] a [[N21]] e [[N23]]).
+- **O [[Plano do mês 5]], o piloto no site em modo sombra, espera a aprovação** do Lorenzo, com
+  as decisões G1 a G7.
+- **O leitor próprio vai para o site do piloto:** o treino e o teste técnico (as antigas
+  [[T20]] a [[T26]], [[T36]] e [[T37]]) passam para o [[Plano do mês 5]], com as placas do
+  próprio site, no modo sombra ([[ABERTO-18]]); o leitor v0, com pesos de terceiros, serve só
+  para avaliação interna ([[D-26]]).
 - **A caixa de borda** lê vídeo gravado e câmera RTSP, monta a passagem e envia com fila e
   reenvio, e manda a saúde a cada minuto, que aparece na frota de borda da administração
-  ([[T54]], [[D-65]]); a medição no mini PC N150 ([[T20]]) espera o hardware.
+  ([[T54]], [[D-65]]); a medição no mini PC N150 ([[T70]], era a [[T20]]) espera o hardware.
 
 ## Mês 1: fundação ([[Plano do mês 1]])
 
@@ -60,7 +64,7 @@ tags: [estado]
 | [[T17]] fila de envio da borda | feita | [#16](https://github.com/lorenzo265/patio-br/pull/16) |
 | [[T18]] agente da borda e simulador | feita | [#20](https://github.com/lorenzo265/patio-br/pull/20) |
 | [[T19]] demonstração do mês 1 | feita | [#21](https://github.com/lorenzo265/patio-br/pull/21) |
-| [[T20]] kit de bancada e medição no N150 | **espera o hardware** ([[N7]]) | |
+| [[T20]] kit de bancada e medição no N150 | **passou para o mês 5** ([[T70]]); espera o hardware ([[N26]]) | |
 
 Além das tarefas: as decisões de 04/10 ([[D-26]] a [[D-28]],
 [#22](https://github.com/lorenzo265/patio-br/pull/22)), a leitura de vídeo e RTSP na caixa
@@ -72,8 +76,8 @@ Além das tarefas: as decisões de 04/10 ([[D-26]] a [[D-28]],
 
 | Tarefa | Situação | PR |
 |---|---|---|
-| [[T21]] gravação no site parceiro | **adiada**: o site parceiro ficou para depois | |
-| [[T22]] a [[T26]] rotulagem, régua e leitor v1 | **esperam as placas** do [[ABERTO-18]] | |
+| [[T21]] gravação no site parceiro | **passou para o mês 5** ([[T65]]), no site do piloto | |
+| [[T22]] a [[T26]] rotulagem, régua e leitor v1 | **passaram para o mês 5** ([[T75]] e [[T66]] a [[T68]]), com as placas do site ([[ABERTO-18]]) | |
 | [[T27]] agendamentos e a interface de conector | feita | [#27](https://github.com/lorenzo265/patio-br/pull/27) |
 | [[T28]] link da transportadora | feita | [#28](https://github.com/lorenzo265/patio-br/pull/28) |
 | [[T29]] importar planilha | feita | [#29](https://github.com/lorenzo265/patio-br/pull/29) |
@@ -83,7 +87,7 @@ Além das tarefas: as decisões de 04/10 ([[D-26]] a [[D-28]],
 | [[T33]] fila de tarefas e worker | feita | [#33](https://github.com/lorenzo265/patio-br/pull/33) |
 | [[T34]] exceções na portaria (só ver) | feita | [#34](https://github.com/lorenzo265/patio-br/pull/34) |
 | [[T35]] simulador com agendamentos | feita | [#35](https://github.com/lorenzo265/patio-br/pull/35) |
-| [[T36]] teste técnico e [[T37]] ajuste do casamento | **passaram para depois** (precisam de placas reais) | |
+| [[T36]] teste técnico e [[T37]] ajuste do casamento | **passaram para o mês 5** ([[T78]] e [[T77]]), no modo sombra | |
 | [[T38]] conferência da placa pelo porteiro | feita | [#37](https://github.com/lorenzo265/patio-br/pull/37) |
 
 Além das tarefas: o plano ([#26](https://github.com/lorenzo265/patio-br/pull/26)), as decisões
@@ -135,6 +139,19 @@ recomendações ([[D-57]] a [[D-62]]). As tarefas que não precisam de conta com
 | [[T62]] o roteiro do piloto em homologação (o marco) | o roteiro e o simulador como caixa estão prontos ([#66](https://github.com/lorenzo265/patio-br/pull/66)); rodar espera a homologação ([[N21]]) e a [[T63]] |
 | [[T63]] o cadastro do cliente pela administração | feita ([#67](https://github.com/lorenzo265/patio-br/pull/67), [[D-75]]): tarefa nova, vinda da preparação da T62; a empresa, os sites, as portarias, as faixas, as câmeras, as docas e as pessoas, com o link de senha de uso único |
 
+## Mês 5: o piloto no site, em modo sombra ([[Plano do mês 5]])
+
+O plano espera a aprovação do Lorenzo, com as decisões G1 a G7:
+- o leitor da sombra: o v1 e o comercial local para comparar;
+- as placas reais do próprio site ([[ABERTO-18]]);
+- o registro manual da portaria como gabarito;
+- o que o sistema faz na sombra: tudo se grava, e nada sai ao motorista;
+- a linha de base e as horas de portaria ([[ABERTO-05]]);
+- a régua para ligar o check-in no mês 6;
+- o hardware e a instalação.
+
+As tarefas vão da [[T64]] à [[T78]]; nenhuma começa antes da aprovação.
+
 ## O que existe no código hoje
 
 - **Nuvem** ([[nuvem]]): cadastro e login ([[nuvem.cadastro]]), caixas de borda
@@ -152,12 +169,13 @@ recomendações ([[D-57]] a [[D-62]]). As tarefas que não precisam de conta com
 
 ## O próximo passo
 
-1. As tarefas do [[Plano do mês 4]] que não precisam de conta: a verificação em duas etapas, a
-   caixa, os alertas, a prova, a guarda e o treino; o WhatsApp e o SMS com os serviços imitados.
-   O Lorenzo leva a autorização do motorista ([[D-58]]) ao advogado ([[N22]]).
-2. A sessão da identidade visual ([[Prompt da identidade visual]]): decide o nome, as cores e as
+1. O Lorenzo aprova o [[Plano do mês 5]] (G1 a G7). Depois, as tarefas que não precisam do
+   site: o modo sombra ([[T64]]), a gravação ([[T65]]), o leitor v1 ([[T66]] a [[T68]], com a
+   conta da GPU, [[N27]]), o comercial local ([[T69]]), o PWA ([[T71]]), o registro manual
+   ([[T72]]) e a linha de base ([[T73]]).
+2. As contas e o contrato: a AWS e o domínio ([[N21]]), o advogado ([[N22]]) e o piloto fechado
+   ([[N24]]). Com eles, o roteiro do piloto na homologação ([[T62]]) e a instalação ([[T74]]).
+3. A sessão da identidade visual ([[Prompt da identidade visual]]): decide o nome, as cores e as
    fontes ([[ABERTO-01]]) e faz a [[T40]].
-3. O Lorenzo abre as contas da Vercel e do Supabase ([[N17]]); então o deploy da demonstração,
-   pelo [[Guia da demonstração na internet]]. As contas do mês 4: [[N19]] a [[N21]] e [[N23]].
-4. As placas reais ([[ABERTO-18]]) e o treino do leitor seguem em paralelo. Veja
-   [[10. Cronograma (out-2026 – mar-2027)]].
+4. O Lorenzo abre as contas da Vercel e do Supabase ([[N17]]); então o deploy da demonstração,
+   pelo [[Guia da demonstração na internet]]. Veja [[10. Cronograma (out-2026 – mar-2027)]].

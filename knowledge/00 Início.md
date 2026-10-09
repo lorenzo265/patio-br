@@ -1,7 +1,7 @@
 ---
 tipo: "mapa"
 escrita: "à mão"
-atualizada: "2026-10-05"
+atualizada: "2026-10-09"
 tags: [inicio]
 ---
 
@@ -30,9 +30,10 @@ planos, os outros documentos e um mapa do código.
 - **O que o piloto precisa provar:** 95% das composições certas, 70% das chegadas sem o
   porteiro, menos horas de portaria e R$ 8 mil por mês por site
   ([[1.5 O que o piloto precisa provar]]).
-- **Agora:** o código da demonstração comercial (mês 3, [[D-45]], [[Plano do mês 3]]) está
-  pronto e espera o visual e as contas; o [[Plano do mês 4]], a versão do piloto, espera a
-  aprovação do Lorenzo. O que já está pronto e o que falta: [[Estado atual]].
+- **Agora:** o código da demonstração comercial (mês 3, [[D-45]], [[Plano do mês 3]]) e o da
+  versão do piloto (mês 4, [[Plano do mês 4]]) estão prontos e esperam o visual e as contas; o
+  [[Plano do mês 5]], o piloto no site em modo sombra, espera a aprovação do Lorenzo. O que já
+  está pronto e o que falta: [[Estado atual]].
 
 ## Por onde começar
 
@@ -42,7 +43,7 @@ planos, os outros documentos e um mapa do código.
 | o que construir e por quê (a fonte da verdade) | [[SDD]] |
 | o que já foi feito e o que falta | [[Estado atual]] |
 | o que depende do Lorenzo | [[Pendências do Lorenzo]] |
-| o plano do mês | [[Plano do mês 4]] (os anteriores: [[Plano do mês 1]], [[Plano do mês 2]] e [[Plano do mês 3]]) |
+| o plano do mês | [[Plano do mês 5]] (os anteriores: [[Plano do mês 1]], [[Plano do mês 2]], [[Plano do mês 3]] e [[Plano do mês 4]]) |
 | todas as decisões, com o motivo | [[11. Registro de decisões]] |
 | o que ainda não foi decidido | [[12. Itens em aberto]] |
 | os termos do projeto | [[13. Glossário]] |

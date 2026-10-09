@@ -14,15 +14,19 @@ tags: [item-em-aberto]
 
 **Item:** Guia de posicionamento das câmeras por tipo de portaria
 
-**Como e quando decidir:** no kit de bancada e no site parceiro (meses 1–2)
+**Como e quando decidir:** na bancada e na instalação do piloto (plano do mês 5, [[T70]] e [[T74]])
 
 ## Onde aparece
 
 - [[11. Registro de decisões]]
 - [[D-39]]
+- [[Histórico de versões do SDD]]
 - [[N8]]
+- [[N29]]
 - [[Plano do mês 1]]
 - [[Plano do mês 2]]
+- [[Plano do mês 5]]
+- [[T70]]
 
 ---
 

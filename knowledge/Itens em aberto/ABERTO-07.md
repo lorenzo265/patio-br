@@ -26,6 +26,7 @@ tags: [item-em-aberto]
 - [[Plano do mês 1]]
 - [[Plano do mês 2]]
 - [[Plano do mês 4]]
+- [[Plano do mês 5]]
 
 ---
 

@@ -68,6 +68,7 @@ tags: [sdd]
 | 0.55 | 2026-10-06 | as cópias, a restauração testada e os alarmes por dentro ([[T50]]): a cópia diária e a restauração de teste mensal pelo worker, a batida do worker no `/saude`, o registro em JSON sem placa nem telefone, e os alarmes no CloudFormation ([[D-74]]); as entidades `CopiaDoBanco` e `RestauracaoDeTeste` (seções [[5.1 Entidades\|5.1]], [[6.1 Stack\|6.1]], [[7.2 Nuvem (AWS, sa-east-1)\|7.2]], [[8.1 Falhas\|8.1]], [[11. Registro de decisões\|11]] e [[13. Glossário\|13]]) |
 | 0.56 | 2026-10-06 | o simulador sem rede e numa imagem, para o roteiro do piloto em homologação ([[T62]]; seção [[6.4 Simulador de portaria\|6.4]]) |
 | 0.57 | 2026-10-06 | o cadastro do cliente pela administração ([[T63]]): as telas, o link de senha de uso único e o CNPJ conferido ([[D-75]]); a entidade `LinkDeSenha` (seções [[5.1 Entidades\|5.1]], [[6.2 Telas do MVP\|6.2]], [[8.2 Segurança\|8.2]] e [[11. Registro de decisões\|11]]) |
+| 0.58 | 2026-10-09 | plano do mês 5 criado, o piloto no site em modo sombra ([[Plano do mês 5\|docs/planos/2027-02-plano-mes-5.md]]): o cronograma do mês 5 com o leitor v1 e o teste técnico no site do piloto, o comercial local para comparar, o registro manual, a gravação para treino, os parâmetros e a linha de base e o PWA; as propostas para o [[ABERTO-05]] e o [[ABERTO-18]] e os novos prazos do [[ABERTO-02]], do [[ABERTO-03]], do [[ABERTO-08]] e do [[ABERTO-09]] (seções [[10. Cronograma (out-2026 – mar-2027)\|10]] e [[12. Itens em aberto\|12]]) |
 
 ---
 

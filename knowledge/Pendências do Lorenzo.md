@@ -1,7 +1,7 @@
 ---
 tipo: "mapa"
 escrita: "à mão"
-atualizada: "2026-10-06"
+atualizada: "2026-10-09"
 tags: [pendencias]
 ---
 
@@ -10,7 +10,7 @@ tags: [pendencias]
 O que só o Lorenzo pode fazer ou decidir. O código não resolve nenhum item em aberto sem passar
 por ele ([[0. Como usar este documento|SDD, seção 0]]).
 
-> [!info] Retrato de 06/10/2026
+> [!info] Retrato de 09/10/2026
 > A situação dos itens da trilha não técnica não fica registrada no repositório: confira e
 > atualize esta nota quando algum andar.
 
@@ -42,6 +42,19 @@ por ele ([[0. Como usar este documento|SDD, seção 0]]).
   ([[N22]]).
 - [ ] **Fechar o piloto pago:** o cliente, o site, o preço e a data da instalação ([[N24]]).
 
+## Para o mês 5 (o piloto no site)
+
+- [ ] **Aprovar o [[Plano do mês 5]]:** as decisões G1 a G7, cada uma com a recomendação.
+- [ ] **Combinar o modo sombra com o cliente** ([[N25]]): as datas, o registro manual numa
+  planilha, as marcações do líder de pátio, a planilha diária dos agendamentos, os parâmetros do
+  extrato, a escala da portaria ([[ABERTO-05]]) e os tempos dos alertas ([[ABERTO-09]]).
+- [ ] **Comprar o hardware do site e contratar o integrador de CFTV** ([[N26]]).
+- [ ] **Abrir as contas da GPU e do Plate Recognizer** (o programa local, [[N27]]).
+- [ ] **A placa de aviso da portaria e o relatório de impacto** para o cliente, conferidos pelo
+  advogado ([[N28]]).
+- [ ] **Visitar o site antes da instalação** ([[N29]]) e **reservar as horas de rotular**
+  ([[N30]]).
+
 ## Com o advogado
 
 - [ ] Modelo de contrato e acordo de tratamento de dados ([[ABERTO-07]]) e os prazos de guarda
@@ -56,7 +69,7 @@ por ele ([[0. Como usar este documento|SDD, seção 0]]).
 - [ ] Conta da AWS com alerta de gasto ([[N2]]), para a produção do piloto ([[D-11]]).
 - [ ] Roteiro e as 15 a 25 conversas ([[N5]]); a oferta de piloto anual pré-pago ([[N12]]); o
   preço do piloto ([[ABERTO-06]]).
-- [ ] Hardware da bancada ([[N7]]) para medir o leitor no mini PC N150 ([[T20]]).
+- [ ] Hardware da bancada ([[N7]]) para medir o leitor no mini PC N150 ([[T70]], no mês 5).
 - [ ] O site parceiro ([[N6]]) e o guia de posicionamento das câmeras ([[N8]], [[ABERTO-08]]),
   que ficaram para depois; a instalação ([[N9]]) e o registro manual ([[N13]]) foram adiados em
   05/10.
@@ -67,9 +80,9 @@ por ele ([[0. Como usar este documento|SDD, seção 0]]).
 
 | Item | Espera |
 |---|---|
-| [[ABERTO-02]] pesos e limite do casamento | os dados rotulados |
-| [[ABERTO-03]] o detector (D-FINE-N ou YOLOX-Tiny) | o teste técnico no N150 |
-| [[ABERTO-05]] como medir as horas de portaria | o cliente do piloto |
+| [[ABERTO-02]] pesos e limite do casamento | os dados do modo sombra ([[T77]]) |
+| [[ABERTO-03]] o detector (D-FINE-N ou YOLOX-Tiny) | o treino do detector e a medição no N150 ([[T66]] e [[T70]]) |
+| [[ABERTO-05]] como medir as horas de portaria | o cliente do piloto (a proposta é a G5 do [[Plano do mês 5]]) |
 | [[ABERTO-09]] tolerância de janela e momento do alerta | o cliente do piloto |
 | [[ABERTO-10]] dados do modo B | a Fase 2 |
 | [[ABERTO-19]] e [[ABERTO-20]] recebimento e estoque | o piloto aprovado ([[D-43]]) |

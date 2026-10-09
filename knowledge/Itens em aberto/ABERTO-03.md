@@ -14,16 +14,19 @@ tags: [item-em-aberto]
 
 **Item:** Detector: D-FINE-N ou YOLOX-Tiny
 
-**Como e quando decidir:** no teste técnico: acerto e quadros por segundo no N150
+**Como e quando decidir:** no treino do detector v1 e na medição no N150: acerto e quadros por segundo (plano do mês 5, [[T66]] e [[T70]])
 
 ## Onde aparece
 
 - [[4.2 O caminho de cada câmera, dentro da caixa]]
 - [[4.4 Onde roda]]
+- [[Histórico de versões do SDD]]
 - [[Plano do mês 2]]
+- [[Plano do mês 5]]
 - [[T15]]
 - [[T20]]
 - [[T24]]
+- [[T66]]
 
 ---
 

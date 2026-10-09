@@ -1,7 +1,7 @@
 # SDD — patio-br (nome provisório)
 
 **Documento de desenho do software (SDD) do MVP do piloto**
-Versão 0.57 · 2026-10-06 · Situação: aprovado como base; itens em aberto na seção 12
+Versão 0.58 · 2026-10-09 · Situação: aprovado como base; itens em aberto na seção 12
 
 ---
 
@@ -1209,7 +1209,7 @@ folga.
 | 2. Nov | kit gravando no site parceiro; rotular 3–5 mil placas; treinar detector e OCR v1; régua fixa; agendamento (link + planilha) e casamento | conversas; oferta de piloto anual pré-pago | **teste técnico: nosso leitor × comercial** |
 | 3. Dez | **demonstração comercial na internet** (D-45): visual próprio; portaria e pátio definitivos; painel e extrato em R$; mensagens do motorista simuladas; visão do recebimento e do estoque; link de demonstração por empresa | apresentar às empresas | **demonstração no ar** |
 | 4. Jan | produção na AWS com backups e monitoramento; verificação em duas etapas; WhatsApp e SMS; alertas; caixa de borda com saúde, atualização e contêiner; frota de borda; trilha de prova completa; prazos de guarda; base de treino e placas sintéticas; API e webhooks (se o cliente pedir) | fechar o piloto pago; contas da Meta, do SMS e da AWS; advogado | versão do piloto em homologação |
-| 5. Fev | 6 câmeras e caixa definitiva no site; modo sombra 2–4 semanas; ajustes e retreino | linha de base do extrato | acerto real medido |
+| 5. Fev | 6 câmeras e caixa definitiva no site; leitor v1 com pesos nossos e o comercial local para comparar; modo sombra 2–4 semanas, com o registro manual da portaria; gravação para treino, rotulagem, régua fixa e retreino; parâmetros do extrato e linha de base medida; PWA dos tablets | linha de base do extrato; o modo sombra combinado com o cliente; hardware e instalação | **acerto real medido** e a decisão de ligar o check-in |
 | 6. Mar | check-in automático ligado; WhatsApp ativo; primeiro extrato real | apresentar o extrato | **decisão seguir / iterar / parar** (até 31/03/2027) |
 
 **Mudança de 05/10:** o site parceiro ficou para depois. O Lorenzo quer o produto mais
@@ -1221,6 +1221,11 @@ comercial na internet (D-45, `docs/planos/2026-12-plano-mes-3.md`).
 aprovado pelo Lorenzo no mesmo dia, com as decisões D-57 a D-62. Além do que o cronograma já previa, o mês traz a
 verificação em duas etapas (seção 8.2), os prazos de guarda (seção 8.3), as placas sintéticas
 (D-44) e a API com os webhooks do MVP (seção 2.3).
+
+**Plano do mês 5 (09/10):** o piloto no site, em modo sombra, em
+`docs/planos/2027-02-plano-mes-5.md`, com as decisões G1 a G7 para o Lorenzo. O leitor v1 e o
+teste técnico, que esperavam as placas reais desde o mês 2 (as antigas T20 a T26, T36 e T37),
+vêm para o modo sombra do site do piloto, com as placas do próprio site.
 
 **Depois de março:** se a decisão for seguir, começa o desenho do recebimento, do estoque e
 do cuidado de cargas (D-43).
@@ -1331,16 +1336,16 @@ do cuidado de cargas (D-43).
 | # | Item | Como e quando decidir |
 |---|---|---|
 | ABERTO-01 | Nome do produto (e a identidade visual: cores, fontes, marca) | numa sessão à parte, com o prompt de `docs/prompts/identidade-visual.md`, antes do visual próprio (T40) |
-| ABERTO-02 | Pesos e limite do casamento (seção 5.3) | com os dados rotulados do mês 2 |
-| ABERTO-03 | Detector: D-FINE-N ou YOLOX-Tiny | no teste técnico: acerto e quadros por segundo no N150 |
+| ABERTO-02 | Pesos e limite do casamento (seção 5.3) | com os dados do modo sombra do piloto (plano do mês 5, T77) |
+| ABERTO-03 | Detector: D-FINE-N ou YOLOX-Tiny | no treino do detector v1 e na medição no N150: acerto e quadros por segundo (plano do mês 5, T66 e T70) |
 | ABERTO-04 | Prazos de guarda de dados | com advogado, no mês 1 |
-| ABERTO-05 | Método de medir horas-posto de portaria antes e depois | com o cliente do piloto, antes do modo sombra |
+| ABERTO-05 | Método de medir horas-posto de portaria antes e depois. Proposta (plano do mês 5, G5): pela escala da portaria, postos × horas, no contrato do serviço de portaria ou na escala da equipe própria, antes (no modo sombra) e depois, com o custo do posto pelo mesmo contrato; o gestor informa, com o documento | com o cliente do piloto, antes do modo sombra |
 | ABERTO-06 | Preço e forma de cobrança do piloto (assinatura, implantação, hardware) | nas conversas dos meses 1–2 |
 | ABERTO-07 | Modelo de contrato e acordo de tratamento de dados | com advogado, no mês 1 |
-| ABERTO-08 | Guia de posicionamento das câmeras por tipo de portaria | no kit de bancada e no site parceiro (meses 1–2) |
-| ABERTO-09 | Tolerância de janela (padrão 4h após o fim da janela, usada também para "não veio") e momento do alerta de estadia (padrão: 4h depois da chegada) | com o cliente do piloto |
+| ABERTO-08 | Guia de posicionamento das câmeras por tipo de portaria | na bancada e na instalação do piloto (plano do mês 5, T70 e T74) |
+| ABERTO-09 | Tolerância de janela (padrão 4h após o fim da janela, usada também para "não veio") e momento do alerta de estadia (padrão: 4h depois da chegada) | com o cliente do piloto, ao combinar o modo sombra (plano do mês 5, N25) |
 | ABERTO-10 | Modelo de dados detalhado do modo B | no início da Fase 2 |
-| ABERTO-18 | Placas reais para o leitor, com o site parceiro adiado (seção 4.6). O treino começa com placas sintéticas e bases abertas (D-44). Falta decidir: a régua fixa com cerca de 1.000 placas reais (proposta: fotografar a frota própria parada de transportadoras e locadoras, com carta de autorização) e a coleta própria para treinar (proposta: gravar em 1 a 3 portões de conhecidos, com o sim do advogado) (`docs/validacao/fontes-de-placas.md`) | com o Lorenzo e o advogado, antes da régua e do treino com placas reais |
+| ABERTO-18 | Placas reais para o leitor, com o site parceiro adiado (seção 4.6). O treino começa com placas sintéticas e bases abertas (D-44). Falta decidir: a régua fixa com cerca de 1.000 placas reais (proposta: fotografar a frota própria parada de transportadoras e locadoras, com carta de autorização) e a coleta própria para treinar (proposta: gravar em 1 a 3 portões de conhecidos, com o sim do advogado) (`docs/validacao/fontes-de-placas.md`). Proposta do plano do mês 5 (G2): as placas do próprio site do piloto, no modo sombra, com a cláusula do treino no contrato (D-71) e o sim do advogado; os portões de conhecidos e a frota parada só se o piloto atrasar | com o Lorenzo e o advogado, antes da régua e do treino com placas reais |
 | ABERTO-19 | Recebimento: de onde vêm os itens da NF-e (o XML que o fornecedor manda, o certificado digital do cliente ou outro caminho) e como o resultado volta ao sistema do cliente (`docs/validacao/recebimento-e-estoque.md`) | no desenho do módulo, depois do piloto aprovado |
 | ABERTO-20 | Estoque e cuidado de cargas: estoque próprio (endereços, saldo, busca, visão 3D) ou ligado ao sistema do cliente; o que entra em "cuidado de cargas e controle de entregas" e se inclui a conferência de carga e lacre da Fase 3 | no desenho dos módulos, depois do piloto aprovado |
 
@@ -1454,3 +1459,4 @@ do cuidado de cargas (D-43).
 | 0.55 | 2026-10-06 | as cópias, a restauração testada e os alarmes por dentro (T50): a cópia diária e a restauração de teste mensal pelo worker, a batida do worker no `/saude`, o registro em JSON sem placa nem telefone, e os alarmes no CloudFormation (D-74); as entidades `CopiaDoBanco` e `RestauracaoDeTeste` (seções 5.1, 6.1, 7.2, 8.1, 11 e 13) |
 | 0.56 | 2026-10-06 | o simulador sem rede e numa imagem, para o roteiro do piloto em homologação (T62; seção 6.4) |
 | 0.57 | 2026-10-06 | o cadastro do cliente pela administração (T63): as telas, o link de senha de uso único e o CNPJ conferido (D-75); a entidade `LinkDeSenha` (seções 5.1, 6.2, 8.2 e 11) |
+| 0.58 | 2026-10-09 | plano do mês 5 criado, o piloto no site em modo sombra (`docs/planos/2027-02-plano-mes-5.md`): o cronograma do mês 5 com o leitor v1 e o teste técnico no site do piloto, o comercial local para comparar, o registro manual, a gravação para treino, os parâmetros e a linha de base e o PWA; as propostas para o `[ABERTO-05]` e o `[ABERTO-18]` e os novos prazos do `[ABERTO-02]`, do `[ABERTO-03]`, do `[ABERTO-08]` e do `[ABERTO-09]` (seções 10 e 12) |

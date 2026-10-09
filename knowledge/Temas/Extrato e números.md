@@ -1,7 +1,7 @@
 ---
 tipo: "tema"
 escrita: "à mão"
-atualizada: "2026-10-05"
+atualizada: "2026-10-09"
 tags: [tema]
 ---
 
@@ -22,8 +22,9 @@ O pilar que nenhum concorrente tem: a economia medida dentro do produto, em R$
 - **O mês fechado é guardado** na primeira vez que é pedido, com a versão da regra; o mês em
   curso é parcial.
 - **A linha de base** é uma tabela por site: na demonstração, "exemplo", gravada pela semente e
-  marcada assim na tela; no piloto, medida no modo sombra. Como medir as horas de portaria
-  antes e depois ainda depende do cliente ([[ABERTO-05]]).
+  marcada assim na tela; no piloto, medida no modo sombra ([[T73]]). Como medir as horas de
+  portaria antes e depois ainda depende do cliente ([[ABERTO-05]]); a proposta é pela escala da
+  portaria (G5 do [[Plano do mês 5]]).
 - **O painel do gestor** mostra o dia, o mês até agora e cada dia do mês ([[T44]]).
 
 ## Onde ler
