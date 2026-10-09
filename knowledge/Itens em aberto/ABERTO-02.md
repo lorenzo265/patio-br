@@ -14,15 +14,18 @@ tags: [item-em-aberto]
 
 **Item:** Pesos e limite do casamento (seção [[5.3 Casamento da chegada com o agendamento|5.3]])
 
-**Como e quando decidir:** com os dados rotulados do mês 2
+**Como e quando decidir:** com os dados do modo sombra do piloto (plano do mês 5, [[T77]])
 
 ## Onde aparece
 
 - [[5.3 Casamento da chegada com o agendamento]]
+- [[Histórico de versões do SDD]]
 - [[nuvem.portaria]]
 - [[Plano do mês 2]]
+- [[Plano do mês 5]]
 - [[T32]]
 - [[T37]]
+- [[T77]]
 
 ---
 

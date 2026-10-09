@@ -28,6 +28,7 @@ tags: [item-em-aberto]
 - [[Plano do mês 2]]
 - [[Plano do mês 3]]
 - [[Plano do mês 4]]
+- [[Plano do mês 5]]
 - [[Prompt da identidade visual]]
 
 ---

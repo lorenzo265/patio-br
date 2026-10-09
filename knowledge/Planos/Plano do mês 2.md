@@ -93,15 +93,15 @@ Ordem sugerida por semana. A semana 4 tem folga.
 
 ### Semana 1 — gravar, rotular e a régua
 
-- [[T21]] Gravação no site parceiro
-- [[T22]] Rotulagem no Label Studio
-- [[T23]] Régua fixa
+- ~~[[T21]] Gravação no site parceiro~~ → [[T65]] do mês 5
+- ~~[[T22]] Rotulagem no Label Studio~~ → [[T75]] do mês 5
+- ~~[[T23]] Régua fixa~~ → [[T75]] do mês 5
 
 ### Semana 2 — leitor v1
 
-- [[T24]] Detector v1
-- [[T25]] OCR v1
-- [[T26]] Leitor v1 na caixa
+- ~~[[T24]] Detector v1~~ → [[T66]] do mês 5
+- ~~[[T25]] OCR v1~~ → [[T67]] do mês 5
+- ~~[[T26]] Leitor v1 na caixa~~ → [[T68]] do mês 5
 
 ### Semanas 2–3 — agendamento
 
@@ -120,8 +120,8 @@ Ordem sugerida por semana. A semana 4 tem folga.
 ### Semana 4 — de ponta a ponta e o teste técnico
 
 - [[T35]] Simulador com agendamentos
-- ~~[[T36]] Teste técnico (o marco)~~ → próximo plano
-- ~~[[T37]] Ajuste do casamento~~ → próximo plano
+- ~~[[T36]] Teste técnico (o marco)~~ → [[T78]] do mês 5
+- ~~[[T37]] Ajuste do casamento~~ → [[T77]] do mês 5
 
 ### Acrescentada em 05/10
 

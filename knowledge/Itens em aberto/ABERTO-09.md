@@ -14,7 +14,7 @@ tags: [item-em-aberto]
 
 **Item:** Tolerância de janela (padrão 4h após o fim da janela, usada também para "não veio") e momento do alerta de estadia (padrão: 4h depois da chegada)
 
-**Como e quando decidir:** com o cliente do piloto
+**Como e quando decidir:** com o cliente do piloto, ao combinar o modo sombra (plano do mês 5, [[N25]])
 
 ## Onde aparece
 
@@ -23,13 +23,16 @@ tags: [item-em-aberto]
 - [[5.3 Casamento da chegada com o agendamento]]
 - [[7.4 A caixa de borda]]
 - [[8.1 Falhas]]
+- [[Histórico de versões do SDD]]
 - [[N24]]
+- [[N25]]
 - [[nuvem]]
 - [[nuvem.alertas]]
 - [[nuvem.frota]]
 - [[nuvem.patio]]
 - [[nuvem.portaria]]
 - [[Plano do mês 4]]
+- [[Plano do mês 5]]
 - [[T57]]
 
 ---

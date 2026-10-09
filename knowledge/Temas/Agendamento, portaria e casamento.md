@@ -1,7 +1,7 @@
 ---
 tipo: "tema"
 escrita: "à mão"
-atualizada: "2026-10-05"
+atualizada: "2026-10-09"
 tags: [tema]
 ---
 
@@ -21,7 +21,7 @@ caminhão.
 - **O casamento** ([[5.3 Casamento da chegada com o agendamento]]) compara as placas lidas com as
   esperadas, por pontos; a placa antiga e a Mercosul contam como a mesma ([[D-36]]); na saída,
   qualquer placa da composição fecha a visita ([[D-37]]). Os pesos e o limite esperam os dados
-  ([[ABERTO-02]]); a tolerância de janela, o cliente ([[ABERTO-09]]).
+  do modo sombra ([[ABERTO-02]], [[T77]]); a tolerância de janela, o cliente ([[ABERTO-09]]).
 - **Roda no worker**, pela fila de tarefas no PostgreSQL ([[D-38]]): a passagem chega, a tarefa
   de casar entra na fila.
 - **O porteiro confere a placa** de qualquer passagem ([[D-42]]); corrigir a placa numa exceção
@@ -36,4 +36,4 @@ caminhão.
 - Código: [[nuvem.agendamento]], [[nuvem.portaria]], [[nuvem.web]] (telas da portaria e dos
   agendamentos), [[Rotas]].
 - Tarefas: [[T11]], [[T12]], [[T27]] a [[T35]], [[T38]], [[T41]]; o ajuste com dados reais:
-  [[T37]].
+  [[T77]] (era a [[T37]]); o modo sombra e o registro manual: [[T64]] e [[T72]].

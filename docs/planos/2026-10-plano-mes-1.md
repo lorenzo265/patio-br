@@ -473,7 +473,10 @@ portaria. Feito em 2026-10-03 com `--demonstracao --passagens amostra`.
 
 **Commit:** `docs: guia da demonstração do mês 1`
 
-#### T20. Kit de bancada e primeira medição de desempenho
+#### ~~T20. Kit de bancada e primeira medição de desempenho~~ → T70 do mês 5
+
+Passou para o mês 5 em 09/10 como a T70, no site do piloto
+(`docs/planos/2027-02-plano-mes-5.md`).
 
 **Objetivo:** medir o leitor v0 no hardware real (insumo para `[ABERTO-03]` no mês 2).
 

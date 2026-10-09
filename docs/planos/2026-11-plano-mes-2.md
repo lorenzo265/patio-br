@@ -84,7 +84,10 @@ Ordem sugerida por semana. A semana 4 tem folga.
 
 ### Semana 1 — gravar, rotular e a régua
 
-#### T21. Gravação no site parceiro
+#### ~~T21. Gravação no site parceiro~~ → T65 do mês 5
+
+Passou para o mês 5 em 09/10 como a T65, no site do piloto
+(`docs/planos/2027-02-plano-mes-5.md`).
 
 **Objetivo:** a caixa grava, sem operar, as passagens do site parceiro para rotular.
 
@@ -106,7 +109,10 @@ gravação no cadastro da câmera (nuvem), testes.
 
 **Commit:** `feat(borda): gravação das passagens para rotular`
 
-#### T22. Rotulagem no Label Studio
+#### ~~T22. Rotulagem no Label Studio~~ → T75 do mês 5
+
+Passou para o mês 5 em 09/10 como a T75, junto com a régua, no site do piloto
+(`docs/planos/2027-02-plano-mes-5.md`).
 
 **Objetivo:** rotular rápido, conferindo o pré-rótulo. Quem rotula: o Lorenzo (05/10).
 
@@ -124,7 +130,10 @@ o comando `tarefas rotulagem`, `ml/src/ml/rotulagem.py`, testes.
 
 **Commit:** `feat(ml): rotulagem no Label Studio com o pré-rótulo do v0`
 
-#### T23. Régua fixa
+#### ~~T23. Régua fixa~~ → T75 do mês 5
+
+Passou para o mês 5 em 09/10 como a T75, junto com a rotulagem, no site do piloto
+(`docs/planos/2027-02-plano-mes-5.md`).
 
 **Objetivo:** um conjunto de imagens rotuladas que **nunca** entra no treino (SDD 4.7).
 
@@ -148,7 +157,10 @@ no treino dá erro.
 
 ### Semana 2 — leitor v1
 
-#### T24. Detector v1
+#### ~~T24. Detector v1~~ → T66 do mês 5
+
+Passou para o mês 5 em 09/10 como a T66, no site do piloto
+(`docs/planos/2027-02-plano-mes-5.md`).
 
 **Objetivo:** detector de veículo e placa com pesos nossos, e a decisão do `[ABERTO-03]`.
 
@@ -163,7 +175,10 @@ no treino dá erro.
 
 **Commit:** `feat(ml): treino do detector v1`
 
-#### T25. OCR v1
+#### ~~T25. OCR v1~~ → T67 do mês 5
+
+Passou para o mês 5 em 09/10 como a T67, no site do piloto
+(`docs/planos/2027-02-plano-mes-5.md`).
 
 **Objetivo:** leitura da placa com pesos nossos.
 
@@ -176,7 +191,10 @@ no treino dá erro.
 
 **Commit:** `feat(ml): treino do OCR v1`
 
-#### T26. Leitor v1 na caixa
+#### ~~T26. Leitor v1 na caixa~~ → T68 do mês 5
+
+Passou para o mês 5 em 09/10 como a T68, com os pesos entregues pela atualização, no site do piloto
+(`docs/planos/2027-02-plano-mes-5.md`).
 
 **Objetivo:** a caixa usa o v1, e a troca não piora a régua.
 
@@ -335,7 +353,10 @@ de passagens tem casos que casam, que viram exceção e que saem.
 
 **Commit:** `feat(ferramentas): simulador com agendamentos`
 
-#### ~~T36. Teste técnico (o marco)~~ → próximo plano
+#### ~~T36. Teste técnico (o marco)~~ → T78 do mês 5
+
+Passou para o mês 5 em 09/10 como a T78, com o acerto real medido no modo sombra, no site do piloto
+(`docs/planos/2027-02-plano-mes-5.md`).
 
 Adiada em 05/10: precisa das gravações de um site, com o registro manual das chegadas (N13).
 
@@ -353,7 +374,10 @@ Adiada em 05/10: precisa das gravações de um site, com o registro manual das c
 
 **Commit:** `docs: teste técnico do mês 2`
 
-#### ~~T37. Ajuste do casamento~~ → próximo plano
+#### ~~T37. Ajuste do casamento~~ → T77 do mês 5
+
+Passou para o mês 5 em 09/10 como a T77, com os dados do modo sombra, no site do piloto
+(`docs/planos/2027-02-plano-mes-5.md`).
 
 Adiada em 05/10: precisa dos dados do site parceiro.
 
